@@ -25,7 +25,7 @@ add_custom_command(OUTPUT ${SHV_LIB}
     DEPENDS ${CMAKE_SOURCE_DIR}/scripthook/ScriptHookRDR2.def)
 add_custom_target(shv_import DEPENDS ${SHV_LIB})
 
-add_library(DualSenseRDR2 SHARED ${CORE_SOURCES} src/world.cpp src/settings_ui.cpp src/main.cpp)
+add_library(DualSenseRDR2 SHARED ${CORE_SOURCES} src/world.cpp src/settings_ui.cpp src/text_inject.cpp src/main.cpp)
 add_dependencies(DualSenseRDR2 shv_import)
 set_target_properties(DualSenseRDR2 PROPERTIES PREFIX "" SUFFIX ".asi")
 target_link_options(DualSenseRDR2 PRIVATE -s)     # no symbols in the shipped .asi

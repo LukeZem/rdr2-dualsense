@@ -11,10 +11,10 @@
                 <GamePath>update:/x64/data/ui/settings/controls.ymt</GamePath>
                 <FilePath>data/ui/settings/controls.ymt</FilePath>
             </FileReplacement>
-            <!-- The page itself and its texts live in nested archives, which LML cannot patch per file; they
-                 ship as whole rebuilt archives in the global legacy replace folder (see README.md):
+            <!-- The page itself lives in a nested archive, which LML cannot patch per file; it ships as a whole
+                 rebuilt archive in the global legacy replace folder (see README.md):
                    <game>/lml/replace/update_4/x64/data/ui/startup_data.rpf
-                   <game>/lml/replace/update_3/x64/data/lang/american_rel.rpf -->
+                 The texts come from DualSenseRDR2.asi (added to the game's string table, any language). -->
         </Resource>
     </Resources>
 </EasyInstall>

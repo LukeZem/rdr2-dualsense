@@ -66,11 +66,11 @@ Write-Host "Installed DualSenseRDR2.asi"
 # 3. the "DualSense" page in the game's Settings (needs Lenny's Mod Loader: <game>\lml)
 $lmlSrc = Join-Path $here "lml\DualSenseRDR2"
 $lml = Join-Path $GameDir "lml"
-$archives = "replace\update_4\x64\data\ui\startup_data.rpf", "replace\update_3\x64\data\lang\american_rel.rpf"
+$archives = @("replace\update_4\x64\data\ui\startup_data.rpf")   # (the texts come from the .asi, any language)
 if (-not (Test-Path $lml)) {
     Write-Warning "Lenny's Mod Loader not found ($lml) - the DualSense page in Settings needs it. Everything else works; settings are in DualSenseRDR2.ini."
 } elseif (-not (Test-Path (Join-Path $lmlSrc $archives[0]))) {
-    Write-Warning "LML files not built (run tools\rpf8\build_dualsense_page.py and build_lang.py) - Settings page skipped."
+    Write-Warning "LML files not built (run tools\rpf8\make_lml_dualsense.py and build_dualsense_page.py) - Settings page skipped."
 } else {
     $dst = Join-Path $lml "DualSenseRDR2"
     New-Item -ItemType Directory -Force (Join-Path $dst "data\ui\settings") | Out-Null

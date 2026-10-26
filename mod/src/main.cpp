@@ -3,6 +3,7 @@
 #include "core.h"
 #include "log.h"
 #include "shv.h"
+#include "text_inject.h"
 
 #include <thread>
 
@@ -36,6 +37,7 @@ BOOL APIENTRY DllMain(HMODULE module, DWORD reason, LPVOID) {
         // Controller, audio and the XInput hook start right away (menus work too);
         // game state comes from the ScriptHook script once a save is loaded.
         std::thread([] { dsr2::core().init(true); }).detach();
+        dsr2::text_inject_start();       // our Settings texts, in the game's own string table
         shv_scriptRegister(module, script_main);
     } else if (reason == DLL_PROCESS_DETACH) {
         shv_scriptUnregister(module);

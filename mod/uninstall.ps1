@@ -14,11 +14,11 @@ if (-not $KeepSettings) {
     $data = Join-Path $GameDir "DualSenseRDR2"
     if (Test-Path $data) { Remove-Item $data -Recurse }
 }
-# the Settings page (LML): our folder and the two archives (another mod's copy is put back if we kept one)
+# the Settings page (LML): our folder and archive (another mod's copy is put back if we kept one)
 $lml = Join-Path $GameDir "lml"
 $page = Join-Path $lml "DualSenseRDR2"
 if (Test-Path $page) { Remove-Item $page -Recurse; Write-Host "Removed the Settings page" }
-foreach ($a in "replace\update_4\x64\data\ui\startup_data.rpf", "replace\update_3\x64\data\lang\american_rel.rpf") {
+foreach ($a in @("replace\update_4\x64\data\ui\startup_data.rpf")) {
     $p = Join-Path $lml $a
     if (Test-Path "$p.dualsense-backup") { Move-Item "$p.dualsense-backup" $p -Force; Write-Host "Restored $a" }
     elseif (Test-Path $p) { Remove-Item $p; Write-Host "Removed $a" }

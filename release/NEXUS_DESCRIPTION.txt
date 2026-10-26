@@ -59,8 +59,8 @@ setting of the mod, changed with left / right like the game's own options. Chang
 [*]DualSense on a USB cable (Bluetooth: triggers, lightbar, rumble only)
 [*]DSX / DS4Windows closed, Steam Input OFF for RDR2
 [*]Story mode only
-[*]For the settings page: Lenny's Mod Loader (LML, from rdr2mods.com) and
-the game in English (page texts are English only for now) - without it, settings are in DualSenseRDR2.ini
+[*]For the settings page: Lenny's Mod Loader (LML, from rdr2mods.com); any game language (page texts are
+English) - without LML, settings are in DualSenseRDR2.ini
 [/list]
 
 [size=4][b]Install[/b][/size]

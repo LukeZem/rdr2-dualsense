@@ -28,7 +28,7 @@ How the page works (no script runs while the pause menu is open):
     list_item_option_stepper, streamed by settings_launcher_flow for the HDR screen) whose data context
     is ScriptDatastoreRoot.DualSenseSettings.<row> (uiBindingContextBehavior, as hdr_calibration.ymt).
     The template binds value TWO-WAY, so left/right changes the data store while scripts are frozen.
-  * Labels: text labels added to settings.yldb by build_lang.py (make_lml_dualsense.LABELS).
+  * Texts: label keys only - the .asi adds the texts to the game's string table (text_inject.cpp).
 
 Data store contract (the .asi creates it BEFORE the pause menu opens and reads it back after;
 settings_ui.cpp page_sync):
@@ -66,7 +66,7 @@ HEADER_OUT = "data/ui/startup_data/" + HEADER_ARC
 
 TRANSITION = "dualsense_settings"                        # <transition> of the row in controls.ymt
 STORE = "DualSenseSettings"                              # ScriptDatastoreRoot.<STORE>
-TITLE_LABEL = "DUALSENSE_SETTINGS"                       # already in our american_rel.rpf ("DualSense")
+TITLE_LABEL = "DUALSENSE_SETTINGS"                       # "DualSense" (dualsense_settings.ENTRY_LABELS)
 PAGE_HOST = ("MV_SETTINGS_HOST.PAUSEMENU_PAGE_HOST_ANIM.PAUSEMENU_PAGE_HOST.GRD_SETTINGS_GRID."
              "PAN_SETTINGS_PAGE_HOST")
 

@@ -8,7 +8,7 @@ Usage: make_lml_dualsense.py [xml_base_dir] [out_dir]
 One text edit of the game's own (current update_4) x64/data/ui/settings/controls.ymt: a Button item
 "dualsense" (transition "dualsense_settings", gamepad page only) right after the "vibration" item. The
 transition is followed by our flow states (build_dualsense_page.py), the texts come from LABELS
-(build_lang.py). Writes plain XML (xml/...), binary RBF (data/...) and a unified diff (diff/...).
+(the .asi adds them at run time). Writes plain XML (xml/...), binary RBF (data/...) and a unified diff (diff/...).
 Re-run after a game update to rebase the edit on the new file.
 """
 import difflib
@@ -19,14 +19,12 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
 import rbf2xml  # noqa: E402
 import gxt2  # noqa: E402
+import dualsense_settings  # noqa: E402
 
 REPO = os.path.abspath(os.path.join(HERE, "..", ".."))
 
 TRANSITION = "dualsense_settings"
-LABELS = {
-    "DUALSENSE_SETTINGS": "DualSense",
-    "DUALSENSE_SETTINGS_DESC": "Adaptive triggers, haptics, microphone, lightbar and speaker of the DualSense.",
-}
+LABELS = dualsense_settings.ENTRY_LABELS          # the row's texts (added by the .asi at run time)
 
 CONTROLS_ANCHOR = """          <displayType>kSettingDependency_Hide</displayType>
         </Item>

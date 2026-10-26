@@ -14,8 +14,8 @@ REQUIREMENTS
 - Close DSX / DS4Windows, and turn Steam Input OFF for RDR2
   (Steam -> RDR2 -> Properties -> Controller -> Disable Steam Input)
 - Remove other DualSense mods (DualSenseHaptics.asi, NodixDualSense.asi ...) - they fight over the controller
-- For the settings page in the game's menu: Lenny's Mod Loader (LML), and the game language set to English
-  (the page's texts are English only for now). Without LML everything else works; you change settings in
+- For the settings page in the game's menu: Lenny's Mod Loader (LML). Works with any game language (the
+  page's texts are in English). Without LML everything else works; you change settings in
   DualSenseRDR2.ini instead.
 
 
@@ -24,14 +24,14 @@ INSTALL
 Copy everything from this zip into the game folder (where RDR2.exe is):
     DualSenseRDR2.asi
     DualSenseRDR2\  (folder with weapons.json, haptics.json, sound_labels.json)
-    lml\            (merges into LML's folder: lml\DualSenseRDR2 and two archives in lml\replace)
+    lml\            (merges into LML's folder: lml\DualSenseRDR2 and one archive in lml\replace)
 Start the game. Settings are created on first start in DualSenseRDR2.ini.
 If you use LML's Mod Manager, make sure "DualSense for RDR2 - Settings page" is enabled.
-Note: lml\replace\update_4\x64\data\ui\startup_data.rpf and lml\replace\update_3\x64\data\lang\american_rel.rpf
-replace whole game archives - if another mod ships the same files, only one of the two can work.
+Note: lml\replace\update_4\x64\data\ui\startup_data.rpf replaces a whole game archive (the menus) - if another
+mod ships the same file, only one of the two can work.
 
 UNINSTALL: delete DualSenseRDR2.asi, the DualSenseRDR2 folder, DualSenseRDR2.ini, DualSenseRDR2.log,
-lml\DualSenseRDR2 and the two archives above.
+lml\DualSenseRDR2 and the archive above.
 
 
 WHAT YOU FEEL
