@@ -1,0 +1,1 @@
+"""Trigger Lab user interface."""

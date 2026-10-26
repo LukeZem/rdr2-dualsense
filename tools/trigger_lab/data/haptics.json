@@ -1,0 +1,528 @@
+{
+  "_doc": "Haptic recipes. pan: -1 left actuator (support / bow hand), +1 right (trigger hand). Layers: click (mechanical tap), tone (decaying sine, hz -> to_hz sweep), noise (band lo..hi), ref (another recipe), game (the game's own sounds: bank + role + convert preset; every sound is a variant). 'fallback' layers replace game layers when the game audio is missing. Weapon shots are built automatically from each weapon's recorded shots + the synthesized shot_* recipe of its class (as the recoil thump). Times in ms.",
+
+  "shot_revolver": {"gain": 1.0, "layers": [
+    {"type": "click", "hz": 220, "cycles": 1, "amp": 1.0, "pan": 0.4},
+    {"type": "tone", "hz": 72, "to_hz": 44, "attack_ms": 1, "decay_ms": 45, "amp": 0.95, "pan": 0.35},
+    {"type": "noise", "lo": 70, "hi": 240, "decay_ms": 22, "amp": 0.35, "pan": 0.35}
+  ]},
+  "shot_pistol": {"gain": 1.0, "layers": [
+    {"type": "click", "hz": 260, "cycles": 1, "amp": 1.0, "pan": 0.5},
+    {"type": "tone", "hz": 95, "to_hz": 62, "decay_ms": 26, "amp": 0.75, "pan": 0.5},
+    {"type": "noise", "lo": 180, "hi": 420, "delay_ms": 8, "decay_ms": 14, "amp": 0.35, "pan": 0.6}
+  ]},
+  "shot_pistol_light": {"gain": 1.0, "layers": [
+    {"type": "click", "hz": 280, "cycles": 1, "amp": 0.8, "pan": 0.5},
+    {"type": "tone", "hz": 105, "to_hz": 75, "decay_ms": 20, "amp": 0.55, "pan": 0.5}
+  ]},
+  "shot_repeater": {"gain": 1.0, "layers": [
+    {"type": "click", "hz": 200, "cycles": 1, "amp": 1.0, "pan": 0.15},
+    {"type": "tone", "hz": 62, "to_hz": 40, "attack_ms": 1.5, "decay_ms": 60, "amp": 1.0, "pan": 0.0},
+    {"type": "noise", "lo": 60, "hi": 200, "decay_ms": 35, "amp": 0.4, "pan": 0.0}
+  ]},
+  "shot_rifle": {"gain": 1.0, "layers": [
+    {"type": "click", "hz": 180, "cycles": 1, "amp": 1.0, "pan": 0.1},
+    {"type": "tone", "hz": 54, "to_hz": 32, "attack_ms": 2, "decay_ms": 95, "amp": 1.0, "pan": 0.0},
+    {"type": "noise", "lo": 50, "hi": 160, "decay_ms": 55, "amp": 0.45, "pan": 0.0}
+  ]},
+  "shot_sniper": {"gain": 1.0, "layers": [
+    {"type": "click", "hz": 170, "cycles": 1, "amp": 1.0, "pan": 0.1},
+    {"type": "tone", "hz": 50, "to_hz": 29, "attack_ms": 2, "decay_ms": 120, "amp": 1.0, "pan": 0.0},
+    {"type": "noise", "lo": 45, "hi": 150, "decay_ms": 70, "amp": 0.5, "pan": 0.0}
+  ]},
+  "shot_elephant": {"gain": 1.0, "layers": [
+    {"type": "click", "hz": 150, "cycles": 2, "amp": 1.0, "pan": 0.0},
+    {"type": "tone", "hz": 40, "to_hz": 24, "attack_ms": 3, "decay_ms": 170, "amp": 1.0, "pan": 0.0},
+    {"type": "noise", "lo": 35, "hi": 130, "decay_ms": 110, "amp": 0.7, "pan": 0.0}
+  ]},
+  "shot_shotgun": {"gain": 1.0, "layers": [
+    {"type": "click", "hz": 160, "cycles": 2, "amp": 1.0, "pan": 0.0},
+    {"type": "tone", "hz": 44, "to_hz": 27, "attack_ms": 2, "decay_ms": 140, "amp": 1.0, "pan": 0.0},
+    {"type": "noise", "lo": 40, "hi": 140, "decay_ms": 90, "amp": 0.6, "pan": 0.0},
+    {"type": "tone", "hz": 31, "delay_ms": 15, "attack_ms": 10, "decay_ms": 80, "amp": 0.5, "pan": 0.0}
+  ]},
+  "shot_varmint": {"gain": 1.0, "layers": [
+    {"type": "click", "hz": 320, "cycles": 1, "amp": 0.5, "pan": 0.3},
+    {"type": "tone", "hz": 120, "to_hz": 90, "decay_ms": 14, "amp": 0.3, "pan": 0.2}
+  ]},
+  "shot_gatling": {"gain": 1.0, "layers": [
+    {"type": "click", "hz": 220, "cycles": 1, "amp": 0.8, "pan": 0.0},
+    {"type": "tone", "hz": 66, "to_hz": 46, "decay_ms": 32, "amp": 0.7, "pan": 0.0},
+    {"type": "noise", "lo": 60, "hi": 200, "decay_ms": 18, "amp": 0.3, "pan": 0.0}
+  ]},
+  "shot_flare": {"gain": 1.0, "layers": [
+    {"type": "click", "hz": 240, "cycles": 1, "amp": 0.7, "pan": 0.4},
+    {"type": "tone", "hz": 80, "to_hz": 60, "decay_ms": 30, "amp": 0.5, "pan": 0.4},
+    {"type": "noise", "lo": 120, "hi": 400, "attack_ms": 20, "decay_ms": 150, "amp": 0.15, "pan": 0.2}
+  ]},
+  "cannon": {"gain": 1.0, "layers": [
+    {"type": "game", "bank": "EXPLOSIONS", "role": "explosion", "convert": "explosion", "amp": 1.0},
+    {"type": "tone", "hz": 34, "to_hz": 22, "attack_ms": 5, "decay_ms": 220, "amp": 0.8}
+  ], "fallback": [
+    {"type": "click", "hz": 120, "cycles": 2, "amp": 1.0},
+    {"type": "noise", "lo": 25, "hi": 120, "attack_ms": 4, "decay_ms": 260, "amp": 0.9}
+  ]},
+
+  "dry_fire": {"gain": 1.0, "layers": [
+    {"type": "click", "hz": 320, "cycles": 1, "amp": 0.7, "pan": 0.6},
+    {"type": "tone", "hz": 240, "decay_ms": 10, "amp": 0.2, "pan": 0.6}
+  ]},
+  "reset_click": {"gain": 1.0, "layers": [
+    {"type": "click", "hz": 380, "cycles": 1, "amp": 0.25, "pan": 0.8}
+  ]},
+  "cylinder_index": {"gain": 1.0, "layers": [
+    {"type": "click", "hz": 300, "cycles": 1, "amp": 0.35, "pan": 0.6}
+  ]},
+  "cylinder_gate": {"gain": 1.0, "layers": [
+    {"type": "click", "hz": 280, "cycles": 1, "amp": 0.4, "pan": 0.2},
+    {"type": "noise", "lo": 200, "hi": 450, "delay_ms": 4, "decay_ms": 10, "amp": 0.12, "pan": 0.2}
+  ]},
+  "hammer_cock": {"gain": 1.0, "layers": [
+    {"type": "click", "hz": 260, "cycles": 1, "amp": 0.4, "pan": 0.6},
+    {"type": "noise", "lo": 200, "hi": 500, "delay_ms": 10, "decay_ms": 25, "amp": 0.12, "pan": 0.6},
+    {"type": "click", "hz": 240, "cycles": 1, "delay_ms": 60, "amp": 0.75, "pan": 0.6}
+  ]},
+  "hammer_cock_auto": {"gain": 0.6, "layers": [{"type": "ref", "name": "hammer_cock"}]},
+  "topbreak_open": {"gain": 1.0, "layers": [
+    {"type": "click", "hz": 240, "cycles": 1, "amp": 0.7, "pan": 0.2},
+    {"type": "noise", "lo": 250, "hi": 600, "delay_ms": 60, "attack_ms": 5, "decay_ms": 40, "amp": 0.35, "pan": -0.2},
+    {"type": "click", "hz": 400, "cycles": 1, "delay_ms": 90, "amp": 0.2, "pan": -0.3},
+    {"type": "click", "hz": 380, "cycles": 1, "delay_ms": 115, "amp": 0.2, "pan": -0.3}
+  ]},
+  "topbreak_close": {"gain": 1.0, "layers": [
+    {"type": "click", "hz": 210, "cycles": 1, "amp": 0.9, "pan": 0.2},
+    {"type": "tone", "hz": 95, "decay_ms": 18, "amp": 0.35, "pan": 0.2}
+  ]},
+
+  "slide_cycle": {"gain": 1.0, "layers": [
+    {"type": "noise", "lo": 180, "hi": 450, "decay_ms": 12, "amp": 0.35, "pan": 0.6},
+    {"type": "click", "hz": 300, "cycles": 1, "delay_ms": 22, "amp": 0.45, "pan": 0.6},
+    {"type": "click", "hz": 420, "cycles": 1, "delay_ms": 160, "amp": 0.12, "pan": 0.9}
+  ]},
+  "long_recoil_cycle": {"gain": 1.0, "layers": [
+    {"type": "noise", "lo": 100, "hi": 320, "attack_ms": 5, "decay_ms": 30, "amp": 0.45, "pan": 0.0},
+    {"type": "click", "hz": 200, "cycles": 1, "delay_ms": 55, "amp": 0.7, "pan": 0.0},
+    {"type": "tone", "hz": 80, "delay_ms": 55, "decay_ms": 25, "amp": 0.35, "pan": 0.0}
+  ]},
+  "mag_out": {"gain": 1.0, "layers": [
+    {"type": "click", "hz": 300, "cycles": 1, "amp": 0.35, "pan": 0.4},
+    {"type": "noise", "lo": 150, "hi": 400, "delay_ms": 10, "decay_ms": 18, "amp": 0.15, "pan": 0.0}
+  ]},
+  "mag_in": {"gain": 1.0, "layers": [
+    {"type": "noise", "lo": 150, "hi": 400, "attack_ms": 8, "decay_ms": 10, "amp": 0.2, "pan": -0.2},
+    {"type": "click", "hz": 240, "cycles": 1, "delay_ms": 20, "amp": 0.7, "pan": 0.2}
+  ]},
+  "slide_release": {"gain": 1.0, "layers": [
+    {"type": "click", "hz": 220, "cycles": 1, "amp": 0.8, "pan": 0.5},
+    {"type": "noise", "lo": 150, "hi": 400, "decay_ms": 15, "amp": 0.3, "pan": 0.5}
+  ]},
+  "stripper_clip": {"gain": 1.0, "layers": [
+    {"type": "click", "hz": 260, "cycles": 1, "amp": 0.5, "pan": -0.2},
+    {"type": "noise", "lo": 200, "hi": 500, "delay_ms": 20, "attack_ms": 60, "decay_ms": 40, "amp": 0.35, "pan": -0.1},
+    {"type": "click", "hz": 320, "cycles": 1, "delay_ms": 200, "amp": 0.3, "pan": 0.0}
+  ]},
+  "magazine_index": {"gain": 1.0, "layers": [
+    {"type": "click", "hz": 260, "cycles": 1, "amp": 0.3, "pan": 0.3},
+    {"type": "noise", "lo": 150, "hi": 350, "decay_ms": 12, "amp": 0.12, "pan": 0.0}
+  ]},
+
+  "lever_open": {"gain": 1.0, "layers": [
+    {"type": "click", "hz": 220, "cycles": 1, "amp": 0.55, "pan": 0.6},
+    {"type": "noise", "lo": 120, "hi": 380, "attack_ms": 5, "decay_ms": 30, "amp": 0.45, "pan": 0.6}
+  ]},
+  "lever_close": {"gain": 1.0, "layers": [
+    {"type": "noise", "lo": 120, "hi": 380, "decay_ms": 15, "amp": 0.3, "pan": 0.6},
+    {"type": "click", "hz": 200, "cycles": 1, "delay_ms": 6, "amp": 0.9, "pan": 0.4},
+    {"type": "tone", "hz": 90, "delay_ms": 6, "decay_ms": 20, "amp": 0.4, "pan": 0.4}
+  ]},
+  "lever_cycle": {"gain": 0.8, "layers": [
+    {"type": "ref", "name": "lever_open"},
+    {"type": "ref", "name": "lever_close", "delay_ms": 170}
+  ]},
+  "lever_open_big": {"gain": 1.0, "layers": [
+    {"type": "click", "hz": 190, "cycles": 1, "amp": 0.7, "pan": 0.5},
+    {"type": "noise", "lo": 90, "hi": 320, "attack_ms": 8, "decay_ms": 40, "amp": 0.55, "pan": 0.5},
+    {"type": "click", "hz": 240, "cycles": 1, "delay_ms": 70, "amp": 0.4, "pan": 0.2}
+  ]},
+  "lever_close_big": {"gain": 1.0, "layers": [
+    {"type": "noise", "lo": 90, "hi": 320, "decay_ms": 18, "amp": 0.35, "pan": 0.5},
+    {"type": "click", "hz": 180, "cycles": 1, "delay_ms": 8, "amp": 1.0, "pan": 0.3},
+    {"type": "tone", "hz": 75, "delay_ms": 8, "decay_ms": 28, "amp": 0.5, "pan": 0.3}
+  ]},
+  "lever_cycle_big": {"gain": 0.85, "layers": [
+    {"type": "ref", "name": "lever_open_big"},
+    {"type": "ref", "name": "lever_close_big", "delay_ms": 210}
+  ]},
+  "bolt_open": {"gain": 1.0, "layers": [
+    {"type": "click", "hz": 260, "cycles": 1, "amp": 0.6, "pan": 0.6},
+    {"type": "noise", "lo": 150, "hi": 350, "delay_ms": 25, "attack_ms": 25, "decay_ms": 30, "amp": 0.3, "pan": 0.6},
+    {"type": "click", "hz": 240, "cycles": 1, "delay_ms": 95, "amp": 0.5, "pan": 0.6}
+  ]},
+  "bolt_close": {"gain": 1.0, "layers": [
+    {"type": "noise", "lo": 150, "hi": 350, "attack_ms": 20, "decay_ms": 25, "amp": 0.3, "pan": 0.6},
+    {"type": "click", "hz": 220, "cycles": 1, "delay_ms": 60, "amp": 0.8, "pan": 0.5},
+    {"type": "click", "hz": 260, "cycles": 1, "delay_ms": 110, "amp": 0.6, "pan": 0.6}
+  ]},
+  "bolt_cycle": {"gain": 0.8, "layers": [
+    {"type": "ref", "name": "bolt_open"},
+    {"type": "ref", "name": "bolt_close", "delay_ms": 230}
+  ]},
+  "pump_back": {"gain": 1.0, "layers": [
+    {"type": "noise", "lo": 100, "hi": 300, "attack_ms": 15, "decay_ms": 25, "amp": 0.45, "pan": -0.6},
+    {"type": "click", "hz": 200, "cycles": 1, "delay_ms": 55, "amp": 0.8, "pan": -0.5}
+  ]},
+  "pump_forward": {"gain": 1.0, "layers": [
+    {"type": "noise", "lo": 100, "hi": 300, "attack_ms": 10, "decay_ms": 20, "amp": 0.4, "pan": -0.6},
+    {"type": "click", "hz": 190, "cycles": 1, "delay_ms": 45, "amp": 1.0, "pan": -0.4},
+    {"type": "tone", "hz": 85, "delay_ms": 45, "decay_ms": 20, "amp": 0.4, "pan": -0.4}
+  ]},
+  "pump_cycle": {"gain": 0.8, "layers": [
+    {"type": "ref", "name": "pump_back"},
+    {"type": "ref", "name": "pump_forward", "delay_ms": 180}
+  ]},
+  "slide_small_back": {"gain": 0.7, "layers": [{"type": "ref", "name": "pump_back"}]},
+  "slide_small_forward": {"gain": 0.7, "layers": [{"type": "ref", "name": "pump_forward"}]},
+  "slide_small_cycle": {"gain": 0.6, "layers": [{"type": "ref", "name": "pump_cycle"}]},
+  "breech_open": {"gain": 1.0, "layers": [
+    {"type": "click", "hz": 230, "cycles": 1, "amp": 0.6, "pan": 0.3},
+    {"type": "noise", "lo": 120, "hi": 320, "delay_ms": 10, "decay_ms": 25, "amp": 0.25, "pan": 0.0}
+  ]},
+  "breech_close": {"gain": 1.0, "layers": [
+    {"type": "click", "hz": 200, "cycles": 1, "amp": 0.9, "pan": 0.0},
+    {"type": "tone", "hz": 80, "decay_ms": 25, "amp": 0.4, "pan": 0.0}
+  ]},
+
+  "reload_round": {"gain": 1.0, "layers": [
+    {"type": "click", "hz": 280, "cycles": 1, "amp": 0.35, "pan": -0.2},
+    {"type": "noise", "lo": 200, "hi": 500, "decay_ms": 8, "amp": 0.1, "pan": -0.2}
+  ]},
+  "reload_shell": {"gain": 1.0, "layers": [
+    {"type": "noise", "lo": 150, "hi": 400, "attack_ms": 8, "decay_ms": 12, "amp": 0.2, "pan": -0.3},
+    {"type": "click", "hz": 230, "cycles": 1, "delay_ms": 25, "amp": 0.5, "pan": -0.2}
+  ]},
+
+  "bow_release": {"gain": 1.0, "layers": [
+    {"type": "click", "hz": 200, "cycles": 1, "amp": 0.6, "pan": 0.7},
+    {"type": "tone", "hz": 145, "to_hz": 120, "decay_ms": 40, "amp": 0.7, "pan": 0.7},
+    {"type": "tone", "hz": 72, "to_hz": 55, "attack_ms": 3, "decay_ms": 65, "amp": 0.85, "pan": -0.7},
+    {"type": "tone", "hz": 110, "delay_ms": 5, "decay_ms": 160, "amp": 0.25, "pan": 0.0}
+  ]},
+  "bow_nock": {"gain": 1.0, "layers": [
+    {"type": "click", "hz": 300, "cycles": 1, "amp": 0.3, "pan": 0.6},
+    {"type": "noise", "lo": 200, "hi": 400, "decay_ms": 10, "amp": 0.1, "pan": 0.6}
+  ]},
+  "bow_creak": {"gain": 1.0, "layers": [
+    {"type": "noise", "lo": 60, "hi": 160, "attack_ms": 30, "decay_ms": 40, "amp": 0.18, "pan": -0.5}
+  ]},
+  "bow_letdown": {"gain": 1.0, "layers": [
+    {"type": "tone", "hz": 90, "decay_ms": 40, "amp": 0.3, "pan": -0.3}
+  ]},
+
+  "throw": {"gain": 1.0, "layers": [
+    {"type": "noise", "lo": 80, "hi": 260, "attack_ms": 60, "decay_ms": 50, "amp": 0.4, "pan": 0.6}
+  ]},
+  "throw_flick": {"gain": 1.0, "layers": [
+    {"type": "noise", "lo": 120, "hi": 320, "attack_ms": 30, "decay_ms": 25, "amp": 0.35, "pan": 0.7}
+  ]},
+  "bolas": {"gain": 1.0, "layers": [
+    {"type": "noise", "lo": 80, "hi": 200, "attack_ms": 40, "decay_ms": 40, "amp": 0.3, "pan": 0.6},
+    {"type": "noise", "lo": 80, "hi": 200, "delay_ms": 120, "attack_ms": 40, "decay_ms": 40, "amp": 0.25, "pan": 0.6}
+  ]},
+  "fuse_light": {"gain": 1.0, "layers": [
+    {"type": "click", "hz": 400, "cycles": 1, "amp": 0.2, "pan": -0.3},
+    {"type": "noise", "lo": 200, "hi": 500, "attack_ms": 20, "decay_ms": 120, "amp": 0.12, "pan": -0.3}
+  ]},
+  "rag_light": {"gain": 1.0, "layers": [
+    {"type": "noise", "lo": 80, "hi": 240, "attack_ms": 40, "decay_ms": 100, "amp": 0.2, "pan": -0.3}
+  ]},
+  "explosion_far": {"gain": 0.9, "layers": [
+    {"type": "game", "bank": "EXPLOSIONS", "role": "explosion", "convert": "explosion", "amp": 1.0}
+  ], "fallback": [
+    {"type": "tone", "hz": 38, "to_hz": 26, "attack_ms": 15, "decay_ms": 260, "amp": 1.0},
+    {"type": "noise", "lo": 25, "hi": 140, "attack_ms": 10, "decay_ms": 300, "amp": 0.7}
+  ]},
+  "bottle_burst": {"gain": 1.0, "layers": [
+    {"type": "click", "hz": 380, "cycles": 2, "amp": 0.4},
+    {"type": "noise", "lo": 60, "hi": 220, "delay_ms": 10, "attack_ms": 40, "decay_ms": 200, "amp": 0.55}
+  ]},
+
+  "melee_swing": {"gain": 1.0, "layers": [
+    {"type": "noise", "lo": 90, "hi": 260, "attack_ms": 50, "decay_ms": 30, "amp": 0.25, "pan": 0.6}
+  ]},
+  "melee_swing_heavy": {"gain": 1.0, "layers": [
+    {"type": "noise", "lo": 70, "hi": 220, "attack_ms": 70, "decay_ms": 40, "amp": 0.35, "pan": 0.5}
+  ]},
+  "impact_blade": {"gain": 1.0, "layers": [
+    {"type": "click", "hz": 180, "cycles": 1, "amp": 0.8, "pan": 0.6},
+    {"type": "noise", "lo": 80, "hi": 250, "decay_ms": 30, "amp": 0.5, "pan": 0.6}
+  ]},
+  "impact_chop": {"gain": 1.0, "layers": [
+    {"type": "click", "hz": 150, "cycles": 2, "amp": 1.0, "pan": 0.5},
+    {"type": "tone", "hz": 70, "to_hz": 50, "decay_ms": 45, "amp": 0.8, "pan": 0.4}
+  ]},
+  "impact_blunt": {"gain": 1.0, "layers": [
+    {"type": "tone", "hz": 60, "to_hz": 42, "decay_ms": 50, "amp": 0.9, "pan": 0.4},
+    {"type": "noise", "lo": 50, "hi": 180, "decay_ms": 40, "amp": 0.5, "pan": 0.4}
+  ]},
+  "punch_swing": {"gain": 1.0, "layers": [
+    {"type": "noise", "lo": 80, "hi": 220, "attack_ms": 35, "decay_ms": 22, "amp": 0.22}
+  ]},
+  "punch_impact": {"_doc": "body shot: deep, soft, the fist sinks in", "gain": 1.0, "layers": [
+    {"type": "click", "hz": 170, "cycles": 1, "amp": 0.55},
+    {"type": "tone", "hz": 64, "to_hz": 44, "attack_ms": 2, "decay_ms": 38, "amp": 1.0},
+    {"type": "noise", "lo": 50, "hi": 180, "decay_ms": 28, "amp": 0.5}
+  ]},
+  "punch_impact_face": {"_doc": "face shot: harder, sharper, bone", "gain": 1.0, "layers": [
+    {"type": "click", "hz": 230, "cycles": 1, "amp": 0.85},
+    {"type": "tone", "hz": 82, "to_hz": 56, "attack_ms": 1, "decay_ms": 26, "amp": 0.85},
+    {"type": "noise", "lo": 120, "hi": 320, "decay_ms": 14, "amp": 0.35}
+  ]},
+  "punch_finisher": {"_doc": "haymaker: the whole body behind it", "gain": 1.0, "layers": [
+    {"type": "click", "hz": 150, "cycles": 2, "amp": 1.0},
+    {"type": "tone", "hz": 56, "to_hz": 34, "attack_ms": 3, "decay_ms": 75, "amp": 1.0},
+    {"type": "noise", "lo": 40, "hi": 170, "decay_ms": 55, "amp": 0.6},
+    {"type": "tone", "hz": 40, "delay_ms": 60, "attack_ms": 15, "decay_ms": 60, "amp": 0.35}
+  ]},
+  "punch_blocked": {"_doc": "stopped by an arm: dull, no snap, short", "gain": 1.0, "layers": [
+    {"type": "tone", "hz": 52, "to_hz": 44, "attack_ms": 4, "decay_ms": 30, "amp": 0.6},
+    {"type": "noise", "lo": 40, "hi": 110, "decay_ms": 25, "amp": 0.3}
+  ]},
+  "punch_miss": {"_doc": "nothing to hit: the arm snaps to full extension - a light jolt, no impact", "gain": 1.0, "layers": [
+    {"type": "tone", "hz": 46, "to_hz": 38, "attack_ms": 12, "decay_ms": 30, "amp": 0.28},
+    {"type": "noise", "lo": 60, "hi": 140, "delay_ms": 10, "attack_ms": 20, "decay_ms": 40, "amp": 0.1}
+  ]},
+  "melee_miss": {"gain": 1.0, "layers": [
+    {"type": "tone", "hz": 50, "to_hz": 40, "attack_ms": 10, "decay_ms": 28, "amp": 0.25}
+  ]},
+  "melee_miss_heavy": {"_doc": "heavy blade carries through: momentum pulls the arm", "gain": 1.0, "layers": [
+    {"type": "tone", "hz": 42, "to_hz": 34, "attack_ms": 25, "decay_ms": 60, "amp": 0.35},
+    {"type": "noise", "lo": 50, "hi": 130, "attack_ms": 30, "decay_ms": 50, "amp": 0.12}
+  ]},
+  "melee_blocked": {"gain": 1.0, "layers": [
+    {"type": "click", "hz": 260, "cycles": 1, "amp": 0.5},
+    {"type": "tone", "hz": 58, "to_hz": 48, "decay_ms": 30, "amp": 0.55}
+  ]},
+  "impact_blade_deep": {"gain": 1.0, "layers": [
+    {"type": "click", "hz": 160, "cycles": 1, "amp": 0.6},
+    {"type": "noise", "lo": 60, "hi": 200, "attack_ms": 5, "decay_ms": 45, "amp": 0.6},
+    {"type": "tone", "hz": 60, "to_hz": 46, "decay_ms": 40, "amp": 0.5}
+  ]},
+
+  "lasso_throw": {"gain": 1.0, "layers": [
+    {"type": "noise", "lo": 80, "hi": 220, "attack_ms": 80, "decay_ms": 60, "amp": 0.3, "pan": 0.6}
+  ]},
+  "rope_catch": {"gain": 1.0, "layers": [
+    {"type": "tone", "hz": 55, "to_hz": 40, "attack_ms": 4, "decay_ms": 60, "amp": 0.9, "pan": 0.0},
+    {"type": "noise", "lo": 60, "hi": 180, "decay_ms": 40, "amp": 0.4, "pan": 0.0}
+  ]},
+  "rope_jerk": {"gain": 1.0, "layers": [
+    {"type": "tone", "hz": 50, "to_hz": 38, "attack_ms": 6, "decay_ms": 45, "amp": 0.7, "pan": -0.2}
+  ]},
+  "cast": {"gain": 1.0, "layers": [
+    {"type": "noise", "lo": 100, "hi": 300, "attack_ms": 60, "decay_ms": 80, "amp": 0.25, "pan": 0.5},
+    {"type": "click", "hz": 400, "cycles": 1, "delay_ms": 150, "amp": 0.15, "pan": 0.5}
+  ]},
+  "fish_bite": {"gain": 1.0, "layers": [
+    {"type": "tone", "hz": 90, "decay_ms": 25, "amp": 0.6, "pan": 0.3},
+    {"type": "tone", "hz": 90, "delay_ms": 90, "decay_ms": 25, "amp": 0.6, "pan": 0.3}
+  ]},
+  "fish_tug": {"gain": 1.0, "layers": [
+    {"type": "tone", "hz": 75, "to_hz": 60, "attack_ms": 5, "decay_ms": 35, "amp": 0.55, "pan": 0.2}
+  ]},
+
+  "heartbeat": {"gain": 1.0, "layers": [
+    {"type": "tone", "hz": 48, "to_hz": 36, "attack_ms": 6, "decay_ms": 35, "amp": 0.6, "pan": -0.5},
+    {"type": "tone", "hz": 44, "to_hz": 34, "delay_ms": 240, "attack_ms": 6, "decay_ms": 30, "amp": 0.4, "pan": -0.5}
+  ]},
+  "deadeye_in": {"gain": 1.0, "layers": [
+    {"type": "tone", "hz": 90, "to_hz": 35, "attack_ms": 40, "decay_ms": 120, "amp": 0.6}
+  ]},
+  "deadeye_out": {"gain": 1.0, "layers": [
+    {"type": "tone", "hz": 35, "to_hz": 90, "attack_ms": 20, "decay_ms": 60, "amp": 0.4}
+  ]},
+  "hoof_dirt": {"_doc": "packed earth: soft thud", "gain": 1.0, "layers": [
+    {"type": "tone", "hz": 58, "to_hz": 44, "attack_ms": 3, "decay_ms": 30, "amp": 0.9},
+    {"type": "noise", "lo": 50, "hi": 160, "decay_ms": 22, "amp": 0.35}
+  ]},
+  "hoof_mud": {"_doc": "mud: dull, sucking, no click", "gain": 1.0, "layers": [
+    {"type": "tone", "hz": 46, "to_hz": 36, "attack_ms": 8, "decay_ms": 40, "amp": 0.75},
+    {"type": "noise", "lo": 40, "hi": 120, "delay_ms": 20, "attack_ms": 15, "decay_ms": 45, "amp": 0.25}
+  ]},
+  "hoof_stone": {"_doc": "stone, cobbles, rock: hard clack", "gain": 1.0, "layers": [
+    {"type": "click", "hz": 240, "cycles": 1, "amp": 0.8},
+    {"type": "tone", "hz": 70, "to_hz": 52, "decay_ms": 18, "amp": 0.6}
+  ]},
+  "hoof_wood": {"_doc": "bridge planks: hollow knock with ring", "gain": 1.0, "layers": [
+    {"type": "click", "hz": 180, "cycles": 1, "amp": 0.7},
+    {"type": "tone", "hz": 95, "to_hz": 85, "decay_ms": 45, "amp": 0.55}
+  ]},
+  "hoof_snow": {"_doc": "snow: muffled crunch", "gain": 1.0, "layers": [
+    {"type": "noise", "lo": 90, "hi": 260, "attack_ms": 10, "decay_ms": 30, "amp": 0.45},
+    {"type": "tone", "hz": 50, "decay_ms": 25, "amp": 0.45}
+  ]},
+  "hoof_sand": {"gain": 1.0, "layers": [
+    {"type": "noise", "lo": 60, "hi": 180, "attack_ms": 6, "decay_ms": 28, "amp": 0.45},
+    {"type": "tone", "hz": 52, "decay_ms": 22, "amp": 0.5}
+  ]},
+  "hoof_water": {"_doc": "wading: slow splashy push", "gain": 1.0, "layers": [
+    {"type": "noise", "lo": 50, "hi": 200, "attack_ms": 20, "decay_ms": 60, "amp": 0.45},
+    {"type": "tone", "hz": 42, "attack_ms": 15, "decay_ms": 50, "amp": 0.4}
+  ]},
+  "horse_heartbeat": {"_doc": "a big heart under you: deep, fast lub-dub", "gain": 1.0, "layers": [
+    {"type": "tone", "hz": 38, "to_hz": 30, "attack_ms": 8, "decay_ms": 40, "amp": 0.75},
+    {"type": "tone", "hz": 36, "to_hz": 30, "delay_ms": 170, "attack_ms": 8, "decay_ms": 35, "amp": 0.5}
+  ]},
+  "horse_breath": {"gain": 1.0, "layers": [
+    {"type": "noise", "lo": 40, "hi": 120, "attack_ms": 150, "decay_ms": 120, "amp": 0.3}
+  ]},
+  "horse_rear": {"_doc": "the horse rears: a heave that lifts, then drops", "gain": 1.0, "layers": [
+    {"type": "tone", "hz": 40, "to_hz": 30, "attack_ms": 80, "decay_ms": 120, "amp": 0.8},
+    {"type": "tone", "hz": 55, "to_hz": 38, "delay_ms": 600, "attack_ms": 5, "decay_ms": 60, "amp": 1.0}
+  ]},
+  "rail_clack": {"_doc": "a rail joint under the wheels", "gain": 1.0, "layers": [
+    {"type": "click", "hz": 200, "cycles": 1, "amp": 0.6},
+    {"type": "tone", "hz": 62, "to_hz": 48, "decay_ms": 22, "amp": 0.6},
+    {"type": "click", "hz": 190, "cycles": 1, "delay_ms": 55, "amp": 0.45}
+  ]},
+  "wagon_rut": {"gain": 1.0, "layers": [
+    {"type": "tone", "hz": 48, "to_hz": 36, "attack_ms": 4, "decay_ms": 45, "amp": 0.8},
+    {"type": "noise", "lo": 50, "hi": 160, "decay_ms": 35, "amp": 0.35}
+  ]},
+  "hit_bullet": {"_doc": "shot: a sharp punch from one side, then numb", "gain": 1.0, "layers": [
+    {"type": "click", "hz": 170, "cycles": 1, "amp": 1.0},
+    {"type": "tone", "hz": 60, "to_hz": 40, "attack_ms": 1, "decay_ms": 60, "amp": 1.0},
+    {"type": "noise", "lo": 40, "hi": 140, "decay_ms": 50, "amp": 0.5}
+  ]},
+  "hit_melee": {"gain": 1.0, "layers": [
+    {"type": "tone", "hz": 66, "to_hz": 46, "attack_ms": 2, "decay_ms": 40, "amp": 1.0},
+    {"type": "noise", "lo": 50, "hi": 170, "decay_ms": 30, "amp": 0.5}
+  ]},
+  "hit_animal": {"_doc": "bite / claws: impact, then a shaking struggle", "gain": 1.0, "layers": [
+    {"type": "click", "hz": 210, "cycles": 1, "amp": 0.8},
+    {"type": "tone", "hz": 58, "to_hz": 44, "decay_ms": 35, "amp": 0.8},
+    {"type": "noise", "lo": 60, "hi": 220, "delay_ms": 40, "attack_ms": 30, "decay_ms": 120, "amp": 0.45}
+  ]},
+  "hit_fall": {"_doc": "landing hard: whole body", "gain": 1.0, "layers": [
+    {"type": "tone", "hz": 44, "to_hz": 28, "attack_ms": 3, "decay_ms": 90, "amp": 1.0},
+    {"type": "noise", "lo": 30, "hi": 130, "decay_ms": 70, "amp": 0.6}
+  ]},
+  "gunfire_near": {"_doc": "the pressure wave of someone else's shot", "gain": 1.0, "layers": [
+    {"type": "tone", "hz": 52, "to_hz": 38, "attack_ms": 2, "decay_ms": 45, "amp": 0.8},
+    {"type": "click", "hz": 160, "cycles": 1, "amp": 0.3}
+  ]},
+  "hit_confirm": {"gain": 1.0, "layers": [
+    {"type": "click", "hz": 320, "cycles": 1, "amp": 0.25}
+  ]},
+  "shiver": {"_doc": "freezing: a short uncontrolled tremble", "gain": 1.0, "layers": [
+    {"type": "tone", "hz": 22, "attack_ms": 120, "decay_ms": 200, "amp": 0.35},
+    {"type": "noise", "lo": 18, "hi": 40, "attack_ms": 100, "decay_ms": 220, "amp": 0.25}
+  ]},
+  "step_ground": {"_doc": "boot heel on packed earth: short soft thud", "gain": 1.0, "layers": [
+    {"type": "tone", "hz": 62, "to_hz": 48, "attack_ms": 2, "decay_ms": 16, "amp": 0.8},
+    {"type": "noise", "lo": 60, "hi": 170, "decay_ms": 12, "amp": 0.25}
+  ]},
+  "step_grass": {"_doc": "grass: softer, a brush of blades", "gain": 1.0, "layers": [
+    {"type": "tone", "hz": 56, "to_hz": 44, "attack_ms": 4, "decay_ms": 15, "amp": 0.6},
+    {"type": "noise", "lo": 110, "hi": 280, "attack_ms": 8, "decay_ms": 22, "amp": 0.22}
+  ]},
+  "step_mud": {"_doc": "mud: the boot sinks, no heel click, a slow suck", "gain": 1.0, "layers": [
+    {"type": "tone", "hz": 46, "to_hz": 36, "attack_ms": 10, "decay_ms": 30, "amp": 0.7},
+    {"type": "noise", "lo": 40, "hi": 120, "delay_ms": 25, "attack_ms": 20, "decay_ms": 40, "amp": 0.22}
+  ]},
+  "step_stone": {"_doc": "rock / cobbles: hard heel click", "gain": 1.0, "layers": [
+    {"type": "click", "hz": 260, "cycles": 1, "amp": 0.75},
+    {"type": "tone", "hz": 75, "to_hz": 58, "decay_ms": 10, "amp": 0.5}
+  ]},
+  "step_gravel": {"_doc": "gravel: crunch with a little rattle", "gain": 1.0, "layers": [
+    {"type": "click", "hz": 220, "cycles": 1, "amp": 0.4},
+    {"type": "noise", "lo": 140, "hi": 380, "attack_ms": 3, "decay_ms": 26, "amp": 0.45},
+    {"type": "tone", "hz": 60, "decay_ms": 12, "amp": 0.4}
+  ]},
+  "step_wood": {"_doc": "floorboards / boardwalk: hollow knock that rings a moment", "gain": 1.0, "layers": [
+    {"type": "click", "hz": 190, "cycles": 1, "amp": 0.65},
+    {"type": "tone", "hz": 98, "to_hz": 90, "decay_ms": 32, "amp": 0.5}
+  ]},
+  "step_snow": {"_doc": "snow: muffled crunch, packing down", "gain": 1.0, "layers": [
+    {"type": "noise", "lo": 90, "hi": 260, "attack_ms": 12, "decay_ms": 28, "amp": 0.45},
+    {"type": "tone", "hz": 52, "attack_ms": 6, "decay_ms": 18, "amp": 0.4}
+  ]},
+  "step_sand": {"gain": 1.0, "layers": [
+    {"type": "noise", "lo": 60, "hi": 170, "attack_ms": 6, "decay_ms": 24, "amp": 0.4},
+    {"type": "tone", "hz": 54, "decay_ms": 14, "amp": 0.45}
+  ]},
+  "step_water": {"_doc": "wading: a slow push and splash", "gain": 1.0, "layers": [
+    {"type": "noise", "lo": 50, "hi": 200, "attack_ms": 18, "decay_ms": 55, "amp": 0.45},
+    {"type": "tone", "hz": 44, "attack_ms": 12, "decay_ms": 40, "amp": 0.4}
+  ]},
+  "hoof_ground": {"gain": 1.0, "layers": [{"type": "ref", "name": "hoof_dirt"}]},
+  "hoof_grass": {"gain": 0.85, "layers": [{"type": "ref", "name": "hoof_dirt"},
+    {"type": "noise", "lo": 110, "hi": 280, "attack_ms": 8, "decay_ms": 22, "amp": 0.18}]},
+  "hoof_gravel": {"gain": 1.0, "layers": [{"type": "ref", "name": "hoof_dirt"},
+    {"type": "noise", "lo": 140, "hi": 380, "attack_ms": 3, "decay_ms": 26, "amp": 0.35}]},
+  "land": {"_doc": "landing from a jump or drop: knees take it", "gain": 1.0, "layers": [
+    {"type": "tone", "hz": 50, "to_hz": 34, "attack_ms": 3, "decay_ms": 55, "amp": 1.0},
+    {"type": "noise", "lo": 40, "hi": 140, "decay_ms": 35, "amp": 0.4}
+  ]},
+  "climb_grab": {"_doc": "hands grab the ledge, the body is hauled up", "gain": 1.0, "layers": [
+    {"type": "click", "hz": 200, "cycles": 1, "amp": 0.5},
+    {"type": "tone", "hz": 48, "to_hz": 40, "delay_ms": 60, "attack_ms": 80, "decay_ms": 90, "amp": 0.45}
+  ]},
+  "door_open": {"_doc": "latch, then the door swings", "gain": 1.0, "layers": [
+    {"type": "click", "hz": 300, "cycles": 1, "amp": 0.45},
+    {"type": "noise", "lo": 60, "hi": 160, "delay_ms": 40, "attack_ms": 60, "decay_ms": 90, "amp": 0.18}
+  ]},
+  "whistle_ack": {"_doc": "heard you: two firm thumps", "gain": 1.0, "layers": [
+    {"type": "tone", "hz": 72, "to_hz": 60, "attack_ms": 3, "decay_ms": 30, "amp": 1.0},
+    {"type": "click", "hz": 200, "cycles": 1, "amp": 0.8},
+    {"type": "tone", "hz": 72, "to_hz": 60, "delay_ms": 170, "attack_ms": 3, "decay_ms": 30, "amp": 1.0},
+    {"type": "click", "hz": 200, "cycles": 1, "delay_ms": 170, "amp": 0.8}
+  ]},
+  "holster_draw": {"_doc": "the gun slides through the leather, then seats / clears", "gain": 1.0, "layers": [
+    {"type": "noise", "lo": 90, "hi": 260, "attack_ms": 25, "decay_ms": 45, "amp": 0.35, "pan": 0.5},
+    {"type": "click", "hz": 210, "cycles": 1, "delay_ms": 90, "amp": 0.55, "pan": 0.5}
+  ]},
+  "gun_draw": {"_doc": "the gun slides up out of the leather, then clears it", "gain": 1.0, "layers": [
+    {"type": "noise", "lo": 90, "hi": 260, "attack_ms": 20, "decay_ms": 60, "amp": 0.35, "pan": 0.5},
+    {"type": "click", "hz": 230, "cycles": 1, "delay_ms": 110, "amp": 0.45, "pan": 0.5}
+  ]},
+  "gun_holster": {"_doc": "the gun drops into the holster and seats", "gain": 1.0, "layers": [
+    {"type": "noise", "lo": 80, "hi": 220, "attack_ms": 15, "decay_ms": 50, "amp": 0.3, "pan": 0.5},
+    {"type": "tone", "hz": 70, "delay_ms": 70, "attack_ms": 3, "decay_ms": 45, "amp": 0.55, "pan": 0.5},
+    {"type": "click", "hz": 200, "cycles": 1, "delay_ms": 75, "amp": 0.4, "pan": 0.5}
+  ]},
+  "fish_hooked": {"_doc": "the strike: the hook sets, the rod loads", "gain": 1.0, "layers": [{"type": "tone", "hz": 85, "to_hz": 55, "attack_ms": 2, "decay_ms": 70, "amp": 0.9, "pan": 0.0}, {"type": "click", "hz": 240, "cycles": 1, "amp": 0.5, "pan": 0.0}]},
+  "reel_click": {"_doc": "one tooth of the reel's ratchet", "gain": 1.0, "layers": [{"type": "click", "hz": 320, "cycles": 1, "amp": 0.45, "pan": 0.35}]},
+  "line_snap": {"_doc": "the line parts: a crack, then nothing pulling", "gain": 1.0, "layers": [{"type": "click", "hz": 280, "cycles": 2, "amp": 1.0, "pan": 0.0}, {"type": "noise", "lo": 120, "hi": 400, "decay_ms": 30, "amp": 0.6, "pan": 0.0}, {"type": "tone", "hz": 60, "to_hz": 35, "delay_ms": 20, "decay_ms": 90, "amp": 0.5, "pan": 0.0}]},
+  "line_slack": {"_doc": "the fish throws the hook: the line goes limp", "gain": 1.0, "layers": [{"type": "tone", "hz": 55, "to_hz": 35, "attack_ms": 10, "decay_ms": 120, "amp": 0.45, "pan": 0.0}]},
+  "fish_landed": {"_doc": "the fish swings in out of the water", "gain": 1.0, "layers": [{"type": "noise", "lo": 60, "hi": 250, "attack_ms": 10, "decay_ms": 90, "amp": 0.5, "pan": 0.0}, {"type": "tone", "hz": 70, "to_hz": 45, "delay_ms": 60, "decay_ms": 80, "amp": 0.7, "pan": 0.0}]},
+  "fish_flop": {"_doc": "a wet slap of the tail in your hand", "gain": 1.0, "layers": [{"type": "tone", "hz": 95, "to_hz": 60, "attack_ms": 2, "decay_ms": 35, "amp": 0.6, "pan": 0.0}, {"type": "noise", "lo": 100, "hi": 300, "decay_ms": 25, "amp": 0.3, "pan": 0.0}]},
+  "deadeye_mark": {"_doc": "a target painted in Dead Eye: a crisp, dry tick", "gain": 1.0, "layers": [{"type": "click", "hz": 300, "cycles": 1, "amp": 0.7, "pan": 0.6}]},
+  "honor_up": {"_doc": "honor rose: a warm, rising double swell", "gain": 1.0, "layers": [{"type": "tone", "hz": 60, "to_hz": 85, "attack_ms": 40, "decay_ms": 120, "amp": 0.5, "pan": 0.0}, {"type": "tone", "hz": 80, "to_hz": 110, "delay_ms": 170, "attack_ms": 40, "decay_ms": 160, "amp": 0.45, "pan": 0.0}]},
+  "honor_down": {"_doc": "honor fell: one low, heavy sinking thud", "gain": 1.0, "layers": [{"type": "tone", "hz": 55, "to_hz": 32, "attack_ms": 15, "decay_ms": 260, "amp": 0.7, "pan": 0.0}]},
+  "knife_tap": {"_doc": "the knife point stabs into the table between the fingers", "gain": 1.0, "layers": [{"type": "click", "hz": 260, "cycles": 1, "amp": 0.8, "pan": 0.6}, {"type": "tone", "hz": 110, "to_hz": 80, "decay_ms": 22, "amp": 0.5, "pan": 0.6}]},
+  "knife_finger": {"_doc": "a miss: the blade nicks a finger - a sharp jab", "gain": 1.0, "layers": [{"type": "click", "hz": 300, "cycles": 2, "amp": 1.0, "pan": -0.6}, {"type": "noise", "lo": 150, "hi": 450, "decay_ms": 40, "amp": 0.6, "pan": -0.6}, {"type": "tone", "hz": 70, "to_hz": 45, "delay_ms": 15, "decay_ms": 120, "amp": 0.6, "pan": -0.6}]},
+  "chips": {"_doc": "a small stack of chips pushed in, clicking", "gain": 1.0, "layers": [{"type": "click", "hz": 330, "cycles": 1, "amp": 0.5, "pan": 0.4}, {"type": "click", "hz": 310, "cycles": 1, "delay_ms": 45, "amp": 0.45, "pan": 0.4}, {"type": "click", "hz": 340, "cycles": 1, "delay_ms": 85, "amp": 0.4, "pan": 0.4}]},
+  "knock": {"_doc": "two knuckle raps on the table", "gain": 1.0, "layers": [{"type": "tone", "hz": 120, "to_hz": 90, "decay_ms": 25, "amp": 0.6, "pan": 0.5}, {"type": "tone", "hz": 120, "to_hz": 90, "delay_ms": 140, "decay_ms": 25, "amp": 0.55, "pan": 0.5}]},
+  "card_slide": {"_doc": "a card slid over felt", "gain": 1.0, "layers": [{"type": "noise", "lo": 120, "hi": 380, "attack_ms": 20, "decay_ms": 60, "amp": 0.3, "pan": 0.3}]},
+  "card_riffle": {"_doc": "a riffle shuffle: a fast run of card edges", "gain": 1.0, "layers": [{"type": "click", "hz": 360, "cycles": 1, "delay_ms": 0, "amp": 0.25, "pan": 0.4}, {"type": "click", "hz": 360, "cycles": 1, "delay_ms": 30, "amp": 0.25, "pan": -0.4}, {"type": "click", "hz": 360, "cycles": 1, "delay_ms": 60, "amp": 0.25, "pan": 0.4}, {"type": "click", "hz": 360, "cycles": 1, "delay_ms": 90, "amp": 0.25, "pan": -0.4}, {"type": "click", "hz": 360, "cycles": 1, "delay_ms": 120, "amp": 0.25, "pan": 0.4}, {"type": "click", "hz": 360, "cycles": 1, "delay_ms": 150, "amp": 0.25, "pan": -0.4}, {"type": "click", "hz": 360, "cycles": 1, "delay_ms": 180, "amp": 0.25, "pan": 0.4}, {"type": "click", "hz": 360, "cycles": 1, "delay_ms": 210, "amp": 0.25, "pan": -0.4}, {"type": "click", "hz": 360, "cycles": 1, "delay_ms": 240, "amp": 0.25, "pan": 0.4}, {"type": "click", "hz": 360, "cycles": 1, "delay_ms": 270, "amp": 0.25, "pan": -0.4}, {"type": "click", "hz": 360, "cycles": 1, "delay_ms": 300, "amp": 0.25, "pan": 0.4}, {"type": "click", "hz": 360, "cycles": 1, "delay_ms": 330, "amp": 0.25, "pan": -0.4}]},
+  "domino_clack": {"_doc": "a domino tile set down against the others", "gain": 1.0, "layers": [{"type": "click", "hz": 280, "cycles": 1, "amp": 0.7, "pan": 0.4}, {"type": "click", "hz": 250, "cycles": 1, "delay_ms": 35, "amp": 0.35, "pan": 0.4}]},
+  "horse_pat": {"_doc": "your palm on the horse's neck: two soft pats", "gain": 1.0, "layers": [{"type": "tone", "hz": 65, "to_hz": 50, "attack_ms": 8, "decay_ms": 60, "amp": 0.5, "pan": 0.0}, {"type": "tone", "hz": 65, "to_hz": 50, "delay_ms": 260, "attack_ms": 8, "decay_ms": 60, "amp": 0.45, "pan": 0.0}]},
+  "rein_pull": {"_doc": "the reins drawn back", "gain": 1.0, "layers": [{"type": "noise", "lo": 60, "hi": 180, "attack_ms": 60, "decay_ms": 150, "amp": 0.45, "pan": 0.0}, {"type": "tone", "hz": 50, "attack_ms": 60, "decay_ms": 160, "amp": 0.4, "pan": 0.0}]},
+  "rain_drop": {"_doc": "one drop on the hat brim", "gain": 1.0, "layers": [{"type": "click", "hz": 380, "cycles": 1, "amp": 0.3, "pan": 0.0}]},
+  "thunder_far": {"_doc": "thunder rolling far away", "gain": 1.0, "layers": [{"type": "noise", "lo": 25, "hi": 80, "attack_ms": 400, "decay_ms": 1800, "amp": 0.5, "pan": 0.0}]},
+  "bite": {"_doc": "teeth through food: a crunch and a chew", "gain": 1.0, "layers": [{"type": "click", "hz": 240, "cycles": 1, "amp": 0.45, "pan": 0.0}, {"type": "noise", "lo": 90, "hi": 260, "delay_ms": 10, "decay_ms": 45, "amp": 0.35, "pan": 0.0}]},
+  "gulp": {"_doc": "a swallow: a soft low pulse, then a second", "gain": 1.0, "layers": [{"type": "tone", "hz": 70, "to_hz": 55, "attack_ms": 25, "decay_ms": 70, "amp": 0.45, "pan": 0.0}, {"type": "tone", "hz": 65, "to_hz": 50, "delay_ms": 260, "attack_ms": 25, "decay_ms": 70, "amp": 0.35, "pan": 0.0}]},
+  "puff": {"_doc": "a long draw on the smoke, swelling", "gain": 1.0, "layers": [{"type": "noise", "lo": 40, "hi": 120, "attack_ms": 350, "decay_ms": 250, "amp": 0.3, "pan": 0.0}]},
+  "brush_stroke": {"_doc": "the brush drawn along the horse's coat", "gain": 1.0, "layers": [{"type": "noise", "lo": 140, "hi": 420, "attack_ms": 60, "decay_ms": 260, "amp": 0.35, "pan": 0.3}]},
+  "horse_feed": {"_doc": "the horse's soft lips taking it from your palm", "gain": 1.0, "layers": [{"type": "tone", "hz": 55, "attack_ms": 40, "decay_ms": 90, "amp": 0.4, "pan": 0.3}, {"type": "noise", "lo": 60, "hi": 160, "delay_ms": 120, "decay_ms": 80, "amp": 0.25, "pan": 0.3}]},
+  "stow": {"_doc": "a heavy pelt / carcass thrown onto the horse", "gain": 1.0, "layers": [{"type": "tone", "hz": 55, "to_hz": 35, "attack_ms": 5, "decay_ms": 160, "amp": 0.85, "pan": 0.0}, {"type": "noise", "lo": 60, "hi": 200, "decay_ms": 90, "amp": 0.4, "pan": 0.0}]},
+  "heave": {"_doc": "lifting something heavy onto the shoulder", "gain": 1.0, "layers": [{"type": "tone", "hz": 45, "to_hz": 60, "attack_ms": 250, "decay_ms": 120, "amp": 0.55, "pan": 0.0}]},
+  "pluck": {"_doc": "a stem snapping between the fingers", "gain": 1.0, "layers": [{"type": "click", "hz": 340, "cycles": 1, "amp": 0.45, "pan": 0.4}]},
+  "cloth_rub": {"_doc": "the oiled cloth run along the barrel", "gain": 1.0, "layers": [{"type": "noise", "lo": 110, "hi": 330, "attack_ms": 70, "decay_ms": 180, "amp": 0.3, "pan": 0.0}]},
+  "skin_cut": {"_doc": "the knife drawn through hide", "gain": 1.0, "layers": [{"type": "noise", "lo": 180, "hi": 520, "attack_ms": 40, "decay_ms": 280, "amp": 0.35, "pan": 0.0}, {"type": "tone", "hz": 90, "to_hz": 70, "attack_ms": 40, "decay_ms": 240, "amp": 0.2, "pan": 0.0}]},
+  "scrub": {"_doc": "the scrub brush on skin", "gain": 1.0, "layers": [{"type": "noise", "lo": 160, "hi": 450, "attack_ms": 40, "decay_ms": 160, "amp": 0.3, "pan": 0.0}]},
+  "craft_tap": {"_doc": "small work in the hands: a tap, a twist", "gain": 1.0, "layers": [{"type": "click", "hz": 250, "cycles": 1, "amp": 0.35, "pan": 0.0}, {"type": "noise", "lo": 100, "hi": 300, "delay_ms": 60, "decay_ms": 50, "amp": 0.2, "pan": 0.0}]},
+  "sizzle": {"_doc": "meat spitting over the fire, felt through the stick", "gain": 1.0, "layers": [{"type": "click", "hz": 400, "cycles": 1, "amp": 0.18, "pan": 0.0}]},
+  "spur": {"_doc": "heels into the horse's flanks: a quick double kick, both sides", "gain": 1.0, "layers": [{"type": "tone", "hz": 60, "to_hz": 42, "attack_ms": 3, "decay_ms": 45, "amp": 0.55, "pan": -0.7}, {"type": "tone", "hz": 60, "to_hz": 42, "attack_ms": 3, "decay_ms": 45, "amp": 0.55, "pan": 0.7}]},
+  "wheel_tick": {"_doc": "the weapon wheel's selector clicking over one notch", "gain": 1.0, "layers": [{"type": "click", "hz": 300, "cycles": 1, "amp": 0.55, "pan": 0.0}]}
+}

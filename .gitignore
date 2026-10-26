@@ -1,0 +1,10 @@
+.venv/
+__pycache__/
+*.pyc
+tools/trigger_lab/logs/
+mod/build/
+third_party/downloads/
+release/stage/
+release/*.zip
+tools/trigger_lab/data/calibration.json
+tools/awc/weapons_survey.csv

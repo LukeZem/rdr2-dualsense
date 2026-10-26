@@ -1,0 +1,159 @@
+// The game functions the mod reads (hashes from alloc8or's RDR3 native DB). Read-only except the
+// gameplay camera (gyro aim). Only call from the ScriptHook script thread.
+#pragma once
+
+#include "shv.h"
+
+namespace dsr2::nat {
+
+using namespace dsr2::shv;
+
+inline Player PLAYER_ID() { return invoke<Player>(0x217E9DC48139933Dull); }
+inline Ped PLAYER_PED_ID() { return invoke<Ped>(0x096275889B8E0EE0ull); }
+inline bool IS_PLAYER_PLAYING(Player p) { return invoke<int>(0xBFFB35986CAAE58Cull, p) != 0; }
+inline bool IS_PLAYER_CONTROL_ON(Player p) { return invoke<int>(0x7964097FCE4C244Bull, p) != 0; }
+inline bool IS_PLAYER_FREE_AIMING(Player p) { return invoke<int>(0x936F967D4BE1CE9Dull, p) != 0; }
+inline bool GET_PLAYER_TARGET_ENTITY(Player p, Entity* e) { return invoke<int>(0xAE663DDD99C8A670ull, p, e) != 0; }
+inline bool IS_PLAYER_TARGETTING_ANYTHING(Player p) { return invoke<int>(0x4605C66E0F935F83ull, p) != 0; }
+inline bool IS_SPECIAL_ABILITY_ACTIVE(Player p) { return invoke<int>(0xB16223CB7DA965F0ull, p) != 0; }
+inline float GET_PLAYER_DEAD_EYE(Player p) { return invoke<float>(0xA81D24AE0AF99A5Eull, p); }
+inline bool IS_LAW_INCIDENT_ACTIVE(Player p) { return invoke<int>(0xAD401C63158ACBAAull, p) != 0; }
+inline int GET_WANTED_SCORE(Player p) { return invoke<int>(0xDD5FD601481F648Bull, p); }
+
+inline bool IS_ENTITY_DEAD(Entity e) { return invoke<int>(0x7D5B1F88E7504BBAull, e) != 0; }
+inline int GET_ENTITY_HEALTH(Entity e) { return invoke<int>(0x82368787EA73C0F7ull, e); }
+inline int GET_ENTITY_MAX_HEALTH(Entity e) { return invoke<int>(0x15D757606D170C3Cull, e, 0); }
+inline Vector3 GET_ENTITY_COORDS(Entity e) { return invoke<Vector3>(0xA86D5F069399F44Dull, e, 1, 0); }
+inline float GET_ENTITY_HEADING(Entity e) { return invoke<float>(0xC230DD956E2F5507ull, e); }
+inline float GET_ENTITY_SPEED(Entity e) { return invoke<float>(0xFB6BA510A533DF81ull, e); }
+inline Vector3 GET_ENTITY_ROTATION(Entity e) { return invoke<Vector3>(0xE09CAF86C32CB48Full, e, 2); }
+inline bool IS_ENTITY_IN_WATER(Entity e) { return invoke<int>(0xDDE5C125AC446723ull, e) != 0; }
+inline float GET_ENTITY_SUBMERGED_LEVEL(Entity e) { return invoke<float>(0x4A77C3F73FD9E831ull, e); }
+inline bool IS_ENTITY_IN_AIR(Entity e) { return invoke<int>(0x886E37EC497200B6ull, e, 0) != 0; }
+inline bool HAS_ENTITY_BEEN_DAMAGED_BY_ENTITY(Entity a, Entity b) { return invoke<int>(0x7B6E7BEC1143AC86ull, a, b, 1, 1) != 0; }
+inline bool HAS_ENTITY_BEEN_DAMAGED_BY_ANY_PED(Entity e) { return invoke<int>(0x9934E9C42D52D87Eull, e) != 0; }
+inline void CLEAR_ENTITY_LAST_DAMAGE_ENTITY(Entity e) { invoke<void>(0xBB19AC7D4DCEFD0Full, e); }
+inline bool IS_ENTITY_A_PED(Entity e) { return invoke<int>(0xCF8176912DDA4EA5ull, e) != 0; }
+
+inline bool IS_PED_HUMAN(Ped p) { return invoke<int>(0xB980061DA992779Dull, p) != 0; }
+inline bool IS_PED_DEAD_OR_DYING(Ped p) { return invoke<int>(0x3317DEDB88C95038ull, p, 1) != 0; }
+inline bool IS_PED_SHOOTING(Ped p) { return invoke<int>(0x34616828CD07F1A1ull, p) != 0; }
+inline bool IS_PED_RELOADING(Ped p) { return invoke<int>(0x24B100C68C645951ull, p) != 0; }
+inline bool IS_PED_ON_MOUNT(Ped p) { return invoke<int>(0x460BC76A0E10655Eull, p) != 0; }
+inline Ped GET_MOUNT(Ped p) { return invoke<Ped>(0xE7E11B8DCBED1058ull, p); }
+inline bool IS_PED_IN_ANY_TRAIN(Ped p) { return invoke<int>(0x6F972C1AB75A1ED0ull, p) != 0; }
+inline bool IS_PED_IN_ANY_VEHICLE(Ped p) { return invoke<int>(0x997ABD671D25CA0Bull, p, 0) != 0; }
+inline bool IS_PED_IN_ANY_BOAT(Ped p) { return invoke<int>(0x2E0E1C2B4F6CB339ull, p) != 0; }
+inline bool IS_PED_SWIMMING(Ped p) { return invoke<int>(0x9DE327631295B4C2ull, p) != 0; }
+inline bool IS_PED_RAGDOLL(Ped p) { return invoke<int>(0x47E4E977581C5B55ull, p) != 0; }
+inline bool IS_PED_FALLING(Ped p) { return invoke<int>(0xFB92A102F1C4DFA3ull, p) != 0; }
+inline bool IS_PED_IN_MELEE_COMBAT(Ped p) { return invoke<int>(0x4E209B2C1EAD5159ull, p) != 0; }
+inline Ped GET_MELEE_TARGET_FOR_PED(Ped p) { return invoke<Ped>(0x18A3E9EE1297FD39ull, p); }
+inline bool IS_PED_DRUNK(Ped p) { return invoke<int>(0x50F124E6EF188B22ull, p) != 0; }
+inline float GET_PED_DRUNKNESS(Ped p) { return invoke<float>(0x6FB76442469ABD68ull, p); }
+inline Entity GET_LASSO_TARGET(Ped p) { return invoke<Entity>(0xB65A4DAB460A19BDull, p); }
+inline bool IS_PED_LASSOED(Ped p) { return invoke<int>(0x9682F850056C9ADEull, p) != 0; }
+inline bool IS_ATTRIBUTE_CORE_OVERPOWERED(Ped p, int core) { return invoke<int>(0x200373A8DF081F22ull, p, core) != 0; }  // fortified (gold)
+inline int GET_ATTRIBUTE_CORE_VALUE(Ped p, int core) { return invoke<int>(0x36731AC041289BB1ull, p, core); }  // 0 health 1 stamina 2 dead eye
+
+inline bool GET_CURRENT_PED_WEAPON(Ped p, Hash* out) { return invoke<int>(0x3A87E44BB9A01D54ull, p, out, 1, 0, 1) != 0; }
+inline Entity GET_CURRENT_PED_WEAPON_ENTITY_INDEX(Ped p) { return invoke<Entity>(0x3B390A939AF0B5FCull, p, 0); }
+inline bool GET_AMMO_IN_CLIP(Ped p, int* ammo, Hash w) { return invoke<int>(0x2E1202248937775Cull, p, ammo, w) != 0; }
+inline int GET_MAX_AMMO_IN_CLIP(Ped p, Hash w) { return invoke<int>(0xA38DCFFCEA8962FAull, p, w, 1); }
+// stats: honor lives in the story scripts' HONOR_* stats (written on every honor change)
+struct StatId { alignas(8) Hash base; alignas(8) Hash permutation; };
+inline bool STAT_ID_GET_INT(StatId* id, int* out) { return invoke<int>(0x767FBC2AC802EF3Eull, id, out) != 0; }
+inline int GET_NUM_MARKED_DEADEYE_TARGETS(Player p) { return invoke<int>(0xCCD9B77F70D31C9Dull, p); }
+inline int GET_NUMBER_OF_THREADS_RUNNING_THE_SCRIPT_WITH_THIS_HASH(Hash h) { return invoke<int>(0x8E34C953364A76DDull, h); }
+inline bool IS_DISABLED_CONTROL_JUST_PRESSED(int pad, Hash a) { return invoke<int>(0x91AEF906BCA88877ull, pad, a) != 0; }
+inline bool IS_CONTROL_JUST_PRESSED(int pad, Hash a) { return invoke<int>(0x580417101DDB492Full, pad, a) != 0; }
+inline const char* GET_TASK_MOVE_NETWORK_STATE(Ped p) { return invoke<const char*>(0x717E4D1F2048376Dull, p); }
+inline Ped GET_LAST_MOUNT(Ped p) { return invoke<Ped>(0x4C8B59171957BCF7ull, p); }
+inline Ped GET_ACTIVE_HORSE_FOR_PLAYER(Player p) { return invoke<Ped>(0x46FA0AE18F4C7FA9ull, p); }
+inline bool DOES_ENTITY_EXIST(Entity e) { return invoke<int>(0xD42BD6EB2E0F1677ull, e) != 0; }
+inline void TASK_ANIMAL_INTERACTION(Ped p, Ped target, Hash type, Hash model, bool skip_idle) {
+    invoke<void>(0xCD181A959CFDD7F4ull, p, target, type, model, int(skip_idle));
+}
+inline float GET_PED_MOTIVATION(Ped p, int state, Ped target) { return invoke<float>(0x42688E94E96FD9B4ull, p, state, target); }
+// the game's event queue (group 0 = AI events); data are 8-byte slots
+inline int GET_NUMBER_OF_EVENTS(int group) { return invoke<int>(0x5CE8DE5909565748ull, group); }
+inline Hash GET_EVENT_AT_INDEX(int group, int i) { return invoke<Hash>(0xA85E614430EFF816ull, group, i); }
+inline bool GET_EVENT_DATA(int group, int i, void* data, int slots) { return invoke<int>(0x57EC5FA4D4D6AFCAull, group, i, data, slots) != 0; }
+// weather
+inline float GET_RAIN_LEVEL() { return invoke<float>(0x931B5F4CC130224Bull); }
+inline void GET_CURR_WEATHER_STATE(Hash* a, Hash* b, float* pct) { invoke<void>(0x0AC679B2342F14F2ull, a, b, pct); }
+// camp life
+inline Hash GET_ITEM_INTERACTION_STATE(Ped p) { return invoke<Hash>(0x6AA3DCA2C6F5EB6Dull, p); }
+inline bool HAS_ANIM_EVENT_FIRED(Entity e, Hash ev) { return invoke<int>(0x5851CC48405F4A07ull, e, ev) != 0; }
+inline bool IS_ANIMAL_INTERACTION_RUNNING(Ped p) { return invoke<int>(0x7FC84E85D98F063Dull, p) != 0; }
+inline bool GET_IS_ANIMAL(Entity e) { return invoke<int>(0x9A100F1CF4546629ull, e) != 0; }
+inline Hash GET_ACTIVE_DYNAMIC_SCENARIO(Ped p) { return invoke<Hash>(0xC22AA08A8ADB87D4ull, p); }
+inline bool GET_TASK_FISHING(Ped p, void* data) { return invoke<int>(0xF3735ACD11ACD500ull, p, data) != 0; }
+inline bool IS_PED_WEAPON_READY_TO_SHOOT(Ped p) { return invoke<int>(0xB80CA294F2F26749ull, p) != 0; }
+inline bool IS_WEAPON_HOLSTER_STATE_CHANGING(Ped p) { return invoke<int>(0x2387D6E9C6B478AAull, p) != 0; }
+inline Hash GET_WEAPONTYPE_GROUP(Hash w) { return invoke<Hash>(0xEDCA14CA5199FF25ull, w); }
+inline Hash GET_PED_AMMO_TYPE_FROM_WEAPON(Ped p, Hash w) { return invoke<Hash>(0x7FEAD38B326B9F74ull, p, w); }
+inline float GET_WEAPON_DEGRADATION(Entity weaponObject) { return invoke<float>(0x0D78E1097F89E637ull, weaponObject); }
+inline float GET_WEAPON_DIRT(Entity weaponObject) { return invoke<float>(0x810E8AE9AFEA7E54ull, weaponObject); }
+
+inline float GET_GAMEPLAY_CAM_RELATIVE_HEADING() { return invoke<float>(0xC4ABF536048998AAull); }
+inline float GET_GAMEPLAY_CAM_RELATIVE_PITCH() { return invoke<float>(0x99AADEBBA803F827ull); }
+inline void SET_GAMEPLAY_CAM_RELATIVE_HEADING(float h) { invoke<void>(0x5D1EB123EAC5D071ull, h, 1.0f); }
+inline void SET_GAMEPLAY_CAM_RELATIVE_PITCH(float p) { invoke<void>(0xFB760AF4F537B8BFull, p, 1.0f); }
+inline Vector3 GET_GAMEPLAY_CAM_ROT() { return invoke<Vector3>(0x0252D2B5582957A6ull, 2); }
+
+inline bool IS_ANY_UIAPP_ACTIVE() { return invoke<int>(0xAC959AB99AAF3D9Full) != 0; }   // satchel, map, catalog, journal...
+inline bool IS_PAUSE_MENU_ACTIVE() { return invoke<int>(0x535384D6067BA42Eull) != 0; }
+inline bool IS_SCREEN_FADED_OUT() { return invoke<int>(0xF5472C80DF2FF847ull) != 0; }
+inline bool IS_LOADING_SCREEN_VISIBLE() { return invoke<int>(0xB54ADBE65D528FCBull) != 0; }
+inline int GET_CLOCK_HOURS() { return invoke<int>(0xC82CF208C2B19199ull); }
+inline Hash GET_PREV_WEATHER_TYPE_HASH_NAME() { return invoke<Hash>(0x4BEB42AEBCA732E9ull); }
+inline float GET_TEMPERATURE_AT_COORDS(float x, float y, float z) { return invoke<float>(0xB98B78C3768AF6E0ull, x, y, z); }
+inline bool GET_GROUND_Z_AND_MATERIAL(float x, float y, float z, float* gz, Hash* mat) {
+    int flags = 0;
+    return invoke<int>(0xBBE5B63EFFB08E68ull, x, y, z, 17, gz, mat, &flags) != 0;   // 17: map + objects, as R* scripts
+}
+
+// bodies, movement, surroundings
+inline int GET_ENTITY_BONE_INDEX_BY_NAME(Entity e, const char* name) { return invoke<int>(0xBACA8FE9C76C124Eull, e, name); }
+inline Vector3 GET_WORLD_POSITION_OF_ENTITY_BONE(Entity e, int bone) { return invoke<Vector3>(0x82CFA50E34681CA5ull, e, bone); }
+inline int GET_INTERIOR_FROM_ENTITY(Entity e) { return invoke<int>(0xB417689857646F61ull, e); }
+inline float GET_SNOW_LEVEL() { return invoke<float>(0x1E5D727041BE1709ull); }
+inline bool GET_PED_CROUCH_MOVEMENT(Ped p) { return invoke<int>(0xD5FE956C70FF370Bull, p) != 0; }
+inline bool IS_PED_CARRYING_SOMETHING(Ped p) { return invoke<int>(0xA911EE21EDF69DAFull, p) != 0; }
+inline bool IS_PED_CLIMBING(Ped p) { return invoke<int>(0x53E8CB4F48BFE623ull, p) != 0; }
+inline bool IS_PED_VAULTING(Ped p) { return invoke<int>(0x117C70D1F5730B5Eull, p) != 0; }
+inline bool IS_PED_JUMPING(Ped p) { return invoke<int>(0xCEDABC5900A0BF97ull, p) != 0; }
+inline bool IS_PED_OPENING_DOOR(Ped p) { return invoke<int>(0x26AF0E8E30BD2A2Cull, p) != 0; }
+inline float GET_ENTITY_HEIGHT_ABOVE_GROUND(Entity e) { return invoke<float>(0x0D3B5BAEA08F63E9ull, e); }
+
+// speech and looking (greeting)
+struct ScriptedSpeechParams {
+    const char* speechName;
+    const char* voiceName;
+    alignas(8) int variation;
+    alignas(8) Hash speechParamHash;
+    alignas(8) Ped listenerPed;
+    alignas(8) int syncOverNetwork;
+    alignas(8) int v7;
+    alignas(8) int v8;
+};
+static_assert(sizeof(ScriptedSpeechParams) == 0x40, "ScriptedSpeechParams size");
+inline bool PLAY_PED_AMBIENT_SPEECH_NATIVE(Ped speaker, ScriptedSpeechParams* p) { return invoke<int>(0x8E04FEDD28D42462ull, speaker, p) != 0; }
+inline bool IS_AMBIENT_SPEECH_PLAYING(Ped p) { return invoke<int>(0x9072C8B49907BFADull, p) != 0; }
+inline void TASK_LOOK_AT_ENTITY(Ped p, Entity target, int ms) { invoke<void>(0x69F4BE8C8CC4796Cull, p, target, ms, 2048, 3, 0); }
+inline bool IS_PED_MALE(Ped p) { return invoke<int>(0x6D9F5FAA7488BA46ull, p) != 0; }
+// simulate a game action (not a physical button) for the next frame; value 0..1
+inline bool SET_CONTROL_VALUE_NEXT_FRAME(int pad, Hash action, float value) { return invoke<int>(0xE8A25867FBA3B05Eull, pad, action, value) != 0; }
+inline bool GET_PLAYER_INTERACTION_TARGET_ENTITY(Player p, Entity* e) { return invoke<int>(0x3EE1F7A8C32F24E1ull, p, e, 0, 0) != 0; }
+inline bool UI_PROMPT_IS_CONTROL_ACTION_ACTIVE(Hash action) { return invoke<int>(0x1BE19185B8AFE299ull, action) != 0; }
+inline bool IS_CONTROL_PRESSED(int pad, Hash action) { return invoke<int>(0xF3A21BCD95725A4Aull, pad, action) != 0; }
+inline bool IS_DISABLED_CONTROL_PRESSED(int pad, Hash action) { return invoke<int>(0xE2587F8CBBD87B1Dull, pad, action) != 0; }
+
+// on-screen text (the surface teaching note)
+inline const char* VAR_STRING_LITERAL(const char* text) { return invoke<const char*>(0xFA925AC00EB830B9ull, 10, "LITERAL_STRING", text); }
+inline void BG_SET_TEXT_SCALE(float x, float y) { invoke<void>(0xA1253A3C870B6843ull, x, y); }
+inline void BG_SET_TEXT_COLOR(int r, int g, int b, int a) { invoke<void>(0x16FA5CE47F184F1Eull, r, g, b, a); }
+inline void BG_DISPLAY_TEXT(const char* varstring, float x, float y) { invoke<void>(0x16794E044C9EFB58ull, varstring, x, y); }
+
+}  // namespace dsr2::nat

@@ -1,0 +1,69 @@
+=== Nexus Mods page text (paste into the description; Nexus uses BBCode) ===
+
+NAME:     DualSense for RDR2 - Adaptive Triggers, Haptics and Voice
+VERSION:  1.0.0
+CATEGORY: Gameplay  (or: Utilities)
+IMAGES:   release/banner.png (main image), release/features.png
+SUMMARY (short):
+Full DualSense support driven by what the game is really doing: per-weapon adaptive triggers that fire exactly
+on the break, voice-coil haptics for hooves, footsteps on the real ground, fishing line tension, Dead Eye,
+honor, camp life - plus whistle and voice commands through the controller mic.
+
+--- DESCRIPTION ---
+
+[size=5][b]DualSense for RDR2[/b][/size]
+
+Most DualSense mods guess. This one reads the game: the trigger fires the moment it breaks, the hammer needs
+cocking only when the game says the gun isn't ready, the hooves you feel are the real hooves touching the real
+ground, and the fishing line on L2 is the game's own line tension.
+
+[size=4][b]Triggers[/b][/size]
+[list]
+[*]Every weapon has its own pull - take-up, wall, crisp break - and the shot lands exactly on the break
+[*]Hammer / lever / bolt / pump worked with R2, following the game's own "ready to shoot"
+[*]Recoil shoves back against your finger; dirty guns feel gritty; exhaustion and cold make the pull shaky
+[*]Dead Eye: every painted target ticks, every shot of the volley kicks as it fires
+[*]Fishing: R2 tugs when a fish bites; L2 carries the real line tension and strains before it snaps
+[*]Weapon wheel: L2/R2 click like a selector switch - never feel like a shot
+[/list]
+
+[size=4][b]Haptics[/b][/size]
+[list]
+[*]Hoofbeats from the real hooves at every gait, on the real ground material (mud, gravel, wood, grass, snow...)
+[*]Arthur's footsteps from his real feet, landings, ledge grabs, doors, drawing and holstering
+[*]Hits from their direction, nearby gunfire, heartbeat, shivers
+[*]Honor going up or down, bites / sips / puffs, gun cleaning, brushing the horse, skinning, herbs, bathing
+[*]Five finger fillet, poker, blackjack, dominoes
+[*]Gun shots built from each gun's own recordings
+[/list]
+
+[size=4][b]Microphone[/b][/size]
+[list]
+[*]Whistle into the controller to call your horse
+[*]Say "chao" - Arthur greets the nearest person for real (counts for honor)
+[*]"easy" calms your horse
+[*]Commands count only when said on their own - talking to someone in the room won't set them off
+[/list]
+
+[size=4][b]Lightbar, LEDs, speaker[/b][/size]
+Muzzle flash, hits, Dead Eye glow, lantern flicker, wanted, low health, honor; player LEDs show the rounds
+left; the game's own holster and lasso sounds from the controller speaker.
+
+[size=4][b]Requirements[/b][/size]
+[list]
+[*][url=https://www.dev-c.com/rdr2/scripthookrdr2/]Script Hook RDR2[/url] with its ASI loader
+[*]DualSense on a USB cable (Bluetooth: triggers, lightbar, rumble only)
+[*]DSX / DS4Windows closed, Steam Input OFF for RDR2
+[*]Story mode only
+[/list]
+
+[size=4][b]Install[/b][/size]
+Copy DualSenseRDR2.asi and the DualSenseRDR2 folder into the game folder (next to RDR2.exe). Remove other
+DualSense mods. Settings: DualSenseRDR2.ini (created on first start, F9 reloads it in game).
+
+[size=4][b]Open source[/b][/size]
+MIT licensed - source: https://github.com/OldKrab/rdr2-dualsense
+
+[size=4][b]Credits[/b][/size]
+alloc8or (RDR3 native DB), femga (rdr3_discoveries), the decompiled-script researchers, Alexander Blade
+(Script Hook RDR2), Niels Lohmann (nlohmann/json).

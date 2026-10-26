@@ -1,0 +1,13 @@
+; Import library for ScriptHookRDR2.dll (Alexander Blade). The DLL exports MSVC-mangled
+; C++ names; '==' maps our plain C names onto them so MinGW can link without the SDK.
+LIBRARY ScriptHookRDR2.dll
+EXPORTS
+shv_scriptRegister == ?scriptRegister@@YAXPEAUHINSTANCE__@@P6AXXZ@Z
+shv_scriptRegisterAdditionalThread == ?scriptRegisterAdditionalThread@@YAXPEAUHINSTANCE__@@P6AXXZ@Z
+shv_scriptUnregister == ?scriptUnregister@@YAXPEAUHINSTANCE__@@@Z
+shv_scriptWait == ?scriptWait@@YAXK@Z
+shv_nativeInit == ?nativeInit@@YAX_K@Z
+shv_nativePush64 == ?nativePush64@@YAX_K@Z
+shv_nativeCall == ?nativeCall@@YAPEA_KXZ
+shv_worldGetAllPeds == ?worldGetAllPeds@@YAHPEAHH@Z
+shv_getGameVersion == ?getGameVersion@@YA?AW4eGameVersion@@XZ
