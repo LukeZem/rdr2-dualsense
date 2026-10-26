@@ -63,7 +63,32 @@ if (-not (Test-Path (Join-Path $data "calibration.json"))) {
 }
 Write-Host "Installed DualSenseRDR2.asi"
 
-# 3. things that would fight over the controller
+# 3. the "DualSense" page in the game's Settings (needs Lenny's Mod Loader: <game>\lml)
+$lmlSrc = Join-Path $here "lml\DualSenseRDR2"
+$lml = Join-Path $GameDir "lml"
+$archives = "replace\update_4\x64\data\ui\startup_data.rpf", "replace\update_3\x64\data\lang\american_rel.rpf"
+if (-not (Test-Path $lml)) {
+    Write-Warning "Lenny's Mod Loader not found ($lml) - the DualSense page in Settings needs it. Everything else works; settings are in DualSenseRDR2.ini."
+} elseif (-not (Test-Path (Join-Path $lmlSrc $archives[0]))) {
+    Write-Warning "LML files not built (run tools\rpf8\build_dualsense_page.py and build_lang.py) - Settings page skipped."
+} else {
+    $dst = Join-Path $lml "DualSenseRDR2"
+    New-Item -ItemType Directory -Force (Join-Path $dst "data\ui\settings") | Out-Null
+    Copy-Item (Join-Path $lmlSrc "install.xml") $dst -Force
+    Copy-Item (Join-Path $lmlSrc "data\ui\settings\controls.ymt") (Join-Path $dst "data\ui\settings") -Force
+    foreach ($a in $archives) {
+        $to = Join-Path $lml $a
+        if ((Test-Path $to) -and -not (Test-Path "$to.dualsense-backup")) {
+            # another mod's archive: keep it so uninstall.ps1 can put it back
+            if ((Get-FileHash $to).Hash -ne (Get-FileHash (Join-Path $lmlSrc $a)).Hash) { Copy-Item $to "$to.dualsense-backup" }
+        }
+        New-Item -ItemType Directory -Force (Split-Path $to) | Out-Null
+        Copy-Item (Join-Path $lmlSrc $a) $to -Force
+    }
+    Write-Host "Installed the Settings page (Settings > Controls > Controller > DualSense)"
+}
+
+# 4. things that would fight over the controller
 if (Get-Process -Name DSX, DS4Windows -ErrorAction SilentlyContinue) {
     Write-Warning "DSX / DS4Windows is running - quit it before playing (it overwrites trigger effects)."
 }

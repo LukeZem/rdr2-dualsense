@@ -1,0 +1,20 @@
+<EasyInstall>
+    <Name>DualSense for RDR2 - Settings page</Name>
+    <Author>OldKrab</Author>
+    <Version>1.0.0</Version>
+    <Link>https://github.com/OldKrab/rdr2-dualsense</Link>
+    <Metadata></Metadata>
+    <Resources>
+        <Resource>
+            <!-- the "DualSense" row in Settings > Controls (loose file in update_4.rpf) -->
+            <FileReplacement>
+                <GamePath>update:/x64/data/ui/settings/controls.ymt</GamePath>
+                <FilePath>data/ui/settings/controls.ymt</FilePath>
+            </FileReplacement>
+            <!-- The page itself and its texts live in nested archives, which LML cannot patch per file; they
+                 ship as whole rebuilt archives in the global legacy replace folder (see README.md):
+                   <game>/lml/replace/update_4/x64/data/ui/startup_data.rpf
+                   <game>/lml/replace/update_3/x64/data/lang/american_rel.rpf -->
+        </Resource>
+    </Resources>
+</EasyInstall>

@@ -14,6 +14,9 @@ REQUIREMENTS
 - Close DSX / DS4Windows, and turn Steam Input OFF for RDR2
   (Steam -> RDR2 -> Properties -> Controller -> Disable Steam Input)
 - Remove other DualSense mods (DualSenseHaptics.asi, NodixDualSense.asi ...) - they fight over the controller
+- For the settings page in the game's menu: Lenny's Mod Loader (LML), and the game language set to English
+  (the page's texts are English only for now). Without LML everything else works; you change settings in
+  DualSenseRDR2.ini instead.
 
 
 INSTALL
@@ -21,9 +24,14 @@ INSTALL
 Copy everything from this zip into the game folder (where RDR2.exe is):
     DualSenseRDR2.asi
     DualSenseRDR2\  (folder with weapons.json, haptics.json, sound_labels.json)
+    lml\            (merges into LML's folder: lml\DualSenseRDR2 and two archives in lml\replace)
 Start the game. Settings are created on first start in DualSenseRDR2.ini.
+If you use LML's Mod Manager, make sure "DualSense for RDR2 - Settings page" is enabled.
+Note: lml\replace\update_4\x64\data\ui\startup_data.rpf and lml\replace\update_3\x64\data\lang\american_rel.rpf
+replace whole game archives - if another mod ships the same files, only one of the two can work.
 
-UNINSTALL: delete DualSenseRDR2.asi, the DualSenseRDR2 folder, DualSenseRDR2.ini and DualSenseRDR2.log.
+UNINSTALL: delete DualSenseRDR2.asi, the DualSenseRDR2 folder, DualSenseRDR2.ini, DualSenseRDR2.log,
+lml\DualSenseRDR2 and the two archives above.
 
 
 WHAT YOU FEEL
@@ -62,9 +70,14 @@ talking to someone in the room won't set it off.
 Words can be changed or switched off in DualSenseRDR2.ini, section [Voice] (leave a phrase empty to disable it).
 
 
-SETTINGS (DualSenseRDR2.ini)
-----------------------------
-Every effect has its own strength (0 = off). F9 reloads the file in game.
+SETTINGS
+--------
+In the game: Pause > Settings > Controls > Controller > DualSense - every setting of the mod, changed with
+left / right like the game's own. Changes apply as soon as you close the menu.
+Everything is also in DualSenseRDR2.ini (every effect has its own strength, 0 = off); F9 reloads the file
+in game.
+Gyro aim (EXPERIMENTAL, off by default): [Gyro] Mode=aim turns on small gyro corrections while you aim
+with L2. It is still being tuned and can feel floaty.
 F10 shows the ground under you; F10 again while shown overrides how it feels.
 Debug=1 writes details to DualSenseRDR2.log - attach it when reporting a problem.
 

@@ -88,6 +88,47 @@ inline bool HAS_ANIM_EVENT_FIRED(Entity e, Hash ev) { return invoke<int>(0x5851C
 inline bool IS_ANIMAL_INTERACTION_RUNNING(Ped p) { return invoke<int>(0x7FC84E85D98F063Dull, p) != 0; }
 inline bool GET_IS_ANIMAL(Entity e) { return invoke<int>(0x9A100F1CF4546629ull, e) != 0; }
 inline Hash GET_ACTIVE_DYNAMIC_SCENARIO(Ped p) { return invoke<Hash>(0xC22AA08A8ADB87D4ull, p); }
+// the game's own UI engine: ui apps, data binding, ui events (settings page)
+struct UiEvent { alignas(8) Hash type; alignas(8) int i; alignas(8) Hash hash; alignas(8) int datastore; };
+inline bool EVENTS_UI_IS_PENDING(Hash ch) { return invoke<int>(0x67ED5A7963F2F722ull, ch) != 0; }
+inline bool EVENTS_UI_PEEK_MESSAGE(Hash ch, UiEvent* e) { return invoke<int>(0x90237103F27F7937ull, ch, e) != 0; }
+inline void EVENTS_UI_POP_MESSAGE(Hash ch) { invoke<void>(0x8E8A2369F48EC839ull, ch); }
+inline int LAUNCH_UIAPP_BY_HASH_WITH_ENTRY(Hash app, Hash entry) { return invoke<int>(0xC1BCF31E975B3195ull, app, entry); }
+inline bool IS_UIAPP_RUNNING_BY_HASH(Hash app) { return invoke<int>(0x4E511D093A86AD49ull, app) != 0; }
+inline void CLOSE_UIAPP_BY_HASH(Hash app) { invoke<void>(0x2FF10C9C3F92277Eull, app); }
+inline bool REQUEST_UIAPP_TRANSITION_BY_HASH(Hash app, Hash tr) { return invoke<int>(0x7689CD255655BFD7ull, app, tr) != 0; }
+inline Hash DATABINDING_ADD_DATA_CONTAINER_FROM_PATH(const char* parent, const char* name) { return invoke<Hash>(0x0C827D175F1292F4ull, parent, name); }
+inline Hash DATABINDING_ADD_DATA_CONTAINER(Hash parent, const char* name) { return invoke<Hash>(0xEB4F9A3537EEABCDull, parent, name); }
+inline Hash DATABINDING_ADD_DATA_HASH(Hash parent, const char* name, Hash v) { return invoke<Hash>(0x8538F1205D60ECA6ull, parent, name, v); }
+inline Hash DATABINDING_ADD_DATA_INT(Hash parent, const char* name, int v) { return invoke<Hash>(0x307A3247C5457BDEull, parent, name, v); }
+inline Hash DATABINDING_ADD_DATA_BOOL(Hash parent, const char* name, bool v) { return invoke<Hash>(0x58BAA5F635DA2FF4ull, parent, name, int(v)); }
+inline Hash DATABINDING_ADD_DATA_STRING(Hash parent, const char* name, const char* v) { return invoke<Hash>(0x617FCA1C5652BBADull, parent, name, v); }
+inline Hash DATABINDING_ADD_UI_ITEM_LIST(Hash parent, const char* name) { return invoke<Hash>(0xFE74FA57E0CE6824ull, parent, name); }
+inline void DATABINDING_INSERT_UI_ITEM_TO_LIST(Hash list, int i, Hash alias, Hash item) { invoke<void>(0xEE97A05C05F16E41ull, list, i, alias, item); }
+inline void DATABINDING_CLEAR_BINDING_ARRAY(Hash list) { invoke<void>(0xA1F15C1D03DF802Dull, list); }
+inline void DATABINDING_WRITE_STRING_FROM_PARENT(Hash parent, const char* name, const char* v) { invoke<void>(0x4FF713B2F17A391Eull, parent, name, v); }
+inline void DATABINDING_REMOVE_DATA_ENTRY(Hash e) { invoke<void>(0x0AE9938D0541F2DAull, e); }
+inline Hash DATABINDING_ADD_HASH_ARRAY(Hash parent, const char* name) { return invoke<Hash>(0x52F5F08278EA5D75ull, parent, name); }
+// appends (index -1) a hash to a hash array - net_main_offline fills dynamic_list_item_option_stepper_items with it
+inline void DATABINDING_INSERT_HASH_TO_ARRAY(Hash array, Hash v, int index) { invoke<void>(0x7FC60C94C83C5CD7ull, array, v, index); }
+inline void VIRTUAL_COLLECTION_SET_SIZE(Hash col, int n) { invoke<void>(0x9DCE9B01A93B58BCull, col, n); }
+inline void VIRTUAL_COLLECTION_SET_INTEREST_INDEX(Hash col, int i) { invoke<void>(0x49A8447533308BCFull, col, i); }
+inline Hash DATABINDING_GET_DATA_CONTAINER_FROM_PATH(const char* path) { return invoke<Hash>(0x0C827D175F1292F2ull, path); }
+inline Hash DATABINDING_READ_HASH_STRING_FROM_PARENT(Hash parent, const char* name) { return invoke<Hash>(0x9B535990B01B62DEull, parent, name); }
+inline int DATABINDING_READ_INT_FROM_PARENT(Hash parent, const char* name) { return invoke<int>(0xFFC566A4801F6B40ull, parent, name); }
+inline void VIRTUAL_COLLECTION_ITEM_ADD(Hash col, int i, Hash alias, Hash item) { invoke<void>(0x6DCBF187221CF73Dull, col, i, alias, item); }
+inline bool VIRTUAL_COLLECTION_EXISTS(Hash col) { return invoke<int>(0x37963B56755BFB35ull, col) != 0; }
+inline bool DATABINDING_IS_ENTRY_VALID(Hash e) { return invoke<int>(0x1E7130793AAAAB8Dull, e) != 0; }
+inline void DATABINDING_WRITE_DATA_BOOL_FROM_PARENT(Hash parent, const char* name, bool v) { invoke<void>(0xBDFE546E4C2D0E21ull, parent, name, int(v)); }
+inline void DATABINDING_WRITE_DATA_INT_FROM_PARENT(Hash parent, const char* name, int v) { invoke<void>(0x9EFA98238BA08FC4ull, parent, name, v); }
+inline bool IS_UIAPP_ACTIVE_BY_HASH(Hash app) { return invoke<int>(0x25B7A0206BDFAC76ull, app) != 0; }
+inline bool IS_UIAPP_TRANSITIONING_BY_HASH(Hash app) { return invoke<int>(0x42095B886D30DE66ull, app) != 0; }
+inline Hash GET_UIAPP_CURRENT_ACTIVITY_BY_HASH(Hash app) { return invoke<Hash>(0x96FD694FE5BE55DCull, app); }
+inline bool CAN_LAUNCH_UIAPP_BY_HASH_WITH_ENTRY(Hash app, Hash entry) { return invoke<int>(0x16F47D434B6086BFull, app, entry) != 0; }
+inline void CLOSE_UIAPP_BY_HASH_IMMEDIATE(Hash app) { invoke<void>(0x04428420A248A354ull, app); }
+inline bool DOES_TEXT_LABEL_EXIST(const char* label) { return invoke<int>(0x73C258C68D6F55B6ull, label) != 0; }
+inline const char* GET_STRING_FROM_HASH_KEY(Hash label) { return invoke<const char*>(0xBD5DD5EAE2B6CE14ull, label); }
+inline void DISABLE_CONTROL_ACTION(int pad, Hash action, bool related) { invoke<void>(0xFE99B66D079CF6BCull, pad, action, int(related)); }
 inline bool GET_TASK_FISHING(Ped p, void* data) { return invoke<int>(0xF3735ACD11ACD500ull, p, data) != 0; }
 inline bool IS_PED_WEAPON_READY_TO_SHOOT(Ped p) { return invoke<int>(0xB80CA294F2F26749ull, p) != 0; }
 inline bool IS_WEAPON_HOLSTER_STATE_CHANGING(Ped p) { return invoke<int>(0x2387D6E9C6B478AAull, p) != 0; }

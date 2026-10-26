@@ -1,4 +1,5 @@
 #include "world.h"
+#include "settings_ui.h"
 
 #include "config.h"
 #include "log.h"
@@ -324,6 +325,7 @@ void World::tick() {
     Config& cfg = config();
     GameSnapshot s;
     s.time = now_s();
+    settings_ui_tick(s.time);            // the Settings page's data store, also while no player exists
     Player pl = PLAYER_ID();
     Ped me = PLAYER_PED_ID();
     if (!me || !IS_PLAYER_PLAYING(pl)) {
@@ -400,7 +402,9 @@ void World::tick() {
     static const Hash kWheel = joaat("INPUT_OPEN_WHEEL_MENU");
     s.wheel = IS_CONTROL_PRESSED(0, kWheel) || IS_DISABLED_CONTROL_PRESSED(0, kWheel);
     s.shooting = IS_PED_SHOOTING(me);
-    s.aiming = IS_PLAYER_FREE_AIMING(pl) || IS_PLAYER_TARGETTING_ANYTHING(pl);
+    s.free_aim = IS_PLAYER_FREE_AIMING(pl);
+    s.lock_on = IS_PLAYER_TARGETTING_ANYTHING(pl);
+    s.aiming = s.free_aim || s.lock_on;
     s.dead_eye = IS_SPECIAL_ABILITY_ACTIVE(pl);
     // cores: a fortified (gold) core counts as full - never a low-health warning
     bool gold_health = IS_ATTRIBUTE_CORE_OVERPOWERED(me, 0), gold_stamina = IS_ATTRIBUTE_CORE_OVERPOWERED(me, 1);
@@ -841,7 +845,9 @@ void World::tick() {
 
     // --- gyro aim: turn the camera by what the controller turned ---
     float yaw = atomic_take(gyro_yaw_), pitch = atomic_take(gyro_pitch_);
-    if (gyro_enabled && !s.blocked && (s.aiming || gyro_wants_always) && (std::fabs(yaw) > 1e-4f || std::fabs(pitch) > 1e-4f)) {
+    // only while the right stick rests: setting the camera every frame would override the stick
+    if (gyro_enabled && !s.blocked && ((s.free_aim && !s.lock_on) || gyro_wants_always) && !gyro_stick_busy &&
+        (std::fabs(yaw) > 1e-4f || std::fabs(pitch) > 1e-4f)) {
         SET_GAMEPLAY_CAM_RELATIVE_HEADING(GET_GAMEPLAY_CAM_RELATIVE_HEADING() + yaw);
         SET_GAMEPLAY_CAM_RELATIVE_PITCH(GET_GAMEPLAY_CAM_RELATIVE_PITCH() + pitch);
     }

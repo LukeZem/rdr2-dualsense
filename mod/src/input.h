@@ -48,6 +48,12 @@ private:
     // gyro
     float bias_[3] = {0, 0, 0};
     float still_time_ = 0, smooth_yaw_ = 0, smooth_pitch_ = 0;
+    float aim_fade_ = 0;
+    double gyro_log_t_ = 0, aim_since_ = -1;
+    std::atomic<float> gyro_rx_{0}, gyro_ry_{0};   // gyro, added to the right stick the game reads (-1..1)                       // 0 -> 1 over the first moments of aiming (no jump)
+    static constexpr int kSmoothN = 16;        // ~64 ms of history for the soft smoothing
+    float hist_yaw_[kSmoothN] = {}, hist_pitch_[kSmoothN] = {};
+    int hist_i_ = 0;
     double gyro_t_ = 0;
     bool hide_other_ = true;
     // real XInput for passthrough when the DualSense is absent

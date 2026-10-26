@@ -3,7 +3,7 @@
 NAME:     DualSense for RDR2 - Adaptive Triggers, Haptics and Voice
 VERSION:  1.0.0
 CATEGORY: Gameplay  (or: Utilities)
-IMAGES:   release/banner.png (main image), release/features.png
+IMAGES:   release/banner.png (main image)
 SUMMARY (short):
 Full DualSense support driven by what the game is really doing: per-weapon adaptive triggers that fire exactly
 on the break, voice-coil haptics for hooves, footsteps on the real ground, fishing line tension, Dead Eye,
@@ -49,17 +49,24 @@ ground, and the fishing line on L2 is the game's own line tension.
 Muzzle flash, hits, Dead Eye glow, lantern flicker, wanted, low health, honor; player LEDs show the rounds
 left; the game's own holster and lasso sounds from the controller speaker.
 
+[size=4][b]Settings in the game's own menu[/b][/size]
+Pause > Settings > Controls > Controller > [b]DualSense[/b] - a real page of the game's Settings with every
+setting of the mod, changed with left / right like the game's own options. Changes apply when you close the menu.
+
 [size=4][b]Requirements[/b][/size]
 [list]
 [*][url=https://www.dev-c.com/rdr2/scripthookrdr2/]Script Hook RDR2[/url] with its ASI loader
 [*]DualSense on a USB cable (Bluetooth: triggers, lightbar, rumble only)
 [*]DSX / DS4Windows closed, Steam Input OFF for RDR2
 [*]Story mode only
+[*]For the settings page: Lenny's Mod Loader (LML, from rdr2mods.com) and
+the game in English (page texts are English only for now) - without it, settings are in DualSenseRDR2.ini
 [/list]
 
 [size=4][b]Install[/b][/size]
-Copy DualSenseRDR2.asi and the DualSenseRDR2 folder into the game folder (next to RDR2.exe). Remove other
-DualSense mods. Settings: DualSenseRDR2.ini (created on first start, F9 reloads it in game).
+Copy everything from the zip into the game folder (next to RDR2.exe): DualSenseRDR2.asi, the DualSenseRDR2
+folder and the lml folder (merges into Lenny's Mod Loader). Remove other DualSense mods. Settings are in the
+game's menu (see above) and in DualSenseRDR2.ini (created on first start, F9 reloads it in game).
 
 [size=4][b]Open source[/b][/size]
 MIT licensed - source: https://github.com/OldKrab/rdr2-dualsense

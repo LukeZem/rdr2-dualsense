@@ -3,8 +3,16 @@ __pycache__/
 *.pyc
 tools/trigger_lab/logs/
 mod/build/
-third_party/downloads/
+
 release/stage/
 release/*.zip
 tools/trigger_lab/data/calibration.json
 tools/awc/weapons_survey.csv
+build/
+# extracted game files, decompiled scripts, research dumps (not ours to publish)
+third_party/
+# the LML part is generated from the game's own files by tools/rpf8 (only install.xml + README are sources)
+mod/lml/DualSenseRDR2/*
+!mod/lml/DualSenseRDR2/install.xml
+!mod/lml/DualSenseRDR2/README.md
+release/art/

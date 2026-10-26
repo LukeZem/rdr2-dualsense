@@ -20,6 +20,7 @@ struct GameSnapshot {
     bool armed = false;
     int clip = -1, clip_max = -1;
     bool reloading = false, shooting = false, aiming = false;
+    bool free_aim = false, lock_on = false;   // aiming freely / the game's aim assist holds a target
     bool dead_eye = false;
     int health_core = 100, stamina_core = 100;
     float grit = 0, kick_mult = 1, tremor = 0;
@@ -98,6 +99,7 @@ public:
     void request_horse(HorseCommand c) { horse_cmd_ = c; }   // any thread (voice recognizer)
     bool gyro_wants_always = false;
     bool gyro_enabled = false;
+    std::atomic<bool> gyro_stick_busy{false};
 
 private:
     struct Limb {

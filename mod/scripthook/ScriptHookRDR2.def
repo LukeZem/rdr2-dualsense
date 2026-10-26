@@ -11,3 +11,4 @@ shv_nativePush64 == ?nativePush64@@YAX_K@Z
 shv_nativeCall == ?nativeCall@@YAPEA_KXZ
 shv_worldGetAllPeds == ?worldGetAllPeds@@YAHPEAHH@Z
 shv_getGameVersion == ?getGameVersion@@YA?AW4eGameVersion@@XZ
+shv_getGlobalPtr == ?getGlobalPtr@@YAPEA_KH@Z

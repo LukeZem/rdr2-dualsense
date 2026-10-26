@@ -39,7 +39,7 @@ Tune weapons, record calibration and label sounds in the Trigger Lab (`tools/tri
 | Trains / wagons | Rail joints (front and rear bogie), ruts. |
 | Lightbar | Muzzle flash, damage flash, Dead Eye sepia glow, lantern flicker, wanted (red/white), low-health pulse, time-of-day ambience. Player LEDs show the rounds left. |
 | Speaker | The game's own recordings for drawing / holstering a revolver, the lasso throw and the rope (found by name in the sound banks); synthesized cocking / lever / bolt / pump clicks. |
-| Gyro aim | Tilt to fine-aim while aiming (`[Gyro] Mode=aim`, `always`, `off`). |
+| Gyro aim | Experimental, off by default: small gyro corrections while free-aiming (`[Gyro] Mode=aim`). |
 | Microphone | Whistle into the controller → horse call. Say "chao" → a real greeting (counts for honor). "Easy" → calm the horse. A command only counts when said on its own (after a pause, short, confident). The mute button toggles listening (mute LED on = not listening). |
 | Weather | Rain on the hat, far thunder - off by default (`[Haptics] Weather`). |
 | Touchpad | Click = map (BACK). Swipes / two-finger tap can be mapped to buttons in the ini. |

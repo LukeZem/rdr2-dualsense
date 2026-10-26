@@ -1,5 +1,7 @@
 #include "config.h"
 
+#include <charconv>
+
 #include <windows.h>
 
 #include <cctype>
@@ -8,6 +10,8 @@
 #include <cstdio>
 #include <fstream>
 #include <sstream>
+#include <mutex>
+#include <vector>
 
 namespace dsr2 {
 
@@ -127,13 +131,24 @@ AmmoLeds=1
 TimeOfDay=1
 
 [Gyro]
-; Gyro aiming: off, aim = only while aiming, always = always moves the camera
+; EXPERIMENTAL - still being tuned (can feel floaty). Off by default.
+; Gyro aim: tilt the controller for fine corrections while aiming - on top of the right stick, not instead of it.
+; aim = only while free-aiming (never during the game's lock-on), always = always, off = off
 Mode=off
+; Degrees the camera turns per degree the controller turns
 Sensitivity=1.0
+; Vertical relative to horizontal
+VerticalRatio=0.75
 InvertX=0
 InvertY=0
-; 0 - 0.9, higher = smoother but laggier
-Smoothing=0.25
+; Movements slower than this (deg/s) are smoothed (hand tremor); faster ones pass straight through
+SmoothThreshold=6
+; camera = turns the camera directly (instant, precise; pauses while you use the right stick)
+; stick = adds to the right stick instead (then StickRate / StickDeadzone matter)
+Output=camera
+; Stick output: the camera speed at full stick (deg/s) and the game's stick dead zone
+StickRate=90
+StickDeadzone=0.2
 
 [Mic]
 ; Whistle into the controller to call your horse. The mute button toggles listening.
@@ -178,7 +193,7 @@ TwoFingerTap=
 }
 
 bool Config::load(const std::wstring& path) {
-    values_.clear();
+    std::map<std::string, std::string> values;
     std::ifstream in{std::filesystem::path(path)};
     if (!in) {
         std::ofstream out{std::filesystem::path(path)};
@@ -209,12 +224,69 @@ bool Config::load(const std::wstring& path) {
         std::string val = trim(line.substr(eq + 1));
         size_t c = val.find(" ;");
         if (c != std::string::npos) val = trim(val.substr(0, c));
-        values_[section + "." + key] = val;
+        values[section + "." + key] = val;
     }
+    std::unique_lock<std::shared_mutex> l(mu_);
+    path_ = path;
+    values_.swap(values);
     return true;
 }
 
+bool Config::set(const std::string& section, const std::string& key, const std::string& value) {
+    std::wstring path_copy;
+    {
+        std::shared_lock<std::shared_mutex> l(mu_);
+        path_copy = path_;
+    }
+    if (path_copy.empty()) return false;
+    std::vector<std::string> lines;
+    {
+        std::ifstream in{std::filesystem::path(path_copy)};
+        for (std::string l; std::getline(in, l);) {
+            if (!l.empty() && l.back() == '\r') l.pop_back();
+            lines.push_back(l);
+        }
+    }
+    std::string want_s = lower(section), want_k = lower(key), cur;
+    int section_end = -1, section_line = -1;
+    bool done = false;
+    for (size_t i = 0; i < lines.size() && !done; ++i) {
+        std::string t = trim(lines[i]);
+        if (!t.empty() && t.front() == '[' && t.back() == ']') {
+            if (cur == want_s) section_end = int(i);          // left our section: insert before here if needed
+            cur = lower(trim(t.substr(1, t.size() - 2)));
+            if (cur == want_s) section_line = int(i);
+            continue;
+        }
+        if (cur != want_s || t.empty() || t[0] == ';' || t[0] == '#') continue;
+        size_t eq = t.find('=');
+        if (eq == std::string::npos || lower(trim(t.substr(0, eq))) != want_k) continue;
+        size_t c = lines[i].find(" ;");                          // keep a trailing comment
+        std::string tail = c != std::string::npos ? lines[i].substr(c) : "";
+        lines[i] = trim(t.substr(0, eq)) + "=" + value + tail;
+        done = true;
+    }
+    if (!done) {
+        if (section_line < 0) {
+            if (!lines.empty() && !trim(lines.back()).empty()) lines.push_back("");
+            lines.push_back("[" + section + "]");
+            lines.push_back(key + "=" + value);
+        } else {
+            int at = section_end >= 0 ? section_end : int(lines.size());
+            while (at > section_line + 1 && trim(lines[at - 1]).empty()) --at;   // before the blank gap
+            lines.insert(lines.begin() + at, key + "=" + value);
+        }
+    }
+    {
+        std::ofstream out{std::filesystem::path(path_copy), std::ios::binary | std::ios::trunc};
+        for (auto& l : lines) out << l << "\r\n";
+        if (!out) return false;
+    }
+    return load(path_copy);
+}
+
 std::string Config::str(const std::string& s, const std::string& k, const std::string& def) const {
+    std::shared_lock<std::shared_mutex> l(mu_);
     auto it = values_.find(lower(s) + "." + lower(k));
     return it == values_.end() ? def : it->second;
 }
@@ -222,7 +294,14 @@ std::string Config::str(const std::string& s, const std::string& k, const std::s
 float Config::num(const std::string& s, const std::string& k, float def) const {
     std::string v = str(s, k, "");
     if (v.empty()) return def;
-    try { return std::stof(v); } catch (...) { return def; }
+    // locale-independent: the game switches the C locale (e.g. to a decimal comma), and std::stof would read
+    // "0.75" as 0 there. from_chars always uses '.'; a ',' typed by hand is accepted too.
+    for (auto& ch : v) if (ch == ',') ch = '.';
+    float out = def;
+    const char* b = v.data();
+    while (*b == ' ' || *b == '+') ++b;
+    auto r = std::from_chars(b, v.data() + v.size(), out);
+    return r.ec == std::errc() ? out : def;
 }
 
 int Config::integer(const std::string& s, const std::string& k, int def) const {

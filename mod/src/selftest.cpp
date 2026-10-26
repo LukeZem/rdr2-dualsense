@@ -1,15 +1,20 @@
 // Offline checks of the C++ port against the behaviour verified in the Python lab tests.
 #include "catalog.h"
+#include "config.h"
 #include "dsp.h"
 #include "engine.h"
 #include "gameaudio.h"
 #include "haptics.h"
 #include "input.h"
 #include "surfaces.h"
+#include "settings_menu.h"
 #include "log.h"
 
+#include <clocale>
 #include <complex>
+#include <fstream>
 #include <cstdio>
+#include <set>
 
 namespace dsr2 {
 
@@ -170,6 +175,77 @@ int run_selftests(const fs::path& data) {
             r.hold(0, 0.25);
         }
         CHECK(r.count("shot_revolver") - before == 3, "every volley shot kicks");
+    }
+    {   // ini numbers read the same whatever locale the game switches to (it uses a decimal comma)
+        fs::path tmp = fs::temp_directory_path() / "dsr2_locale_test.ini";
+        { std::ofstream o(tmp); o << "[Gyro]\nVerticalRatio=0.75\n[Voice]\nMinConfidence=0,7\n"; }
+        const char* prev = setlocale(LC_ALL, nullptr);
+        std::string saved = prev ? prev : "C";
+        bool comma_locale = setlocale(LC_ALL, "Russian") != nullptr;
+        Config cfg;
+        cfg.load(tmp.wstring());
+        CHECK(std::fabs(cfg.num("Gyro", "VerticalRatio", 9) - 0.75f) < 1e-4f &&
+              std::fabs(cfg.num("Voice", "MinConfidence", 9) - 0.7f) < 1e-4f, "0.75 / 0,7 read right under a comma locale");
+        if (!comma_locale) printf("  (note: Russian locale not available, tested in the C locale)\n");
+        setlocale(LC_ALL, saved.c_str());
+        fs::remove(tmp);
+    }
+    {   // the settings page writes the ini in place: comments and order kept, missing keys added, read back
+        fs::path tmp = fs::temp_directory_path() / "dsr2_set_test.ini";
+        { std::ofstream o(tmp); o << "; top comment\n[Haptics]\n; how strong\nFootsteps=0.22\n\n[Gyro]\nMode=off\n"; }
+        Config cfg;
+        cfg.load(tmp.wstring());
+        const MenuEntry* steps = nullptr; const MenuEntry* gyro = nullptr; const MenuEntry* trig = nullptr;
+        for (auto& e : SettingsMenu::entries()) {
+            if (std::string(e.key) == "Footsteps") steps = &e;
+            if (std::string(e.key) == "Mode") gyro = &e;
+            if (std::string(e.section) == "Triggers" && std::string(e.key) == "Enabled") trig = &e;
+        }
+        CHECK(steps && gyro && trig, "settings page lists footsteps, gyro, triggers");
+        CHECK(SettingsMenu::value_text(*steps, cfg) == "22%", "footsteps shows 22%");
+        cfg.set("Haptics", "Footsteps", SettingsMenu::stepped(*steps, cfg, +1));
+        CHECK(SettingsMenu::value_text(*steps, cfg) == "30%", "right: 22% -> 30% (on the 10% grid)");
+        cfg.set("Gyro", "Mode", SettingsMenu::stepped(*gyro, cfg, +1));
+        cfg.set("Triggers", "Enabled", SettingsMenu::stepped(*trig, cfg, -1));
+        CHECK(cfg.str("Gyro", "Mode", "") == "aim" && !cfg.flag("Triggers", "Enabled", true), "choice and new section written");
+        std::ifstream in(tmp);
+        std::string all((std::istreambuf_iterator<char>(in)), std::istreambuf_iterator<char>());
+        CHECK(all.find("; top comment") != std::string::npos && all.find("; how strong") != std::string::npos &&
+              all.find("Footsteps=0.3") != std::string::npos && all.find("[Triggers]") != std::string::npos,
+              "comments kept, value replaced in place, section appended");
+        for (int i = 0; i < 30; ++i) {
+            std::string v = SettingsMenu::stepped(*steps, cfg, -1);
+            if (v.empty()) break;
+            cfg.set("Haptics", "Footsteps", v);
+        }
+        CHECK(SettingsMenu::value_text(*steps, cfg) == "Off", "left all the way: Off, then stops");
+        in.close();
+        fs::remove(tmp);
+    }
+    {   // the in-game page: every row an option stepper, index <-> ini value
+        Config cfg;
+        std::set<std::string> ids;
+        const MenuEntry* steps = nullptr; const MenuEntry* strength = nullptr; const MenuEntry* gyro = nullptr;
+        bool ok = true;
+        for (auto& e : SettingsMenu::entries()) {
+            if (e.kind == MenuEntry::Header) continue;
+            ok = ok && ids.insert(e.id).second && !SettingsMenu::option_labels(e).empty();
+            if (std::string(e.key) == "Footsteps") steps = &e;
+            if (std::string(e.section) == "Haptics" && std::string(e.key) == "Strength") strength = &e;
+            if (std::string(e.key) == "Mode") gyro = &e;
+        }
+        CHECK(ok && steps && strength && gyro, "page rows: unique ids, every row has options");
+        CHECK(SettingsMenu::option_labels(*steps).size() == 11 && SettingsMenu::option_labels(*strength).size() == 21,
+              "levels: Off, 10% .. max");
+        CHECK(SettingsMenu::option_labels(*steps)[0] == "DS_PCT_0" && SettingsMenu::option_labels(*steps)[3] == "DS_PCT_30",
+              "level option labels");
+        CHECK(SettingsMenu::option_index(*steps, cfg) == 2, "footsteps default 0.22 sits on the 20% option");
+        CHECK(SettingsMenu::option_value(*steps, 3) == "0.3" && SettingsMenu::option_value(*strength, 20) == "2",
+              "option -> ini value");
+        CHECK(SettingsMenu::option_value(*steps, 11).empty() && SettingsMenu::option_value(*steps, -1).empty(),
+              "out of range -> nothing");
+        CHECK(SettingsMenu::option_labels(*gyro) == std::vector<std::string>({"DS_GYRO_MODE_OFF", "DS_GYRO_MODE_AIM"}) &&
+              SettingsMenu::option_value(*gyro, 1) == "aim", "choice options");
     }
     {   // the game's readiness decides re-arming (no guessed fire rate)
         Settings s; s.manual_action = false;

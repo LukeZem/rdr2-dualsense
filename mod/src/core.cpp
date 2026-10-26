@@ -265,7 +265,7 @@ bool Core::on_input(const InputState& s, OutputState& out) {
     input().publish(s, rt, true);
     if (s.fresh) {
         input().track_touch(s);
-        input().track_gyro(s, g.aiming);
+        input().track_gyro(s, in_game_ ? (g.free_aim && !g.lock_on && !g.blocked && !paused) : s.l2 > 128);
     }
     if (paused) audio_.set_rumble(0, 0);                 // the game rumbles while you browse the wheel
     else audio_.set_rumble(input().rumble_low(), input().rumble_high());

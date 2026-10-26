@@ -133,6 +133,12 @@ void Input::publish(const InputState& s, int game_rt, bool connected) {
     g.sThumbLY = stick(s.ly, true);
     g.sThumbRX = stick(s.rx, false);
     g.sThumbRY = stick(s.ry, true);
+    // gyro rides on the right stick: it adds to your stick instead of fighting it (and the game ignores
+    // scripted camera pitch while aiming)
+    if (float gx = gyro_rx_.load(); gx != 0)
+        g.sThumbRX = SHORT(clampv(int(g.sThumbRX) + int(gx * 32767.0f), -32768, 32767));
+    if (float gy = gyro_ry_.load(); gy != 0)
+        g.sThumbRY = SHORT(clampv(int(g.sThumbRY) + int(gy * 32767.0f), -32768, 32767));
     double t = now_s();
     std::lock_guard<std::mutex> l(mu_);
     for (auto it = injections_.begin(); it != injections_.end();) {
@@ -211,9 +217,13 @@ void Input::track_touch(const InputState& s) {
     }
 }
 
-// Gyro: degrees per second (~16.4 raw per deg/s), bias learned while the controller rests.
-void Input::track_gyro(const InputState& s, bool aiming_hint) {
-    (void)aiming_hint;
+// Gyro aim: a fine-tuning aid on top of the right stick, only while free-aiming (never during the game's
+// lock-on). Degrees the controller turns become degrees the camera turns (times Sensitivity).
+//  - bias (drift) learned while the controller rests
+//  - soft tiered smoothing: tiny movements (hand tremor) are averaged, deliberate ones pass straight through,
+//    so there is no lag on real corrections and no jitter at rest
+//  - fades in over ~0.2 s when aiming starts, so the view never jumps
+void Input::track_gyro(const InputState& s, bool aiming) {
     Config& c = config();
     std::string mode = c.str("Gyro", "Mode", "off");
     world().gyro_enabled = mode != "off";
@@ -224,27 +234,79 @@ void Input::track_gyro(const InputState& s, bool aiming_hint) {
     float r[3];
     float mag = 0;
     for (int i = 0; i < 3; ++i) {
-        r[i] = float(s.gyro[i]) / 16.4f;
+        r[i] = float(s.gyro[i]) / 16.4f;           // deg/s
         mag += std::fabs(r[i] - bias_[i]);
     }
-    if (mag < 4.0f) {                      // resting: slowly learn the drift
+    if (mag < 4.0f) {                              // resting: slowly learn the drift
         still_time_ += float(dt);
         if (still_time_ > 0.5f)
             for (int i = 0; i < 3; ++i) bias_[i] += (r[i] - bias_[i]) * 0.02f;
     } else {
         still_time_ = 0;
     }
-    if (mode == "off") return;
-    float sens = 2.0f * c.num("Gyro", "Sensitivity", 1.0f);
-    float sm = clampv(c.num("Gyro", "Smoothing", 0.25f), 0.0f, 0.9f);
-    float pitch = r[0] - bias_[0], yaw = r[1] - bias_[1];
-    if (std::fabs(pitch) < 0.6f) pitch = 0;          // tiny dead zone: hands are never perfectly still
-    if (std::fabs(yaw) < 0.6f) yaw = 0;
-    smooth_yaw_ = sm * smooth_yaw_ + (1 - sm) * yaw;
-    smooth_pitch_ = sm * smooth_pitch_ + (1 - sm) * pitch;
-    float dy = smooth_yaw_ * float(dt) * sens * (c.flag("Gyro", "InvertX", false) ? -1.f : 1.f);
-    float dp = smooth_pitch_ * float(dt) * sens * (c.flag("Gyro", "InvertY", false) ? -1.f : 1.f);
-    world().add_gyro(dy, dp);
+    bool active = mode == "always" || (mode != "off" && aiming);
+    if (!active) {
+        aim_since_ = -1;
+        aim_fade_ = 0;
+        gyro_rx_ = 0;
+        gyro_ry_ = 0;
+        smooth_yaw_ = smooth_pitch_ = 0;
+        for (int i = 0; i < kSmoothN; ++i) hist_yaw_[i] = hist_pitch_[i] = 0;
+        return;
+    }
+    // the game blends to its aim camera for a moment after L2: corrections then would land on the wrong camera
+    // (the aim jumped, e.g. to the ground) - wait until it has settled, then fade in
+    if (aim_since_ < 0) aim_since_ = s.t;
+    if (s.t - aim_since_ < 0.35) return;
+    aim_fade_ = std::min(1.0f, aim_fade_ + float(dt) / 0.2f);
+
+    float yaw = r[1] - bias_[1], pitch = r[0] - bias_[0];
+    // soft tiered smoothing (threshold in deg/s): below half of it fully smoothed, above it raw
+    float th = std::max(0.1f, c.num("Gyro", "SmoothThreshold", 6.0f));
+    auto split = [&](float v, float* hist, float& out) {
+        float a = std::fabs(v);
+        float direct = clampv((a - th * 0.5f) / (th * 0.5f), 0.0f, 1.0f);
+        hist[hist_i_] = v * (1 - direct);
+        float avg = 0;
+        for (int i = 0; i < kSmoothN; ++i) avg += hist[i];
+        out = v * direct + avg / kSmoothN;
+    };
+    float y = 0, pch = 0;
+    split(yaw, hist_yaw_, y);
+    split(pitch, hist_pitch_, pch);
+    hist_i_ = (hist_i_ + 1) % kSmoothN;
+    if (std::fabs(y) < 0.25f) y = 0;               // only true stillness, not a dead zone you can feel
+    if (std::fabs(pch) < 0.25f) pch = 0;
+
+    float sens = c.num("Gyro", "Sensitivity", 1.0f) * aim_fade_;
+    float vert = c.num("Gyro", "VerticalRatio", 0.75f);
+    // turning speed (deg/s) -> right-stick deflection, past the game's stick dead zone
+    float full = std::max(10.0f, c.num("Gyro", "StickRate", 90.0f));      // deg/s the game turns at full stick
+    float dz = clampv(c.num("Gyro", "StickDeadzone", 0.2f), 0.0f, 0.5f);
+    auto to_stick = [&](float rate) {
+        float v = std::min(1.0f, std::fabs(rate) / full);
+        return v < 1e-3f ? 0.0f : std::copysign(dz + (1 - dz) * v, rate);
+    };
+    float ix = c.flag("Gyro", "InvertX", false) ? -1.f : 1.f, iy = c.flag("Gyro", "InvertY", false) ? -1.f : 1.f;
+    bool stick_out = c.str("Gyro", "Output", "camera") == "stick";
+    // the right stick in use: it drives the camera on its own, the gyro steps aside
+    bool stick_busy = std::abs(int(s.rx) - 128) > 20 || std::abs(int(s.ry) - 128) > 20;
+    world().gyro_stick_busy = stick_busy;
+    if (stick_out) {
+        // yaw: turning the controller left (positive yaw) turns the camera left = stick left (negative X)
+        gyro_rx_ = to_stick(-y * sens * ix);
+        gyro_ry_ = to_stick(pch * sens * vert * iy);
+    } else {
+        // camera: degrees turned = degrees the camera turns, instantly (no stick acceleration)
+        gyro_rx_ = 0;
+        gyro_ry_ = 0;
+        if (!stick_busy) world().add_gyro(y * float(dt) * sens * ix, pch * float(dt) * sens * vert * iy);
+    }
+    if (s.t - gyro_log_t_ > 0.5) {
+        gyro_log_t_ = s.t;
+        LOGD("gyro: raw %+.1f %+.1f %+.1f deg/s, bias %+.1f %+.1f %+.1f -> yaw %+.1f pitch %+.1f -> stick x %+.2f y %+.2f",
+             r[0], r[1], r[2], bias_[0], bias_[1], bias_[2], y, pch, gyro_rx_.load(), gyro_ry_.load());
+    }
 }
 
 }  // namespace dsr2

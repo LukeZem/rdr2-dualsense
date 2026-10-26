@@ -16,6 +16,8 @@ void shv_nativeInit(uint64_t hash);
 void shv_nativePush64(uint64_t value);
 uint64_t* shv_nativeCall();
 int shv_worldGetAllPeds(int* arr, int size);
+int shv_getGameVersion();
+uint64_t* shv_getGlobalPtr(int globalId);     // script global slot (8 bytes each)
 }
 
 namespace dsr2::shv {
