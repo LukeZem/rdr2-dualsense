@@ -37,19 +37,29 @@ void create_store() {
     page.rows.clear();
     for (const MenuEntry& e : SettingsMenu::entries()) {
         if (e.kind == MenuEntry::Header) continue;
-        // the context of list_item_option_stepper: value (index, two-way), options (text labels), prompt,
-        // enabled, visible
+        // the data context of the row's stepper: value (two-way), prompt, enabled, visible, and
+        //   levels  (our percent stepper = the game's list_item_int_stepper): minimum, maximum, step
+        //   others  (list_item_option_stepper): options = text labels, value = index
         Hash h = DATABINDING_ADD_DATA_CONTAINER(page.root, e.id);
-        int v = SettingsMenu::option_index(e, config());
-        Hash options = DATABINDING_ADD_HASH_ARRAY(h, "options");
-        for (const std::string& label : SettingsMenu::option_labels(e))
-            DATABINDING_INSERT_HASH_TO_ARRAY(options, joaat(label.c_str()), -1);
+        int v = SettingsMenu::page_value(e, config());
+        if (e.kind == MenuEntry::Number) {
+            DATABINDING_ADD_DATA_INT(h, "minimum", 0);
+            DATABINDING_ADD_DATA_INT(h, "maximum", SettingsMenu::page_max(e));
+            DATABINDING_ADD_DATA_INT(h, "step", SettingsMenu::kPercentStep);
+        } else {
+            Hash options = DATABINDING_ADD_HASH_ARRAY(h, "options");
+            for (const std::string& label : SettingsMenu::option_labels(e))
+                DATABINDING_INSERT_HASH_TO_ARRAY(options, joaat(label.c_str()), -1);
+        }
         DATABINDING_ADD_DATA_INT(h, "value", v);
         DATABINDING_ADD_DATA_STRING(h, "prompt", "");
         DATABINDING_ADD_DATA_BOOL(h, "enabled", true);
         DATABINDING_ADD_DATA_BOOL(h, "visible", true);
         page.rows.push_back({&e, h, v});
     }
+    // the "DualSense" row in Settings > Controls shows only while this is 1 (controls.ymt,
+    // uiConditionCheckGenericDatastoreInt) - i.e. once the page has its values (not on the title screen)
+    DATABINDING_ADD_DATA_INT(page.root, "ready", 1);
     LOGD("settings page: data store ready (0x%08X, %zu rows)", page.root, page.rows.size());
 }
 
@@ -65,7 +75,7 @@ void settings_ui_tick(double /*now*/) {
         const MenuEntry& e = *r.entry;
         int v = DATABINDING_READ_INT_FROM_PARENT(r.store, "value");
         if (v != r.shown) {                                   // the page changed it while the menu was open
-            std::string val = SettingsMenu::option_value(e, v);
+            std::string val = SettingsMenu::page_ini(e, v);
             if (!val.empty()) {
                 config().set(e.section, e.key, val);
                 LOGI("settings page: %s.%s = %s", e.section, e.key, val.c_str());
@@ -74,7 +84,7 @@ void settings_ui_tick(double /*now*/) {
             r.shown = v;
             continue;
         }
-        int want = SettingsMenu::option_index(e, config());  // the ini changed elsewhere (edited, F9)
+        int want = SettingsMenu::page_value(e, config());  // the ini changed elsewhere (edited, F9)
         if (want != v) {
             DATABINDING_WRITE_DATA_INT_FROM_PARENT(r.store, "value", want);
             r.shown = want;

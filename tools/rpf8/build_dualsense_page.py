@@ -63,6 +63,11 @@ HEADER_NAME = "settings/widgets/dualsense_list_header"  # our group header templ
 HEADER_ID = "dualsense_list_header"
 HEADER_ARC = HEADER_NAME + ".ymt"
 HEADER_OUT = "data/ui/startup_data/" + HEADER_ARC
+PERCENT_NAME = "settings/widgets/dualsense_percent_stepper"  # number stepper with "%" (streamed by our state)
+PERCENT_ID = "dualsense_percent_stepper"
+PERCENT_ARC = PERCENT_NAME + ".ymt"
+PERCENT_OUT = "data/ui/startup_data/" + PERCENT_ARC
+PERCENT_SRC = "x64/data/ui/startup_data/boot_flow/hdr/list_item_int_stepper.ymt"   # the game's, as the base
 
 TRANSITION = "dualsense_settings"                        # <transition> of the row in controls.ymt
 STORE = "DualSenseSettings"                              # ScriptDatastoreRoot.<STORE>
@@ -112,19 +117,29 @@ def text_item(name, style, static, lay, bindings="", extra=""):
             % (name, s, style, extra, lay, mb))
 
 
+def visible_when_ready(ready=True):
+    """Visible <- ScriptDatastoreRoot.DualSenseSettings.ready == 1 (or != 1). The .asi creates it together with
+    the values - not on the title screen, where no mod script runs."""
+    return ('<MemberBindings><Item><MemberName>Visible</MemberName><Setup><Path>ScriptDatastoreRoot.%s.ready</Path>'
+            '<PathType>PATH_ABSOLUTE</PathType></Setup><Converter type="rage__fwuiBoolValueConversion">%s'
+            '<TargetValue type="rage__fwuiValueInt"><value value="1"/></TargetValue><Operator>EQUAL</Operator>'
+            '</Converter></Item></MemberBindings>' % (STORE, '' if ready else '<Invert value="true"/>'))
+
+
 def row_name(row):
     return "ROW_" + row["id"]
 
 
 def stepper(row):
-    """One row: the game's option stepper template with its data context in our data store (as
-    hdr_calibration.ymt binds its steppers to hdr_calibration.<setting>)."""
-    return ('<Item type="UITemplateInstancingItem"><NameOverride>%s</NameOverride><Type>list_item_option_stepper</Type>'
+    """One row: a stepper template with its data context in our data store (as hdr_calibration.ymt binds its
+    steppers to hdr_calibration.<setting>): levels = our percent stepper, the rest the game's option stepper."""
+    typ = PERCENT_ID if row["kind"] == "level" else "list_item_option_stepper"
+    return ('<Item type="UITemplateInstancingItem"><NameOverride>%s</NameOverride><Type>%s</Type>'
             '<Properties><Item type="SF_String"><Name>Label</Name><Value>%s</Value></Item></Properties>'
             '<Behaviors><Item type="uiBindingContextBehavior"><Context><Path><pathElements>'
             '<Item>ScriptDatastoreRoot</Item><Item>%s</Item><Item>%s</Item></pathElements></Path>'
             '<PathType>PATH_ABSOLUTE</PathType></Context></Item></Behaviors></Item>'
-            % (row_name(row), settings.label_key(row), STORE, row["id"]))
+            % (row_name(row), typ, settings.label_key(row), STORE, row["id"]))
 
 
 def header_template_xml():
@@ -135,6 +150,24 @@ def header_template_xml():
             '<VAlign>CENTER</VAlign>%s</Item></Children></UIPanel>'
             % (layout("HALIGN_STRETCH", "VALIGN_TOP", None, 54), layout("HALIGN_CENTER", "VALIGN_CENTER", None, 54)))
     return rbf2xml.to_xml(rbf2xml.from_xml('<?xml version="1.0" encoding="UTF-8"?>\n' + body))
+
+
+PERCENT_ANCHOR = """        <Item type="UIPanel">
+          <Name>PAN_RightArrow</Name>"""
+
+
+def percent_template_xml(game_xml):
+    """The game's list_item_int_stepper (HDR screen: d-pad steps, left stick adjusts smoothly) with a "%"
+    text after the number. Same data context fields: value (two-way), minimum, maximum, step, prompt..."""
+    assert game_xml.count(PERCENT_ANCHOR) == 1, "list_item_int_stepper layout changed (game update?)"
+    pct = ('<Item type="UIText"><Name>TXT_Percent</Name><RawText>%%</RawText>%s<HAlign>CENTER</HAlign>'
+           '<VAlign>CENTER</VAlign><ParagraphStyle>SINGLELINE</ParagraphStyle><Style>MENU_TEXT_BODY</Style>'
+           '<AutoSize>SHRINK_TO_FIT_TEXTFIELD</AutoSize></Item>' % layout("HALIGN_RIGHT", "VALIGN_CENTER"))
+    # through the RBF model so it is formatted like the rest
+    pct_xml = rbf2xml.to_xml(rbf2xml.from_xml('<?xml version="1.0" encoding="UTF-8"?>\n<Wrap>%s</Wrap>' % pct))
+    pct_xml = "".join("      " + line + "\n" for line in pct_xml.splitlines()[2:-1])
+    i = game_xml.index(PERCENT_ANCHOR)
+    return game_xml[:i] + pct_xml + game_xml[i:]
 
 
 def header(row):
@@ -200,8 +233,9 @@ def descriptions():
         kids.append(text_item("TXT_Desc_" + row["id"], "PAUSE_TEXT_BODY", ("label", settings.desc_key(row)),
                               layout("HALIGN_STRETCH", "VALIGN_TOP"), focused,
                               '<IsRichText value="true"/><AutoSize>NONE</AutoSize><Visible value="false"/>'))
-    return ('<Item type="UIPanel"><Name>PAN_Desc</Name>%s<Children>%s</Children></Item>'
-            % (at(LEFT_X, TOP_RULE_Y + 16, LEFT_W, BOTTOM_RULE_Y - TOP_RULE_Y - 32), "".join(kids)))
+    return ('<Item type="UIPanel"><Name>PAN_Desc</Name>%s<Visible value="false"/>%s<Children>%s</Children></Item>'
+            % (at(LEFT_X, TOP_RULE_Y + 16, LEFT_W, BOTTOM_RULE_Y - TOP_RULE_Y - 32), visible_when_ready(),
+               "".join(kids)))
 
 
 def rows_list():
@@ -214,17 +248,26 @@ def rows_list():
             '<vScrollBarVisibility>SCROLLBAR_VISIBILITY_AUTO</vScrollBarVisibility></params></Item>'
             '</SpecializedLayoutParams><BehaviorSet><Behaviors><Item type="uiScreenNavigationBehavior">'
             '<Name>navigation</Name><NavData><Flags>NAV_FLAGS_WRAPPING_Y</Flags></NavData></Item></Behaviors>'
-            '</BehaviorSet><Children>%s</Children></Item>'
-            % (at(LIST_X, TOP_RULE_Y + 6, LIST_W, BOTTOM_RULE_Y - TOP_RULE_Y - 12),
+            '</BehaviorSet><Visible value="false"/>%s<Children>%s</Children></Item>'
+            % (at(LIST_X, TOP_RULE_Y + 6, LIST_W, BOTTOM_RULE_Y - TOP_RULE_Y - 12), visible_when_ready(),
                options_list(layout("HALIGN_STRETCH", "VALIGN_TOP"))))
 
 
+def not_ready():
+    """Instead of empty rows (title screen): where to change the settings."""
+    return ('<Item type="UIText"><Name>TXT_NotReady</Name><Text>%s</Text><Style>PAUSE_TEXT_BODY</Style>'
+            '<HAlign>CENTER</HAlign><VAlign>CENTER</VAlign>%s%s</Item>'
+            % (settings.NOT_READY_KEY, at(LIST_X, (TOP_RULE_Y + BOTTOM_RULE_Y) // 2 - 60, LIST_W, 120),
+               visible_when_ready(False)))
+
+
 def scene_xml():
-    page_panel = ('<Item type="UIPanel"><Name>PAN_Page</Name>%s<Children>%s%s%s%s%s%s%s</Children></Item>'
+    page_panel = ('<Item type="UIPanel"><Name>PAN_Page</Name>%s<Children>%s%s%s%s%s%s%s%s</Children></Item>'
                   % (layout("HALIGN_CENTER", "VALIGN_CENTER", 1920, 1080), title(),
                      rule("IMG_TitleRule", LEFT_X, TOP_RULE_Y, LEFT_W), rule("IMG_DescFooterRule", LEFT_X, BOTTOM_RULE_Y, LEFT_W),
                      rule("IMG_ListHeaderRule", LIST_X, TOP_RULE_Y, LIST_W),
-                     rule("IMG_ListFooterRule", LIST_X, BOTTOM_RULE_Y, LIST_W), descriptions(), rows_list()))
+                     rule("IMG_ListFooterRule", LIST_X, BOTTOM_RULE_Y, LIST_W), descriptions(), rows_list(),
+                     not_ready()))
     viewbox = ('<Item type="UIViewbox"><Name>VB_Page</Name>%s<SpecializedLayoutParams>'
                '<Item type="rage__SpecializedParamInstanceAsset"><params type="rage__ViewboxParams">'
                '<stretchDirection>STRETCH_DIRECTION_BOTH</stretchDirection><stretchType>STRETCH_TYPE_UNIFORM'
@@ -291,6 +334,21 @@ FLOW_STATE_NEW = """              <Item>
                         </PropertyKeys>
                       </Template>
                     </Item>
+                    <Item type="UITemplateStreamingDependencyResource">
+                      <Name>%(percent)s</Name>
+                      <Template>
+                        <Id>%(percent_id)s</Id>
+                        <PropertyKeys>
+                          <Item key="Label">
+                            <Target>
+                              <PathType>PATH_LOCAL</PathType>
+                              <Path>TXT_LeftLabel</Path>
+                            </Target>
+                            <Property>Text</Property>
+                          </Item>
+                        </PropertyKeys>
+                      </Template>
+                    </Item>
                     <Item type="UIObjectSceneStreamingDependencyResource">
                       <Name>%(scene)s</Name>
                     </Item>
@@ -318,7 +376,8 @@ FLOW_STATE_NEW = """              <Item>
                 </Children>
                 <Guid>%(g1)s</Guid>
               </Item>
-""" % dict(scene=SCENE_NAME, host=PAGE_HOST, header=HEADER_NAME, header_id=HEADER_ID,
+""" % dict(scene=SCENE_NAME, host=PAGE_HOST, header=HEADER_NAME, header_id=HEADER_ID, percent=PERCENT_NAME,
+           percent_id=PERCENT_ID,
            g1=guid("dualsense_page_resources"), g2=guid("dualsense_page"))
 
 
@@ -393,7 +452,10 @@ def main(argv):
     flow_new = edit_flow(flow_orig)
     scene = scene_xml()
     header = header_template_xml()
+    with open(os.path.join(base, PERCENT_SRC), encoding="utf-8") as fh:
+        percent = percent_template_xml(fh.read())
     flow_rbf, scene_rbf, header_rbf = to_rbf(flow_new), to_rbf(scene), to_rbf(header)
+    percent_rbf = to_rbf(percent)
 
     write(os.path.join(out, "xml", FLOW_OUT), flow_new)
     write(os.path.join(out, "xml", SCENE_OUT), scene)
@@ -401,6 +463,8 @@ def main(argv):
     write(os.path.join(out, SCENE_OUT), scene_rbf)
     write(os.path.join(out, "xml", HEADER_OUT), header)
     write(os.path.join(out, HEADER_OUT), header_rbf)
+    write(os.path.join(out, "xml", PERCENT_OUT), percent)
+    write(os.path.join(out, PERCENT_OUT), percent_rbf)
     write(os.path.join(out, "diff", "settings_group_flow.ymt.diff"),
           "".join(difflib.unified_diff(flow_orig.splitlines(True), flow_new.splitlines(True),
                                        "a/" + FLOW_REL, "b/" + FLOW_REL, n=3)))
@@ -411,13 +475,14 @@ def main(argv):
     rpf8.NAMES.load()
     rpf8.NAMES.add(SCENE_NAME)
     rpf8.NAMES.add(HEADER_NAME)
+    rpf8.NAMES.add(PERCENT_NAME)
     top = rpf8.RPF8(os.path.join(rpf8.GAME_DIR, SRC_ARCHIVE))
     ent = next(e for e in top.entries if e.display_name().lower() == INNER)
     sub = top.nested(ent)
     fh_, _ = rpf8.path_hash(FLOW_ARC)
     fidx = next(i for i, e in enumerate(sub.entries) if e.hash == fh_)
     wrap = (lambda d: (d, "oodle")) if oodle else (lambda d: d)
-    added = {SCENE_ARC: scene_rbf, HEADER_ARC: header_rbf}
+    added = {SCENE_ARC: scene_rbf, HEADER_ARC: header_rbf, PERCENT_ARC: percent_rbf}
     built = rpf8.rebuild_archive(sub, {fidx: wrap(flow_rbf)}, {k: wrap(v) for k, v in added.items()})
     rpf_out = os.path.join(out, "replace", "update_4", "x64", "data", "ui", "startup_data.rpf")
     write(rpf_out, built)

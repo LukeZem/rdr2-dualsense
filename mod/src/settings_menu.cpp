@@ -101,7 +101,7 @@ std::string SettingsMenu::stepped(const MenuEntry& e, const Config& c, int dir) 
     }
     case MenuEntry::Choice: {
         if (e.choices.empty()) return "";
-        size_t i = size_t(option_index(e, c));
+        size_t i = size_t(page_value(e, c));
         size_t n = e.choices.size();
         return e.choices[(i + n + (dir < 0 ? n - 1 : 1)) % n].value;
     }
@@ -111,33 +111,33 @@ std::string SettingsMenu::stepped(const MenuEntry& e, const Config& c, int dir) 
 
 std::vector<std::string> SettingsMenu::option_labels(const MenuEntry& e) {
     std::vector<std::string> out;
-    switch (e.kind) {
-    case MenuEntry::Header:
-        break;
-    case MenuEntry::Toggle:
-        out = {"MO_OFF", "MO_ON"};                          // the game's own Off / On
-        break;
-    case MenuEntry::Number:
-        for (int n = 0; n <= int(std::lround(e.max / e.step)); ++n)
-            out.push_back("DS_PCT_" + std::to_string(n * 10));
-        break;
-    case MenuEntry::Choice:
+    if (e.kind == MenuEntry::Toggle) out = {"MO_OFF", "MO_ON"};      // the game's own Off / On
+    if (e.kind == MenuEntry::Choice)
         for (auto& o : e.choices) out.push_back(o.label);
-        break;
-    }
     return out;
 }
 
-int SettingsMenu::option_index(const MenuEntry& e, const Config& c) {
+int SettingsMenu::page_max(const MenuEntry& e) {
+    switch (e.kind) {
+    case MenuEntry::Number:
+        return int(std::lround(e.max * 100));
+    case MenuEntry::Toggle:
+    case MenuEntry::Choice:
+        return int(option_labels(e).size()) - 1;
+    case MenuEntry::Header:
+        break;
+    }
+    return 0;
+}
+
+int SettingsMenu::page_value(const MenuEntry& e, const Config& c) {
     switch (e.kind) {
     case MenuEntry::Header:
         return 0;
     case MenuEntry::Toggle:
         return c.flag(e.section, e.key, e.def > 0.5f) ? 1 : 0;
-    case MenuEntry::Number: {
-        int i = int(std::lround(c.num(e.section, e.key, e.def) / e.step));
-        return std::clamp(i, 0, int(std::lround(e.max / e.step)));
-    }
+    case MenuEntry::Number:
+        return std::clamp(int(std::lround(c.num(e.section, e.key, e.def) * 100)), 0, page_max(e));
     case MenuEntry::Choice: {
         if (e.choices.empty()) return 0;
         std::string v = c.str(e.section, e.key, e.choices[size_t(e.def)].value);
@@ -149,17 +149,17 @@ int SettingsMenu::option_index(const MenuEntry& e, const Config& c) {
     return 0;
 }
 
-std::string SettingsMenu::option_value(const MenuEntry& e, int index) {
-    if (index < 0 || index >= int(option_labels(e).size())) return "";
+std::string SettingsMenu::page_ini(const MenuEntry& e, int v) {
+    if (e.kind == MenuEntry::Header || v < 0 || v > page_max(e)) return "";
     switch (e.kind) {
-    case MenuEntry::Header:
-        return "";
     case MenuEntry::Toggle:
-        return index ? "1" : "0";
+        return v ? "1" : "0";
     case MenuEntry::Number:
-        return fmt(float(index) * e.step);
+        return fmt(float(v) / 100.0f);
     case MenuEntry::Choice:
-        return e.choices[size_t(index)].value;
+        return e.choices[size_t(v)].value;
+    case MenuEntry::Header:
+        break;
     }
     return "";
 }

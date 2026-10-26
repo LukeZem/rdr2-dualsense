@@ -73,7 +73,8 @@ Words can be changed or switched off in DualSenseRDR2.ini, section [Voice] (leav
 SETTINGS
 --------
 In the game: Pause > Settings > Controls > Controller > DualSense - every setting of the mod, changed with
-left / right like the game's own. Changes apply as soon as you close the menu.
+left / right like the game's own (strengths: 5% per press, hold to run). Changes apply as soon as you close
+the menu. On the title screen the page only tells you to load your story - the mod starts with the game.
 Everything is also in DualSenseRDR2.ini (every effect has its own strength, 0 = off); F9 reloads the file
 in game.
 Gyro aim (EXPERIMENTAL, off by default): [Gyro] Mode=aim turns on small gyro corrections while you aim

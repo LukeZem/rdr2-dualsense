@@ -7,8 +7,9 @@ Usage: make_lml_dualsense.py [xml_base_dir] [out_dir]
 
 One text edit of the game's own (current update_4) x64/data/ui/settings/controls.ymt: a Button item
 "dualsense" (transition "dualsense_settings", gamepad page only) right after the "vibration" item. The
-transition is followed by our flow states (build_dualsense_page.py), the texts come from LABELS
-(the .asi adds them at run time). Writes plain XML (xml/...), binary RBF (data/...) and a unified diff (diff/...).
+transition is followed by our flow states (build_dualsense_page.py), the texts come from LABELS (the .asi
+adds them at run time). Row conditions are evaluated once, before any mod data exists, so the row can't
+depend on the mod - the page itself tells when it has no values yet (title screen). Writes plain XML (xml/...), binary RBF (data/...) and a unified diff (diff/...).
 Re-run after a game update to rebase the edit on the new file.
 """
 import difflib

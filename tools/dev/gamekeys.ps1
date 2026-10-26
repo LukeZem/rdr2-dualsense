@@ -1,6 +1,6 @@
 # Presses keys in the game window (hardware scan codes via SendInput - games read those) and can take a
 # screenshot afterwards. Used to test menus without a person at the controller.
-# Usage: gamekeys.ps1 -Keys "esc","wait:1500","down","down","enter" [-Shot out.png] [-Delay 250]
+# Usage: gamekeys.ps1 -Keys "esc","wait:1500","down","down","enter","hold:right:1500" [-Shot out.png] [-Delay 250]
 param([string[]]$Keys = @(), [string]$Shot = "", [int]$Delay = 250, [string]$Title = "Red Dead Redemption 2")
 Add-Type @"
 using System; using System.Runtime.InteropServices;
@@ -10,6 +10,15 @@ public class GK {
   [DllImport("user32.dll", SetLastError=true)] public static extern uint SendInput(uint n, INPUT[] inputs, int size);
   [DllImport("user32.dll")] public static extern bool SetForegroundWindow(IntPtr h);
   [DllImport("user32.dll")] public static extern bool ShowWindow(IntPtr h, int c);
+  public static void Hold(ushort scan, bool extended, int ms) {
+    INPUT[] i = new INPUT[1];
+    uint ext = extended ? 1u : 0u;
+    i[0].type = 1; i[0].ki.wScan = scan; i[0].ki.dwFlags = 0x0008 | ext;
+    SendInput(1, i, Marshal.SizeOf(typeof(INPUT)));
+    System.Threading.Thread.Sleep(ms);
+    i[0].ki.dwFlags = 0x0008 | 0x0002 | ext;
+    SendInput(1, i, Marshal.SizeOf(typeof(INPUT)));
+  }
   public static void Key(ushort scan, bool extended) {
     INPUT[] i = new INPUT[2];
     uint ext = extended ? 1u : 0u;
@@ -36,6 +45,11 @@ if (-not $g) { "game not running"; exit 1 }
 Start-Sleep -Milliseconds 400
 foreach ($k in $Keys) {
   if ($k -like "wait:*") { Start-Sleep -Milliseconds ([int]$k.Substring(5)); continue }
+  if ($k -like "hold:*") {                                  # hold:<key>:<ms> - key held down that long
+    $p = $k.Split(":"); $m = $map[$p[1].ToLower()]
+    if ($m) { [GK]::Hold([uint16]$m[0], [bool]$m[1], [int]$p[2]) }
+    Start-Sleep -Milliseconds $Delay; continue
+  }
   $m = $map[$k.ToLower()]
   if (-not $m) { "unknown key $k"; continue }
   [GK]::Key([uint16]$m[0], [bool]$m[1])

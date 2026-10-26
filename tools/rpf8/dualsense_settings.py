@@ -10,10 +10,10 @@
 
 Usage: dualsense_settings.py      -> writes mod/src/settings_rows.inc and mod/src/settings_texts.inc
 
-Row kinds (every row is a list_item_option_stepper; value = index into its options):
-  toggle  ini 0/1                    options Off / On (the game's own MO_OFF / MO_ON)
-  level   ini 0.0 .. max, 10% steps  options Off, 10% .. max (DS_PCT_<n>)
-  choice  ini one of the values      options = the given texts (DS_<ID>_<VALUE>)
+Row kinds:
+  toggle  ini 0/1          option stepper, options Off / On (the game's own MO_OFF / MO_ON); value = index
+  level   ini 0.0 .. max   number stepper in percent (value 0 .. max*100, any whole percent)
+  choice  ini one of them  option stepper, options = the given texts (DS_<ID>_<VALUE>); value = index
 """
 import os
 import sys
@@ -101,26 +101,28 @@ def desc_key(row):
     return "DS_" + row["id"].upper() + "_DESC"
 
 
-def pct_key(n):
-    return "DS_PCT_%d" % n
-
-
 def choice_key(row, value):
     return "DS_%s_%s" % (row["id"].upper(), value.upper())
 
 
 def option_keys(row):
-    """Text labels of the stepper's options, index = data store value."""
+    """Text labels of an option stepper's options, index = data store value (levels: none, a number stepper)."""
     if row["kind"] == "toggle":
         return ["MO_OFF", "MO_ON"]
     if row["kind"] == "level":
-        return [pct_key(n) for n in range(0, int(round(row["max"] * 100)) + 1, 10)]
+        return []
     return [choice_key(row, v) for v, _ in row["choices"]]
+
+
+# the page without values (title screen: no mod script runs there yet)
+NOT_READY_KEY = "DS_PAGE_NOT_READY"
+NOT_READY_TEXT = "Load your story to change the DualSense settings."
 
 
 def labels():
     """Every text of the row and the page: {label key: text}."""
     out = dict(ENTRY_LABELS)
+    out[NOT_READY_KEY] = NOT_READY_TEXT
     for r in ROWS:
         if r["kind"] == "header":
             out[label_key(r)] = r["text"]
@@ -131,9 +133,6 @@ def labels():
         if r["kind"] == "choice":
             for v, text in r["choices"]:
                 out[choice_key(r, v)] = text
-    out[pct_key(0)] = "Off"
-    for n in range(10, 201, 10):
-        out[pct_key(n)] = "%d%%" % n
     return out
 
 

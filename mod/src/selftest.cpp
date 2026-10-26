@@ -222,30 +222,31 @@ int run_selftests(const fs::path& data) {
         in.close();
         fs::remove(tmp);
     }
-    {   // the in-game page: every row an option stepper, index <-> ini value
+    {   // the in-game page: toggles and choices = option steppers (index), levels = whole percents
         Config cfg;
         std::set<std::string> ids;
         const MenuEntry* steps = nullptr; const MenuEntry* strength = nullptr; const MenuEntry* gyro = nullptr;
+        const MenuEntry* trig = nullptr;
         bool ok = true;
         for (auto& e : SettingsMenu::entries()) {
             if (e.kind == MenuEntry::Header) continue;
-            ok = ok && ids.insert(e.id).second && !SettingsMenu::option_labels(e).empty();
+            ok = ok && ids.insert(e.id).second &&
+                 (e.kind == MenuEntry::Number) == SettingsMenu::option_labels(e).empty();
             if (std::string(e.key) == "Footsteps") steps = &e;
             if (std::string(e.section) == "Haptics" && std::string(e.key) == "Strength") strength = &e;
             if (std::string(e.key) == "Mode") gyro = &e;
+            if (std::string(e.section) == "Triggers" && std::string(e.key) == "Enabled") trig = &e;
         }
-        CHECK(ok && steps && strength && gyro, "page rows: unique ids, every row has options");
-        CHECK(SettingsMenu::option_labels(*steps).size() == 11 && SettingsMenu::option_labels(*strength).size() == 21,
-              "levels: Off, 10% .. max");
-        CHECK(SettingsMenu::option_labels(*steps)[0] == "DS_PCT_0" && SettingsMenu::option_labels(*steps)[3] == "DS_PCT_30",
-              "level option labels");
-        CHECK(SettingsMenu::option_index(*steps, cfg) == 2, "footsteps default 0.22 sits on the 20% option");
-        CHECK(SettingsMenu::option_value(*steps, 3) == "0.3" && SettingsMenu::option_value(*strength, 20) == "2",
-              "option -> ini value");
-        CHECK(SettingsMenu::option_value(*steps, 11).empty() && SettingsMenu::option_value(*steps, -1).empty(),
+        CHECK(ok && steps && strength && gyro && trig, "page rows: unique ids, options only for toggles / choices");
+        CHECK(SettingsMenu::page_max(*steps) == 100 && SettingsMenu::page_max(*strength) == 200, "levels: 0 .. max %");
+        CHECK(SettingsMenu::page_value(*steps, cfg) == 22, "footsteps default 0.22 shows as exactly 22%");
+        CHECK(SettingsMenu::page_ini(*steps, 37) == "0.37" && SettingsMenu::page_ini(*strength, 200) == "2" &&
+              SettingsMenu::page_ini(*steps, 0) == "0", "percent -> ini value");
+        CHECK(SettingsMenu::page_ini(*steps, 101).empty() && SettingsMenu::page_ini(*steps, -1).empty(),
               "out of range -> nothing");
         CHECK(SettingsMenu::option_labels(*gyro) == std::vector<std::string>({"DS_GYRO_MODE_OFF", "DS_GYRO_MODE_AIM"}) &&
-              SettingsMenu::option_value(*gyro, 1) == "aim", "choice options");
+              SettingsMenu::page_ini(*gyro, 1) == "aim" && SettingsMenu::page_ini(*gyro, 2).empty(), "choice options");
+        CHECK(SettingsMenu::page_value(*trig, cfg) == 1 && SettingsMenu::page_ini(*trig, 0) == "0", "toggle 0 / 1");
     }
     {   // the game's readiness decides re-arming (no guessed fire rate)
         Settings s; s.manual_action = false;
