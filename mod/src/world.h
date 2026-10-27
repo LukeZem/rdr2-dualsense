@@ -45,7 +45,7 @@ struct GameSnapshot {
     int deadeye_marks = 0;         // targets painted in Dead Eye
     int minigame = 0;              // 1 five finger fillet, 2 poker, 3 blackjack, 4 dominoes
     float rain = 0;                // 0..1
-    bool thunder = false, indoors = false;
+    bool indoors = false;
     std::string activity;          // clean_gun, skin, scrub, craft, cook (a texture while it lasts)
     float activity_pan = 0;
     bool lasso_attached = false;

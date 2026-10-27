@@ -32,7 +32,7 @@ Tune weapons, record calibration and label sounds in the Trigger Lab (`tools/tri
 | Honor | The story scripts' honor stats: a warm rising swell + gold glow when honor goes up (e.g. after a greeting), a sinking thud + ember glow when it drops. |
 | Camp life | Bites, sips and puffs (the game's own effect moment), cleaning a gun, each brush stroke / mouthful when caring for the horse, skinning, stowing pelts on the horse, picking herbs, bathing, crafting, cooking. |
 | Table games | Five finger fillet (every stab, the miss), poker / blackjack (chips, knocks, cards, shuffles from Arthur's hand animations), dominoes. |
-| Haptics | Shots from each gun's own recordings (lml sound mods such as RWS); the game's rumble converted for the voice coils; **game-audio layer**: what you hear (hooves, thunder, explosions, cutscenes, mini-games) as haptics, keeping left/right, quieter while a weapon effect plays. |
+| Haptics | Shots from each gun's own recordings (lml sound mods such as RWS); the game's rumble converted for the voice coils; **game-audio layer**: what you hear (hooves, explosions, cutscenes, mini-games) as haptics, keeping left/right, quieter while a weapon effect plays. |
 | Around you | Damage felt from its direction and by cause (bullet, melee, animal, fall); nearby gunfire pressure waves from their direction; heartbeat at low health and in Dead Eye; shivers in freezing cold. |
 | Horse | Hoofbeats from the real hooves touching the ground (height above the ground, any gait) on the ground under each hoof; the gait rhythm only if the legs can't be read; the horse's heartbeat and breathing when it is spent; rearing. |
 | Ground | The game's ground material, identified by name (mud_soft, gravel_dirt, pine_needles, wood_solid_medium...) - footsteps and hooves feel like it. |
@@ -41,7 +41,7 @@ Tune weapons, record calibration and label sounds in the Trigger Lab (`tools/tri
 | Speaker | The game's own recordings for drawing / holstering a revolver, the lasso throw and the rope (found by name in the sound banks); synthesized cocking / lever / bolt / pump clicks. |
 | Gyro aim | Experimental, off by default: small gyro corrections while free-aiming (`[Gyro] Mode=aim`). |
 | Microphone | Whistle into the controller → horse call. Say "chao" → a real greeting (counts for honor). "Easy" → calm the horse. A command only counts when said on its own (after a pause, short, confident). The mute button toggles listening (mute LED on = not listening). |
-| Weather | Rain on the hat, far thunder - off by default (`[Haptics] Weather`). |
+| Weather | Rain on the hat, as heavy as the game's rain - off by default (`[Haptics] Weather`). |
 | Touchpad | Click = map (BACK). Swipes / two-finger tap can be mapped to buttons in the ini. |
 
 Settings: `DualSenseRDR2.ini` (F9 reloads it and the data folder in game). Log: `DualSenseRDR2.log`

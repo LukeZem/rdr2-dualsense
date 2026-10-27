@@ -114,7 +114,7 @@ WheelClick=0.6
 ; Camp life: bites, sips and puffs, cleaning your gun, brushing / feeding the horse, skinning, stowing pelts,
 ; picking herbs, bathing, crafting, cooking
 CampLife=0.6
-; Rain drops on the hat and far thunder (0 = off: they are weather, not Arthur)
+; Rain drops on the hat, as heavy as the game's rain (0 = off: weather, not Arthur)
 Weather=0
 
 [Speaker]

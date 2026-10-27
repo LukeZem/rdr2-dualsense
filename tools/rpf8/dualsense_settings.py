@@ -69,7 +69,7 @@ ROWS = [
           "Five finger fillet, poker, blackjack, dominoes."),
     level("haptics_rumble", "Haptics", "GameRumble", "Game's Own Rumble", 0.35, 1.0,
           "The game's original vibration, played through the haptics."),
-    level("haptics_weather", "Haptics", "Weather", "Rain and Thunder", 0.0, 1.0, "Drops on the hat, far thunder."),
+    level("haptics_weather", "Haptics", "Weather", "Rain", 0.0, 1.0, "Rain drops on the hat, as heavy as the rain falls."),
     level("haptics_wheel", "Haptics", "WheelClick", "Weapon Wheel Clicks", 0.6, 1.0,
           "L2 and R2 click like a selector while you browse the weapon wheel."),
     header("Voice and Whistle"),

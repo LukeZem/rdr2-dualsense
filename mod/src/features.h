@@ -38,7 +38,7 @@ private:
     bool armed_before_ = false;
     double honor_until_ = 0;
     float minigame_gain_ = 0.7f, weather_gain_ = 0;
-    double next_drop_ = 0, next_thunder_ = 0, next_texture_ = 0;
+    double next_drop_ = 0, next_texture_ = 0;
     float life_gain_ = 0.6f;
     int texture_n_ = 0;
     bool honor_up_ = true;

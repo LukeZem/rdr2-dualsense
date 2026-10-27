@@ -768,14 +768,7 @@ void World::tick() {
 
     // --- weather on the hat ---
     s.rain = GET_RAIN_LEVEL();
-    {
-        Hash w1 = 0, w2 = 0;
-        float pct = 0;
-        GET_CURR_WEATHER_STATE(&w1, &w2, &pct);
-        Hash wt = pct > 0.5f ? w2 : w1;
-        s.thunder = wt == joaat("THUNDER") || wt == joaat("THUNDERSTORM") || wt == joaat("HURRICANE");
-        s.indoors = GET_INTERIOR_FROM_ENTITY(me) != 0;
-    }
+    s.indoors = GET_INTERIOR_FROM_ENTITY(me) != 0;
 
     // --- honor: the story scripts count every gain / loss in stats ---
     if (s.time - honor_poll_t_ > 0.2) {

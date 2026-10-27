@@ -238,14 +238,10 @@ void Features::update(const InputState& in, const GameSnapshot& g, std::vector<W
             cues.push_back(make("door_open", action_gain_, e.pan, true));
         }
     }
-    if (!g.blocked && weather_gain_ > 0 && !g.indoors) {             // rain on the hat, thunder far off
+    if (!g.blocked && weather_gain_ > 0 && !g.indoors) {             // rain on the hat, as heavy as the game's rain
         if (g.rain > 0.05f && now >= next_drop_) {
             next_drop_ = now + rng_.range(0.3f, 1.7f) / (3.0f + 30.0f * g.rain);
             cues.push_back(make("rain_drop", weather_gain_ * rng_.range(0.3f, 1.0f), rng_.range(-0.8f, 0.8f), true));
-        }
-        if (g.thunder && now >= next_thunder_) {
-            if (next_thunder_ > 0) cues.push_back(make("thunder_far", weather_gain_ * rng_.range(0.5f, 1.0f)));
-            next_thunder_ = now + rng_.range(15.0f, 50.0f);
         }
     }
     // what Arthur is busy with, felt as a texture while it lasts

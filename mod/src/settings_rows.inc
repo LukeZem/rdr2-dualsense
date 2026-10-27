@@ -15,7 +15,7 @@ level("haptics_gunfire", "Haptics", "Gunfire", "DS_HAPTICS_GUNFIRE", "Gunfire Ne
 level("haptics_camp", "Haptics", "CampLife", "DS_HAPTICS_CAMP", "Camp Life", 0.6f, 1.0f, "Eating, drinking, brushing the horse, skinning, bathing..."),
 level("haptics_tables", "Haptics", "TableGames", "DS_HAPTICS_TABLES", "Table Games", 0.7f, 1.0f, "Five finger fillet, poker, blackjack, dominoes."),
 level("haptics_rumble", "Haptics", "GameRumble", "DS_HAPTICS_RUMBLE", "Game's Own Rumble", 0.35f, 1.0f, "The game's original vibration, played through the haptics."),
-level("haptics_weather", "Haptics", "Weather", "DS_HAPTICS_WEATHER", "Rain and Thunder", 0.0f, 1.0f, "Drops on the hat, far thunder."),
+level("haptics_weather", "Haptics", "Weather", "DS_HAPTICS_WEATHER", "Rain", 0.0f, 1.0f, "Rain drops on the hat, as heavy as the rain falls."),
 level("haptics_wheel", "Haptics", "WheelClick", "DS_HAPTICS_WHEEL", "Weapon Wheel Clicks", 0.6f, 1.0f, "L2 and R2 click like a selector while you browse the weapon wheel."),
 header("DS_HDR_VOICEANDWHISTLE", "Voice and Whistle"),
 toggle("mic_whistle", "Mic", "WhistleForHorse", "DS_MIC_WHISTLE", "Whistle for Your Horse", false, "Whistle into the controller's microphone to call your horse."),

@@ -13,7 +13,7 @@ add = {
                 ("Actions", "0.5", "; grabbing a ledge, opening a door, drawing / holstering a gun"),
                 ("TableGames", "0.7", "; five finger fillet, poker / blackjack chips and cards, dominoes"),
                 ("CampLife", "0.6", "; bites, sips, puffs, cleaning the gun, horse care, skinning, pelts, herbs, bathing, crafting, cooking"),
-                ("Weather", "0", "; rain on the hat, far thunder (0 = off)"),
+                ("Weather", "0", "; rain on the hat (0 = off)"),
                 ("WheelClick", "0.6", "; the little click of L2/R2 while browsing the weapon wheel (0 = off)")],
     "Gyro": [("VerticalRatio", "0.75", "; vertical relative to horizontal"),
              ("SmoothThreshold", "6", "; movements slower than this (deg/s) are smoothed, faster pass straight through")],
