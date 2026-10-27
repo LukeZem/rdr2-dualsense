@@ -17,6 +17,7 @@ public:
     void publish(const InputState& s, int game_rt, bool connected);
     void inject(WORD xbutton, double seconds);   // e.g. XINPUT_GAMEPAD_DPAD_UP for the whistle
     void hold_lt(double seconds);                // hold L2 fully for `seconds` (0 = release now)
+    void probe_lt(int value);                    // the game sees this L2 value (0-255; -1 = the real one)
     void configure();                            // read touchpad mapping from the ini
     // gestures + gyro, called by the controller thread for each fresh report
     void track_touch(const InputState& s);
@@ -38,6 +39,7 @@ private:
     struct Injection { WORD button; double until; };
     std::vector<Injection> injections_;
     double lt_until_ = 0;
+    int lt_probe_ = -1;
     std::atomic<float> rumble_low_{0}, rumble_high_{0};
     WORD touch_click_ = XINPUT_GAMEPAD_BACK, swipe_[4] = {0, 0, 0, 0}, two_finger_ = 0;
     // touch tracking

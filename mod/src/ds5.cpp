@@ -47,6 +47,7 @@ void DualSense::stop() {
 }
 
 bool DualSense::open() {
+    routed_ = -1;                             // a (re)connected controller starts on the headphone jack again
     GUID hid;
     HidD_GetHidGuid(&hid);
     HDEVINFO set = SetupDiGetClassDevsW(&hid, nullptr, nullptr, DIGCF_PRESENT | DIGCF_DEVICEINTERFACE);
@@ -144,6 +145,7 @@ static void parse(const uint8_t* d, InputState& s) {
     s.l2_feedback = d[42];
     s.effect_state = d[47];
     s.battery = std::min(10, d[52] & 0x0F);
+    s.headphones = (d[53] & 0x01) != 0;      // status[1] bit 0 (Linux hid-playstation: DS_STATUS1_HP_DETECT)
 }
 
 void DualSense::build_payload(const OutputState& o, uint8_t* p) {
@@ -174,6 +176,23 @@ void DualSense::build_payload(const OutputState& o, uint8_t* p) {
     if (o.player_leds >= 0) {
         p[1] |= 0x10;
         p[43] = uint8_t(o.player_leds & 0x1F);
+    }
+    // Audio output path (as the Linux hid-playstation driver does it): sent whenever it differs from what the
+    // controller last accepted. Speaker: path 3 (right channel -> speaker), volume 0x64 (100%, accepted range
+    // 0x3D-0x64), preamp +6 dB. Headphones: path 0 (left/right -> jack).
+    routing_ = -1;
+    if (usb_ && (headphones_ ? 1 : 0) != routed_) {
+        routing_ = headphones_ ? 1 : 0;
+        p[0] |= 0x80;                         // audio control
+        if (headphones_) {
+            p[7] = 0x00;
+        } else {
+            p[7] = 0x30;
+            p[0] |= 0x20;                     // speaker volume
+            p[5] = 0x64;
+            p[1] |= 0x80;                     // audio control 2
+            p[37] = 0x02;                     // speaker preamp gain
+        }
     }
 }
 
@@ -211,6 +230,10 @@ bool DualSense::write(const OutputState& o, bool force) {
     }
     if (!ok) return false;
     if (o.has_lightbar) lightbar_released_ = true;
+    if (routing_ >= 0) {
+        routed_ = routing_;
+        LOGI("controller audio: %s", routed_ ? "headphone jack" : "built-in speaker");
+    }
     last_payload_.assign(payload, payload + 47);
     return true;
 }
@@ -254,6 +277,7 @@ void DualSense::loop() {
                 }
                 if (buf[0] == 0x01 && n >= 64) {
                     parse(buf.data() + 1, s);
+                    headphones_ = s.headphones;
                     s.fresh = true;
                 } else if (buf[0] == 0x31 && n >= 64) {
                     parse(buf.data() + 2, s);

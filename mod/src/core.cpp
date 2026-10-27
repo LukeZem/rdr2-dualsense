@@ -60,9 +60,9 @@ bool Core::init(bool in_game, const std::string& test_weapon) {
     if (in_game) input().install_hook();
     audio_.start(&lib_);
     audio_.start_game_audio(c.num("Haptics", "GameAudio", 0.0f), c.str("Haptics", "GameAudioDevice", ""));
-    if (c.flag("Mic", "WhistleForHorse", true))
+    if (c.flag("Mic", "WhistleForHorse", false))
         audio_.start_mic(c.num("Mic", "Sensitivity", 1.0f), [this] { whistle_at_ = now_s(); });   // acted on in on_input
-    if (c.flag("Voice", "Enabled", true)) {
+    if (c.flag("Voice", "Enabled", false)) {
         // each command may list several spellings/words, comma separated: chao = ciao / chow
         auto words = [&](const char* key, const char* def) {
             std::vector<std::string> out;

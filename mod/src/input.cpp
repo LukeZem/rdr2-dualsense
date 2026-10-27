@@ -103,6 +103,11 @@ void Input::hold_lt(double seconds) {
     lt_until_ = seconds > 0 ? now_s() + seconds : 0;
 }
 
+void Input::probe_lt(int value) {
+    std::lock_guard<std::mutex> l(mu_);
+    lt_probe_ = value;
+}
+
 static SHORT stick(int v, bool invert) {
     int s = (v - 128) * 256;
     if (invert) s = -s;
@@ -146,6 +151,7 @@ void Input::publish(const InputState& s, int game_rt, bool connected) {
         else it = injections_.erase(it);
     }
     if (t < lt_until_) g.bLeftTrigger = 255;          // the mod is holding L2 (focus for a greeting)
+    if (lt_probe_ >= 0) g.bLeftTrigger = BYTE(lt_probe_);   // aim threshold measurement (world.cpp, F11)
     connected_ = connected;
     if (std::memcmp(&g, &state_.Gamepad, sizeof g) != 0) {
         state_.Gamepad = g;

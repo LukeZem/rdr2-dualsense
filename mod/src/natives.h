@@ -13,6 +13,7 @@ inline Ped PLAYER_PED_ID() { return invoke<Ped>(0x096275889B8E0EE0ull); }
 inline bool IS_PLAYER_PLAYING(Player p) { return invoke<int>(0xBFFB35986CAAE58Cull, p) != 0; }
 inline bool IS_PLAYER_CONTROL_ON(Player p) { return invoke<int>(0x7964097FCE4C244Bull, p) != 0; }
 inline bool IS_PLAYER_FREE_AIMING(Player p) { return invoke<int>(0x936F967D4BE1CE9Dull, p) != 0; }
+inline bool IS_PLAYER_FREE_FOCUSING(Player p) { return invoke<int>(0x1A51BFE60708E482ull, p) != 0; }
 inline bool GET_PLAYER_TARGET_ENTITY(Player p, Entity* e) { return invoke<int>(0xAE663DDD99C8A670ull, p, e) != 0; }
 inline bool IS_PLAYER_TARGETTING_ANYTHING(Player p) { return invoke<int>(0x4605C66E0F935F83ull, p) != 0; }
 inline bool IS_SPECIAL_ABILITY_ACTIVE(Player p) { return invoke<int>(0xB16223CB7DA965F0ull, p) != 0; }
@@ -189,6 +190,7 @@ inline bool SET_CONTROL_VALUE_NEXT_FRAME(int pad, Hash action, float value) { re
 inline bool GET_PLAYER_INTERACTION_TARGET_ENTITY(Player p, Entity* e) { return invoke<int>(0x3EE1F7A8C32F24E1ull, p, e, 0, 0) != 0; }
 inline bool UI_PROMPT_IS_CONTROL_ACTION_ACTIVE(Hash action) { return invoke<int>(0x1BE19185B8AFE299ull, action) != 0; }
 inline bool IS_CONTROL_PRESSED(int pad, Hash action) { return invoke<int>(0xF3A21BCD95725A4Aull, pad, action) != 0; }
+inline float GET_CONTROL_NORMAL(int pad, Hash action) { return invoke<float>(0xEC3C9B8D5327B563ull, pad, action); }
 inline bool IS_DISABLED_CONTROL_PRESSED(int pad, Hash action) { return invoke<int>(0xE2587F8CBBD87B1Dull, pad, action) != 0; }
 
 // on-screen text (the surface teaching note)

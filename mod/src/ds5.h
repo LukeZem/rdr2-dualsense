@@ -31,6 +31,7 @@ struct InputState {
     uint32_t buttons = 0;
     int r2_feedback = 0, l2_feedback = 0, effect_state = 0;
     int battery = 0;               // 0-10
+    bool headphones = false;       // something plugged into the controller's headphone jack
     int16_t gyro[3] = {0, 0, 0};   // pitch, yaw, roll  (~16 LSB per deg/s)
     int16_t accel[3] = {0, 0, 0};
     uint32_t sensor_ts = 0;
@@ -79,6 +80,10 @@ private:
     size_t in_len_ = 64, out_len_ = 48;
     uint8_t bt_seq_ = 0;
     bool lightbar_released_ = false;
+    // audio output of the controller (USB): -1 unknown, 0 internal speaker, 1 headphone jack. The controller
+    // starts on the jack even with nothing plugged in, so the speaker stays silent until we route it.
+    int routed_ = -1, routing_ = -1;
+    bool headphones_ = false;
     std::vector<uint8_t> last_payload_;
     InputState last_;
     std::string name_;

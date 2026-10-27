@@ -136,6 +136,9 @@ private:
     float last_step_t_ = 0;
     // teaching note
     bool teach_down_ = false;
+    bool probe_down_ = false;
+    int probe_v_ = -1;              // aim probe: the L2 value being shown to the game (-1 = not running)
+    double probe_t_ = 0;
     std::string note_;
     double note_until_ = 0;
     uint32_t note_material_ = 0;

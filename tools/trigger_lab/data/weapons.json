@@ -29,7 +29,7 @@
                  "open": "hammer_cock", "auto": "hammer_cock_auto", "auto_ms": 160, "min_ms": 80, "fan": true},
       "clip": 6,
       "reload": {"per_round": true, "begin": "cylinder_gate", "start_ms": 450, "tick_ms": 380, "tick": "reload_round", "end_ms": 300, "end": "cylinder_gate"},
-      "aim_curve": [0, 0, 1, 1, 1, 1, 1, 1, 1, 1]
+      "aim_curve": [1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
     },
     "revolver_da": {
       "type": "gun", "action_label": "double action - the trigger cocks the hammer",
@@ -44,7 +44,7 @@
       "action": {"type": "none"},
       "clip": 6,
       "reload": {"per_round": true, "begin": "breech_open", "start_ms": 400, "tick_ms": 330, "tick": "reload_round", "end_ms": 250, "end": "breech_close"},
-      "aim_curve": [0, 0, 1, 1, 1, 1, 1, 1, 1, 1]
+      "aim_curve": [1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
     },
     "pistol_semi": {
       "type": "gun", "action_label": "self-loading - short reset",
@@ -58,7 +58,7 @@
       "action": {"type": "semi", "auto": "slide_cycle", "auto_ms": 15},
       "clip": 8,
       "reload": {"per_round": false, "begin": "mag_out", "start_ms": 500, "tick_ms": 600, "tick": "mag_in", "end_ms": 250, "end": "slide_release"},
-      "aim_curve": [0, 0, 1, 1, 1, 1, 1, 1, 1, 1]
+      "aim_curve": [1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
     },
     "pistol_lever": {
       "type": "gun", "action_label": "lever action - tap R2 to work the lever",
@@ -72,7 +72,7 @@
                  "open": "lever_open", "close": "lever_close", "auto": "lever_cycle", "auto_ms": 120, "min_ms": 100},
       "clip": 8,
       "reload": {"per_round": true, "start_ms": 400, "tick_ms": 300, "tick": "reload_round", "end_ms": 250},
-      "aim_curve": [0, 0, 1, 1, 1, 1, 1, 1, 1, 1]
+      "aim_curve": [1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
     },
     "repeater_lever": {
       "type": "gun", "action_label": "lever action - tap R2 to work the lever",
@@ -87,7 +87,7 @@
                  "open": "lever_open", "close": "lever_close", "auto": "lever_cycle", "auto_ms": 200, "min_ms": 150},
       "clip": 14,
       "reload": {"per_round": true, "start_ms": 400, "tick_ms": 330, "tick": "reload_round", "end_ms": 250},
-      "aim_curve": [0, 0, 1, 2, 2, 2, 2, 2, 2, 2]
+      "aim_curve": [1, 1, 1, 2, 2, 2, 2, 2, 2, 2]
     },
     "rifle_pump_small": {
       "type": "gun", "action_label": "slide action - tap R2 to work the slide",
@@ -101,7 +101,7 @@
                  "open": "slide_small_back", "close": "slide_small_forward", "auto": "slide_small_cycle", "auto_ms": 150, "min_ms": 100},
       "clip": 16,
       "reload": {"per_round": true, "start_ms": 400, "tick_ms": 260, "tick": "reload_round", "end_ms": 250},
-      "aim_curve": [0, 0, 1, 1, 1, 1, 1, 1, 1, 1]
+      "aim_curve": [1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
     },
     "rifle_single_shot": {
       "type": "gun", "action_label": "single shot - hammer, reload after every shot",
@@ -116,7 +116,7 @@
                  "open": "hammer_cock", "auto": "hammer_cock_auto", "auto_ms": 300, "min_ms": 80},
       "clip": 1,
       "reload": {"per_round": true, "begin": "breech_open", "start_ms": 350, "tick_ms": 600, "tick": "reload_shell", "end_ms": 250, "end": "breech_close"},
-      "aim_curve": [0, 0, 1, 2, 2, 2, 2, 2, 2, 2]
+      "aim_curve": [1, 1, 1, 2, 2, 2, 2, 2, 2, 2]
     },
     "rifle_bolt": {
       "type": "gun", "action_label": "bolt action - tap R2 to work the bolt",
@@ -132,7 +132,7 @@
                  "open": "bolt_close", "auto": "bolt_cycle", "auto_ms": 250, "min_ms": 150},
       "clip": 5,
       "reload": {"per_round": true, "begin": "bolt_open", "start_ms": 450, "tick_ms": 420, "tick": "reload_round", "end_ms": 300, "end": "bolt_close"},
-      "aim_curve": [0, 0, 1, 2, 2, 2, 2, 2, 2, 2]
+      "aim_curve": [1, 1, 1, 2, 2, 2, 2, 2, 2, 2]
     },
     "rifle_double": {
       "type": "gun", "action_label": "double rifle - two barrels, break-open",
@@ -145,7 +145,7 @@
       "action": {"type": "none"},
       "clip": 2,
       "reload": {"per_round": true, "begin": "breech_open", "start_ms": 500, "tick_ms": 550, "tick": "reload_shell", "end_ms": 300, "end": "breech_close"},
-      "aim_curve": [0, 0, 1, 2, 3, 3, 3, 3, 3, 3]
+      "aim_curve": [1, 1, 1, 2, 3, 3, 3, 3, 3, 3]
     },
     "shotgun_double": {
       "type": "gun", "action_label": "double barrel - two shots, break-open",
@@ -159,7 +159,7 @@
       "action": {"type": "none"},
       "clip": 2,
       "reload": {"per_round": true, "begin": "breech_open", "start_ms": 450, "tick_ms": 450, "tick": "reload_shell", "end_ms": 250, "end": "breech_close"},
-      "aim_curve": [0, 0, 1, 2, 2, 2, 2, 2, 2, 2]
+      "aim_curve": [1, 1, 1, 2, 2, 2, 2, 2, 2, 2]
     },
     "shotgun_pump": {
       "type": "gun", "action_label": "pump action - tap R2 to rack (support hand)",
@@ -173,7 +173,7 @@
                  "open": "pump_back", "close": "pump_forward", "auto": "pump_cycle", "auto_ms": 250, "min_ms": 150},
       "clip": 5,
       "reload": {"per_round": true, "start_ms": 400, "tick_ms": 500, "tick": "reload_shell", "end_ms": 250},
-      "aim_curve": [0, 0, 1, 2, 2, 2, 2, 2, 2, 2]
+      "aim_curve": [1, 1, 1, 2, 2, 2, 2, 2, 2, 2]
     },
     "shotgun_lever": {
       "type": "gun", "action_label": "lever-action shotgun - big lever, tap R2",
@@ -187,7 +187,7 @@
                  "open": "lever_open_big", "close": "lever_close_big", "auto": "lever_cycle_big", "auto_ms": 230, "min_ms": 170},
       "clip": 5,
       "reload": {"per_round": true, "start_ms": 400, "tick_ms": 500, "tick": "reload_shell", "end_ms": 250},
-      "aim_curve": [0, 0, 1, 2, 2, 2, 2, 2, 2, 2]
+      "aim_curve": [1, 1, 1, 2, 2, 2, 2, 2, 2, 2]
     },
     "shotgun_semi": {
       "type": "gun", "action_label": "self-loading shotgun - short reset",
@@ -200,7 +200,7 @@
       "action": {"type": "semi", "auto": "long_recoil_cycle", "auto_ms": 30},
       "clip": 4,
       "reload": {"per_round": true, "start_ms": 400, "tick_ms": 480, "tick": "reload_shell", "end_ms": 250},
-      "aim_curve": [0, 0, 1, 2, 2, 2, 2, 2, 2, 2]
+      "aim_curve": [1, 1, 1, 2, 2, 2, 2, 2, 2, 2]
     },
     "bow": {
       "type": "bow", "action_label": "hold R2 to draw, release to loose",
@@ -209,7 +209,7 @@
                "min_draw": 0.35, "nock": "bow_nock", "creak": "bow_creak"},
       "recoil": {"haptic": "bow_release", "trigger": {"freq": 130, "steps": [6, 3, 1], "step_ms": 14}},
       "rate_ms": 900,
-      "aim_curve": [0, 1, 1, 1, 1, 1, 1, 1, 1, 1]
+      "aim_curve": [1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
     },
     "throw_light": {
       "type": "throw", "action_label": "R2 to throw",
@@ -250,7 +250,7 @@
       "recoil": {"haptic": "lasso_throw"},
       "tension": {"base": 3, "range": 4, "jerk_every_ms": [600, 1800], "jerk": "rope_jerk", "catch_ms": 450, "catch": "rope_catch", "hold_s": 12},
       "rate_ms": 800,
-      "aim_curve": [0, 0, 1, 1, 1, 1, 1, 1, 1, 1]
+      "aim_curve": [1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
     },
     "fishing": {
       "type": "tension", "action_label": "R2 to cast, hold R2 to reel against the fish",
@@ -282,7 +282,7 @@
       "recoil": {"lock_ms": 5, "haptic": "shot_flare", "trigger": {"freq": 45, "steps": [5, 3, 1], "step_ms": 16}},
       "rate_ms": 1500, "action": {"type": "none"}, "clip": 1,
       "reload": {"per_round": true, "begin": "breech_open", "start_ms": 400, "tick_ms": 500, "tick": "reload_shell", "end_ms": 250, "end": "breech_close"},
-      "aim_curve": [0, 0, 1, 1, 1, 1, 1, 1, 1, 1]
+      "aim_curve": [1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
     },
     "tool": {
       "type": "tool", "action_label": "no trigger effects (binoculars, camera, lantern)",

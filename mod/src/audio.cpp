@@ -259,8 +259,10 @@ void AudioEngine::render_thread() {
             for (UINT32 i = 0; i < n && v.pos < frames_v; ++i) {
                 size_t k = v.pos;
                 if (v.speaker) {
-                    mix[size_t(i) * 4 + 0] += v.buf[2 * k] * spk;
-                    mix[size_t(i) * 4 + 1] += v.buf[2 * k + 1] * spk;
+                    // mono: the built-in speaker only plays the right channel (headphones get both)
+                    float m = 0.5f * (v.buf[2 * k] + v.buf[2 * k + 1]) * spk;
+                    mix[size_t(i) * 4 + 0] += m;
+                    mix[size_t(i) * 4 + 1] += m;
                 } else {
                     mix[size_t(i) * 4 + 2] += v.buf[2 * k];
                     mix[size_t(i) * 4 + 3] += v.buf[2 * k + 1];

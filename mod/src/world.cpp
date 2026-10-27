@@ -809,6 +809,32 @@ void World::tick() {
         honor_ok_ = ok;
     }
 
+    // --- debug: F11 measures at which L2 value the game starts aiming: the L2 the game sees ramps 0..80, each value
+    //     held 150 ms, and the game's own aim control / aiming state is logged (stand still, nothing in hand)
+    if (log::debug_enabled()) {
+        static const Hash kAim = joaat("INPUT_AIM");
+        bool f11 = (GetAsyncKeyState(VK_F11) & 0x8000) != 0;
+        if (f11 && !probe_down_ && probe_v_ < 0) {
+            probe_v_ = 0;
+            probe_t_ = s.time;
+            input().probe_lt(0);
+            LOGI("aim probe: start");
+        }
+        probe_down_ = f11;
+        if (probe_v_ >= 0 && s.time - probe_t_ >= 0.15) {
+            LOGI("aim probe: L2 %3d -> aim pressed %d, aim value %.3f, aiming %d, focusing %d", probe_v_,
+                 int(IS_CONTROL_PRESSED(0, kAim)), double(GET_CONTROL_NORMAL(0, kAim)), int(IS_PLAYER_FREE_AIMING(pl)),
+                 int(IS_PLAYER_FREE_FOCUSING(pl)));
+            probe_v_ += 2;
+            probe_t_ = s.time;
+            if (probe_v_ > 80) {
+                probe_v_ = -1;
+                LOGI("aim probe: done");
+            }
+            input().probe_lt(probe_v_);
+        }
+    }
+
     // --- the surface under you: F10 shows what it is, F10 again (while shown) changes it ---
     int key = cfg.integer("General", "TeachSurfaceKey", 121);
     bool down = (GetAsyncKeyState(key) & 0x8000) != 0;

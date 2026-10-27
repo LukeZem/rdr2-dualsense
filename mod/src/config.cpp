@@ -152,7 +152,7 @@ StickDeadzone=0.2
 
 [Mic]
 ; Whistle into the controller to call your horse. The mute button toggles listening.
-WhistleForHorse=1
+WhistleForHorse=0
 ; Higher = reacts to quieter whistles
 Sensitivity=1.0
 ; Two firm thumps + a blue lightbar flash when a whistle or your phrase is recognised (0 = off)
@@ -166,7 +166,7 @@ Cooldown=1.2
 ; Only the game's own focus + Greet actions are used: it can never aim, draw or attack. Two thumps = done.
 ; Gun must be holstered. If the game won't focus them, Arthur just says hello (one soft thump, no honor).
 ; English speech recognizer (built into Windows). The mute button pauses listening.
-Enabled=1
+Enabled=0
 ; Several words allowed, comma separated (chao: the recognizer knows it as "ciao" / "chow")
 Phrase=ciao,chow
 Range=6
