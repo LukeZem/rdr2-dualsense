@@ -8,20 +8,24 @@ voice-coil haptics, lightbar, speaker and microphone - driven by what the game i
 REQUIREMENTS
 ------------
 - Red Dead Redemption 2 (PC, Steam / Rockstar / Epic), story mode
-- Script Hook RDR2 + its ASI loader (dinput8.dll) - https://www.dev-c.com/rdr2/scripthookrdr2/
+- Script Hook RDR2 + an ASI loader (dinput8.dll from Script Hook, or version.dll - either works)
+  https://www.dev-c.com/rdr2/scripthookrdr2/
 - A DualSense controller connected by USB cable (haptics and the speaker need USB;
   over Bluetooth you get triggers, lightbar and a rumble fallback)
 - Close DSX / DS4Windows, and turn Steam Input OFF for RDR2
   (Steam -> RDR2 -> Properties -> Controller -> Disable Steam Input)
 - Remove other DualSense mods (DualSenseHaptics.asi, NodixDualSense.asi ...) - they fight over the controller
-- For the settings page in the game's menu: Lenny's Mod Loader (LML). Works with any game language (the
-  page's texts are in English). Without LML everything else works; you change settings in
-  DualSenseRDR2.ini instead.
+- For the settings page in the game's menu: Lenny's Mod Loader (LML), already installed (its vfs.asi next
+  to RDR2.exe). Works with any game language (the page's texts are in English). Without LML everything
+  else works; you change settings in DualSenseRDR2.ini instead.
+- For voice commands: Windows' English (US) speech recognition. On a non-English Windows add it in
+  Settings -> Time & language -> Speech. Without it voice commands are off; the whistle still works.
 
 
 INSTALL
 -------
-Copy everything from this zip into the game folder (where RDR2.exe is):
+Copy everything from this zip into the game folder - the folder with RDR2.exe in it, not a subfolder
+(a file one folder too deep is simply never loaded):
     DualSenseRDR2.asi
     DualSenseRDR2\  (folder with weapons.json, haptics.json, sound_labels.json)
     lml\            (merges into LML's folder: lml\DualSenseRDR2 and one archive in lml\replace)
@@ -32,6 +36,11 @@ mod ships the same file, only one of the two can work.
 
 UNINSTALL: delete DualSenseRDR2.asi, the DualSenseRDR2 folder, DualSenseRDR2.ini, DualSenseRDR2.log,
 lml\DualSenseRDR2 and the archive above.
+UPDATE: copy the new files over the old ones - your DualSenseRDR2.ini is kept.
+
+RED DEAD ONLINE: the mod is for story mode. Before playing Online, move the mod out of the game folder
+(DualSenseRDR2.asi together with Script Hook, the ASI loader and LML, as for any mod) and move it back for
+story mode. The mod changes none of the game's own files - nothing to repair afterwards.
 
 
 WHAT YOU FEEL

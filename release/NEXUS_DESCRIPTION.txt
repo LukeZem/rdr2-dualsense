@@ -55,18 +55,25 @@ setting of the mod, changed with left / right like the game's own options. Chang
 
 [size=4][b]Requirements[/b][/size]
 [list]
-[*][url=https://www.dev-c.com/rdr2/scripthookrdr2/]Script Hook RDR2[/url] with its ASI loader
+[*][url=https://www.dev-c.com/rdr2/scripthookrdr2/]Script Hook RDR2[/url] with an ASI loader (dinput8.dll or version.dll)
 [*]DualSense on a USB cable (Bluetooth: triggers, lightbar, rumble only)
 [*]DSX / DS4Windows closed, Steam Input OFF for RDR2
 [*]Story mode only
 [*]For the settings page: Lenny's Mod Loader (LML, from rdr2mods.com); any game language (page texts are
 English) - without LML, settings are in DualSenseRDR2.ini
+[*]For voice commands: Windows' English (US) speech recognition (add it under Settings > Time & language >
+Speech on a non-English Windows); the whistle works without it
 [/list]
 
 [size=4][b]Install[/b][/size]
-Copy everything from the zip into the game folder (next to RDR2.exe): DualSenseRDR2.asi, the DualSenseRDR2
-folder and the lml folder (merges into Lenny's Mod Loader). Remove other DualSense mods. Settings are in the
-game's menu (see above) and in DualSenseRDR2.ini (created on first start, F9 reloads it in game).
+Manual install: copy everything from the zip into the game folder - the one with RDR2.exe in it, not a
+subfolder: DualSenseRDR2.asi, the DualSenseRDR2 folder and the lml folder (merges into Lenny's Mod Loader).
+Remove other DualSense mods. Settings are in the game's menu (see above) and in DualSenseRDR2.ini (created on
+first start, F9 reloads it in game). To update, copy the new files over the old ones - your ini is kept.
+
+[size=4][b]Red Dead Online[/b][/size]
+Story mode only. Before going Online, move the mod out of the game folder together with Script Hook, the ASI
+loader and LML (as for any mod), and back for story mode. The mod changes none of the game's own files.
 
 [size=4][b]Open source[/b][/size]
 MIT licensed - source: https://github.com/OldKrab/rdr2-dualsense
