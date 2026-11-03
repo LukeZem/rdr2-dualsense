@@ -38,8 +38,8 @@ ground, and the fishing line on L2 is the game's own line tension.
 [/list]
 
 [size=4][b]Microphone[/b][/size]
+Off by default - switch them on under Settings > Controls > Controller > DualSense.
 [list]
-[size=2]Off by default - switch them on under Settings > Controls > Controller > DualSense.[/size]
 [*]Whistle into the controller to call your horse
 [*]Say "chao" - Arthur greets the nearest person for real (counts for honor)
 [*]"easy" calms your horse
