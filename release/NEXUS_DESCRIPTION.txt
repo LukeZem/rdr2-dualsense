@@ -54,13 +54,16 @@ left; the game's own holster and lasso sounds from the controller speaker.
 Pause > Settings > Controls > Controller > [b]DualSense[/b] - a real page of the game's Settings with every
 setting of the mod, changed with left / right like the game's own options. Changes apply when you close the menu.
 
+[size=4][b]PlayStation buttons[/b][/size]
+The game's prompts and controller picture show PlayStation buttons instead of Xbox ones - Rockstar's own art, no extra mod needed.
+
 [size=4][b]Requirements[/b][/size]
 [list]
 [*][url=https://www.dev-c.com/rdr2/scripthookrdr2/]Script Hook RDR2[/url] with an ASI loader (dinput8.dll or version.dll)
 [*]DualSense on a USB cable (Bluetooth: triggers, lightbar, rumble only)
 [*]DSX / DS4Windows closed, Steam Input OFF for RDR2
 [*]Story mode only
-[*]For the settings page: Lenny's Mod Loader (LML, from rdr2mods.com); any game language (page texts are
+[*]For the settings page and PlayStation buttons: Lenny's Mod Loader (LML, from rdr2mods.com); any game language (page texts are
 English) - without LML, settings are in DualSenseRDR2.ini
 [*]For voice commands: Windows' English (US) speech recognition (add it under Settings > Time & language >
 Speech on a non-English Windows); the whistle works without it

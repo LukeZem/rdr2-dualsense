@@ -11,6 +11,15 @@
                 <GamePath>update:/x64/data/ui/settings/controls.ymt</GamePath>
                 <FilePath>data/ui/settings/controls.ymt</FilePath>
             </FileReplacement>
+            <!-- PlayStation button prompts and controller picture (the game's own PS art) -->
+            <FileReplacement>
+                <GamePath>update:/x64/data/cdimages/scaleform_platform_pc/gamepad_icons_pc.ytd</GamePath>
+                <FilePath>data/gamepad_icons_pc.ytd</FilePath>
+            </FileReplacement>
+            <FileReplacement>
+                <GamePath>update:/x64/textures/ui/ui_platform/pm_settings_controls.ytd</GamePath>
+                <FilePath>data/pm_settings_controls.ytd</FilePath>
+            </FileReplacement>
             <!-- The page itself lives in a nested archive, which LML cannot patch per file; it ships as a whole
                  rebuilt archive in the global legacy replace folder (see README.md):
                    <game>/lml/replace/update_4/x64/data/ui/startup_data.rpf

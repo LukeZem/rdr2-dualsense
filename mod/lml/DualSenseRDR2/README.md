@@ -11,6 +11,7 @@ soon as the menu closes).
 |---|---|---|
 | `install.xml` + `data/ui/settings/controls.ymt` | `lml/DualSenseRDR2/` | the "DualSense" row in Settings > Controls (gamepad page) |
 | `replace/update_4/x64/data/ui/startup_data.rpf` | `lml/replace/update_4/x64/data/ui/startup_data.rpf` | the page: flow states, the page scene, the group header widget |
+| `data/gamepad_icons_pc.ytd`, `data/pm_settings_controls.ytd` | `lml/DualSenseRDR2/data/` | PlayStation button prompts and controller picture (the game's own PS art over the Xbox textures) |
 
 LML can't replace single files inside nested archives, so the archive is a whole rebuilt copy of the game's
 own (`addonDLC:/replace/...` in vfs.log = the `lml` folder). Its new entries must be Oodle-compressed - the
@@ -26,6 +27,7 @@ Game XML first: `extract_ui.py` + `rbf2xml.py --batch` into `third_party/downloa
     python -I tools/rpf8/dualsense_settings.py           # the list -> settings_rows.inc + settings_texts.inc (rebuild the .asi)
     python -I tools/rpf8/make_lml_dualsense.py            # the Settings row (controls.ymt)
     python -I tools/rpf8/build_dualsense_page.py --oodle  # the page -> startup_data.rpf
+    python -I tools/rpf8/build_ps_icons.py                # the button icons and controller picture
 
 The settings themselves are listed once, in `tools/rpf8/dualsense_settings.py`; the page, its texts and
 the .asi's `SettingsMenu` are all generated from that list.

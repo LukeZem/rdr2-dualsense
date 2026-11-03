@@ -15,7 +15,7 @@ REQUIREMENTS
 - Close DSX / DS4Windows, and turn Steam Input OFF for RDR2
   (Steam -> RDR2 -> Properties -> Controller -> Disable Steam Input)
 - Remove other DualSense mods (DualSenseHaptics.asi, NodixDualSense.asi ...) - they fight over the controller
-- For the settings page in the game's menu: Lenny's Mod Loader (LML), already installed (its vfs.asi next
+- For the settings page and PlayStation button icons: Lenny's Mod Loader (LML), already installed (its vfs.asi next
   to RDR2.exe). Works with any game language (the page's texts are in English). Without LML everything
   else works; you change settings in DualSenseRDR2.ini instead.
 - For voice commands: Windows' English (US) speech recognition. On a non-English Windows add it in
@@ -32,7 +32,7 @@ Copy everything from this zip into the game folder - the folder with RDR2.exe in
 Start the game. Settings are created on first start in DualSenseRDR2.ini.
 If you use LML's Mod Manager, make sure "DualSense for RDR2 - Settings page" is enabled.
 Note: lml\replace\update_4\x64\data\ui\startup_data.rpf replaces a whole game archive (the menus) - if another
-mod ships the same file, only one of the two can work.
+mod ships the same file, only one of the two can work. Remove other PlayStation button mods.
 
 UNINSTALL: delete DualSenseRDR2.asi, the DualSenseRDR2 folder, DualSenseRDR2.ini, DualSenseRDR2.log,
 lml\DualSenseRDR2 and the archive above.

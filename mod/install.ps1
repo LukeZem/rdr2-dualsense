@@ -76,6 +76,7 @@ if (-not (Test-Path $lml)) {
     New-Item -ItemType Directory -Force (Join-Path $dst "data\ui\settings") | Out-Null
     Copy-Item (Join-Path $lmlSrc "install.xml") $dst -Force
     Copy-Item (Join-Path $lmlSrc "data\ui\settings\controls.ymt") (Join-Path $dst "data\ui\settings") -Force
+    Copy-Item (Join-Path $lmlSrc "data\gamepad_icons_pc.ytd"), (Join-Path $lmlSrc "data\pm_settings_controls.ytd") (Join-Path $dst "data") -Force
     foreach ($a in $archives) {
         $to = Join-Path $lml $a
         if ((Test-Path $to) -and -not (Test-Path "$to.dualsense-backup")) {
