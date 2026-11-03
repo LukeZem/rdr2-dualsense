@@ -1,13 +1,13 @@
 === Nexus Mods page text (paste into the description; Nexus uses BBCode) ===
 
-NAME:     DualSense for RDR2 - Adaptive Triggers, Haptics and Voice
+NAME:     DualSense for RDR2 - Adaptive Triggers and Haptics
 VERSION:  1.0.0
 CATEGORY: Gameplay  (or: Utilities)
 IMAGES:   release/banner.png (main image)
 SUMMARY (short):
 Full DualSense support driven by what the game is really doing: per-weapon adaptive triggers that fire exactly
 on the break, voice-coil haptics for hooves, footsteps on the real ground, fishing line tension, Dead Eye,
-honor, camp life - plus whistle and voice commands through the controller mic.
+honor, camp life.
 
 --- DESCRIPTION ---
 
