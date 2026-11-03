@@ -53,6 +53,9 @@ ROWS = [
            "Every gun its own pull; fishing line on L2."),
     level("triggers_kick", "Triggers", "KickStrength", "Recoil on the Trigger", 1.0, 2.0,
           "How hard each shot kicks back against your finger."),
+    choice("triggers_aim", "Triggers", "AimResistance", "Aim Resistance", "1",
+           [("0", "Off"), ("1", "Light"), ("2", "Full")],
+           "Resistance on L2 while you aim. Light: only where Arthur starts aiming. Full: over the whole travel."),
     toggle("triggers_cocking", "Triggers", "ManualCocking", "Work the Hammer with R2", True,
            "Single-action guns need their hammer, lever or bolt worked with R2 between shots. "
            "Turn off if you use an automatic cocking mod."),

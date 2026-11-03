@@ -70,6 +70,7 @@ Speaker    The game's own draw / holster / lasso sounds and mechanism clicks fro
 
 
 VOICE AND WHISTLE (controller microphone, English, offline - the mute button pauses it)
+Off by default: switch them on under Settings > Controls > Controller > DualSense (no restart needed).
 ---------------------------------------------------------------------------------------
   whistle                       call your horse
   "chao"                        Arthur greets the nearest person for real - counts for honor

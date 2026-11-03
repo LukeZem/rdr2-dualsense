@@ -21,6 +21,7 @@ public:
     void shutdown();
     void script_tick();                 // ScriptHook thread (in game) or test loop
     void request_reload() { reload_requested_ = true; }
+    void load_game_files();       // script thread, first tick: the base game's sound banks, then a reload
     // test harness introspection
     std::string status();
     DualSense& pad() { return pad_; }
@@ -29,6 +30,7 @@ public:
 private:
     bool on_input(const InputState& s, OutputState& out);
     void load_data();
+    void apply_mic();
     void confirm();
     void build_engine(const nlohmann::json& profile, const std::string& name);
 
@@ -51,6 +53,8 @@ private:
     std::atomic<bool> reload_requested_{false};
     bool speaker_mechanics_ = true;
     std::vector<std::string> voice_greet_, voice_calm_, voice_stop_, voice_spur_;
+    std::string voice_key_;           // the voice settings the recognizer runs with (restarted when they change)
+    std::atomic<bool> whistle_on_{false};
     // a whistle waits ~1 s for the speech recognizer: if a spoken command ("chao") lands around it, it was a word
     std::atomic<double> whistle_at_{-1}, last_command_t_{-10};
     bool triggers_on_ = true, haptics_on_ = true;

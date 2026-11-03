@@ -287,6 +287,7 @@ bool HapticLibrary::speaker_sound(const Cue& cue, Stereo& out) {
             auto vs = game_->variants(bank, role);
             if (!vs.empty()) {
                 const GameSound* s = vs[size_t(rng_.below(int(vs.size())))];
+                LOGD("speaker: %s = recording %s/%s (%zu to pick from)", cue.name.c_str(), bank.c_str(), s->key.c_str(), vs.size());
                 std::vector<float> L = dsp::resample(s->left.data(), s->left.size(), s->rate);
                 std::vector<float> R = s->right.empty() ? L : dsp::resample(s->right.data(), s->right.size(), s->rate);
                 out.resize(L.size() * 2);
@@ -296,6 +297,7 @@ bool HapticLibrary::speaker_sound(const Cue& cue, Stereo& out) {
         }
     }
     // no recording: the same mechanism re-synthesized at an audible pitch
+    LOGD("speaker: %s has no recording (role %s) - synthesized", cue.name.c_str(), role.c_str());
     if (!recipes_.contains(cue.name)) return false;
     try {
         const auto& v = render_recipe(cue.name, 0, true);

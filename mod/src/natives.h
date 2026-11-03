@@ -14,6 +14,8 @@ inline bool IS_PLAYER_PLAYING(Player p) { return invoke<int>(0xBFFB35986CAAE58Cu
 inline bool IS_PLAYER_CONTROL_ON(Player p) { return invoke<int>(0x7964097FCE4C244Bull, p) != 0; }
 inline bool IS_PLAYER_FREE_AIMING(Player p) { return invoke<int>(0x936F967D4BE1CE9Dull, p) != 0; }
 inline bool IS_PLAYER_FREE_FOCUSING(Player p) { return invoke<int>(0x1A51BFE60708E482ull, p) != 0; }
+// where a weapon is carried when it is not in the hand (holster on the hip, back, ...); -1 = nowhere (melee)
+inline int GET_DEFAULT_WEAPON_ATTACH_POINT(Hash weapon) { return invoke<int>(0x65DC4AC5B96614CBull, weapon); }
 inline bool GET_PLAYER_TARGET_ENTITY(Player p, Entity* e) { return invoke<int>(0xAE663DDD99C8A670ull, p, e) != 0; }
 inline bool IS_PLAYER_TARGETTING_ANYTHING(Player p) { return invoke<int>(0x4605C66E0F935F83ull, p) != 0; }
 inline bool IS_SPECIAL_ABILITY_ACTIVE(Player p) { return invoke<int>(0xB16223CB7DA965F0ull, p) != 0; }
@@ -58,6 +60,8 @@ inline bool IS_ATTRIBUTE_CORE_OVERPOWERED(Ped p, int core) { return invoke<int>(
 inline int GET_ATTRIBUTE_CORE_VALUE(Ped p, int core) { return invoke<int>(0x36731AC041289BB1ull, p, core); }  // 0 health 1 stamina 2 dead eye
 
 inline bool GET_CURRENT_PED_WEAPON(Ped p, Hash* out) { return invoke<int>(0x3A87E44BB9A01D54ull, p, out, 1, 0, 1) != 0; }
+// the weapon at an attach point; 1 = the off hand (second pistol)
+inline bool GET_CURRENT_PED_WEAPON_AT(Ped p, Hash* out, int point) { return invoke<int>(0x3A87E44BB9A01D54ull, p, out, 1, point, 1) != 0; }
 inline Entity GET_CURRENT_PED_WEAPON_ENTITY_INDEX(Ped p) { return invoke<Entity>(0x3B390A939AF0B5FCull, p, 0); }
 inline bool GET_AMMO_IN_CLIP(Ped p, int* ammo, Hash w) { return invoke<int>(0x2E1202248937775Cull, p, ammo, w) != 0; }
 inline int GET_MAX_AMMO_IN_CLIP(Ped p, Hash w) { return invoke<int>(0xA38DCFFCEA8962FAull, p, w, 1); }

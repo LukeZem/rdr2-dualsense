@@ -61,7 +61,8 @@ AutoAlign=1
 FireMargin=4
 ; Trigger recoil strength (0 - 2)
 KickStrength=1.0
-; Light resistance on L2 while aiming (weight of the gun)
+; Resistance on L2 while aiming: 0 = off, 1 = light (only where the game starts aiming, the rest of
+; the travel is free), 2 = full (the gun's weight over the whole travel)
 AimResistance=1
 ; Dirty / worn guns get a gritty trigger
 ConditionGrit=1

@@ -41,6 +41,8 @@ struct GameSnapshot {
     bool wheel = false;            // weapon / item wheel open
     bool ready = true;             // the game: the gun in hand can fire right now (cooldown over, cocked)
     bool holstering = false;       // a weapon is going into / coming out of the holster
+    int attach_point = -1;         // where the weapon in hand is carried otherwise (GET_DEFAULT_WEAPON_ATTACH_POINT)
+    bool dual_wield = false;       // a second gun in the off hand
     FishingState fishing;
     int deadeye_marks = 0;         // targets painted in Dead Eye
     int minigame = 0;              // 1 five finger fillet, 2 poker, 3 blackjack, 4 dominoes
@@ -137,6 +139,7 @@ private:
     // teaching note
     bool teach_down_ = false;
     bool probe_down_ = false;
+    bool dual_logged_ = false;
     int probe_v_ = -1;              // aim probe: the L2 value being shown to the game (-1 = not running)
     double probe_t_ = 0;
     std::string note_;

@@ -34,7 +34,7 @@ struct Settings {
     bool auto_align = true;
     int fire_margin = 4;
     float kick_scale = 1.0f;
-    bool aim_resistance = true;
+    int aim_resistance = 1;        // L2 while aiming: 0 off, 1 only where the game starts aiming, 2 whole travel
     float audio_latency_ms = 0.0f;
     bool reload_ticks = false;          // in game the reload sounds come through the game-audio layer
     bool scheduled_explosions = false;  // ditto for thrown explosives
@@ -55,6 +55,7 @@ struct GameHints {
     int melee_hits = 0;             // counter: damage the player dealt in melee range
     bool melee_target_near = false;
     bool hip_fire = true;           // not aiming down the sights
+    bool dual_wield = false;        // two guns: the game alternates them
     bool ready = true;              // the game says the gun can fire (cooldown over, hammer cocked...)
     FishingState fishing;
     int deadeye_marks = 0;
@@ -157,6 +158,7 @@ private:
     // fire-rate sync: shots the game did not take
     double unconfirmed_since_ = -1;
     bool ready_usable_ = true;      // false if the game's readiness signal doesn't behave for this gun
+    double rt_low_t_ = -10;         // when the game last started seeing R2 released
     double not_ready_since_ = -1;
     float lasso_prev_ = 0;
     // Dead Eye: marks, and the volley the game fires by itself

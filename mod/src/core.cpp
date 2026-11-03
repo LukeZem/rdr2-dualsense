@@ -1,5 +1,7 @@
 #include "core.h"
 
+#include "game_files.h"
+
 #include "config.h"
 #include "input.h"
 #include "log.h"
@@ -25,7 +27,7 @@ void Core::load_data() {
     settings_.auto_align = c.flag("Triggers", "AutoAlign", true);
     settings_.fire_margin = c.integer("Triggers", "FireMargin", 4);
     settings_.kick_scale = c.num("Triggers", "KickStrength", 1.0f);
-    settings_.aim_resistance = c.flag("Triggers", "AimResistance", true);
+    settings_.aim_resistance = clampv(c.integer("Triggers", "AimResistance", 1), 0, 2);
     settings_.reload_ticks = !in_game_;
     settings_.scheduled_explosions = !in_game_ || c.num("Haptics", "GameAudio", 0.0f) <= 0;
     cal_ = Calibration{};
@@ -60,50 +62,71 @@ bool Core::init(bool in_game, const std::string& test_weapon) {
     if (in_game) input().install_hook();
     audio_.start(&lib_);
     audio_.start_game_audio(c.num("Haptics", "GameAudio", 0.0f), c.str("Haptics", "GameAudioDevice", ""));
-    if (c.flag("Mic", "WhistleForHorse", false))
-        audio_.start_mic(c.num("Mic", "Sensitivity", 1.0f), [this] { whistle_at_ = now_s(); });   // acted on in on_input
-    if (c.flag("Voice", "Enabled", false)) {
-        // each command may list several spellings/words, comma separated: chao = ciao / chow
-        auto words = [&](const char* key, const char* def) {
-            std::vector<std::string> out;
-            std::string cur;
-            for (char ch : c.str("Voice", key, def) + ",") {
-                if (ch == ',') {
-                    while (!cur.empty() && cur.back() == ' ') cur.pop_back();
-                    if (!cur.empty()) out.push_back(cur);
-                    cur.clear();
-                } else if (ch != ' ' || !cur.empty()) {
-                    cur += char(tolower((unsigned char)ch));
-                }
-            }
-            return out;
-        };
-        voice_greet_ = words("Phrase", "ciao,chow");
-        voice_calm_ = words("CalmPhrase", "easy,easy boy,easy girl,steady");
-        voice_stop_ = words("StopPhrase", "");
-        voice_spur_ = words("SpeedPhrase", "");
-        std::vector<std::string> phrases = voice_greet_;
-        phrases.insert(phrases.end(), voice_calm_.begin(), voice_calm_.end());
-        phrases.insert(phrases.end(), voice_stop_.begin(), voice_stop_.end());
-        phrases.insert(phrases.end(), voice_spur_.begin(), voice_spur_.end());
-        voice_.start(phrases, c.num("Voice", "MinConfidence", 0.7f), [this](const std::string& said, float conf) {
-            last_command_t_ = now_s();
-            LOGI("voice: \"%s\" (confidence %.2f)", said.c_str(), conf);
-            auto in = [&](const std::vector<std::string>& v) { return std::find(v.begin(), v.end(), said) != v.end(); };
-            if (in_game_) {
-                if (in(voice_greet_)) world().request_greet();
-                else if (in(voice_calm_)) world().request_horse(World::HorseCalm);
-                else if (in(voice_stop_)) world().request_horse(World::HorseStop);
-                else if (in(voice_spur_)) world().request_horse(World::HorseSpur);
-            } else {                                 // test program: just confirm
-                confirm();
-                printf("\n  >>> %s\n", in(voice_greet_) ? "CHAO" : in(voice_calm_) ? "EASY (calm the horse)" : in(voice_stop_) ? "WHOA (stop the horse)" : "FASTER (spur the horse)");
-            }
-        });
-    }
+    apply_mic();
     pad_.start([this](const InputState& s, OutputState& out) { return on_input(s, out); });
     LOGI("started (%s)", in_game ? "in game" : "standalone test");
     return true;
+}
+
+// Whistle and voice commands from the ini - at start and after every reload (settings page, F9), so switching
+// them on / off or changing the phrases works without restarting the game.
+void Core::apply_mic() {
+    Config& c = config();
+    whistle_on_ = c.flag("Mic", "WhistleForHorse", false);
+    if (whistle_on_)
+        audio_.start_mic(c.num("Mic", "Sensitivity", 1.0f), [this] { whistle_at_ = now_s(); });   // acted on in on_input
+    // each command may list several spellings/words, comma separated: chao = ciao / chow
+    auto words = [&](const char* key, const char* def) {
+        std::vector<std::string> out;
+        std::string cur;
+        for (char ch : c.str("Voice", key, def) + ",") {
+            if (ch == ',') {
+                while (!cur.empty() && cur.back() == ' ') cur.pop_back();
+                if (!cur.empty()) out.push_back(cur);
+                cur.clear();
+            } else if (ch != ' ' || !cur.empty()) {
+                cur += char(tolower((unsigned char)ch));
+            }
+        }
+        return out;
+    };
+    bool on = c.flag("Voice", "Enabled", false);
+    std::vector<std::string> greet = words("Phrase", "ciao,chow"), calm = words("CalmPhrase", "easy,easy boy,easy girl,steady"),
+                             stop = words("StopPhrase", ""), spur = words("SpeedPhrase", "");
+    std::vector<std::string> phrases = greet;
+    phrases.insert(phrases.end(), calm.begin(), calm.end());
+    phrases.insert(phrases.end(), stop.begin(), stop.end());
+    phrases.insert(phrases.end(), spur.begin(), spur.end());
+    float min_conf = c.num("Voice", "MinConfidence", 0.7f);
+    std::string key = on ? std::to_string(min_conf) : "off";
+    for (auto& p : phrases) key += "|" + p;
+    if (key == voice_key_) return;                  // nothing changed: leave the recognizer running
+    voice_key_ = key;
+    voice_.stop();
+    voice_greet_ = greet, voice_calm_ = calm, voice_stop_ = stop, voice_spur_ = spur;
+    if (!on || phrases.empty()) {
+        LOGI("voice commands off");
+        return;
+    }
+    voice_.start(phrases, min_conf, [this](const std::string& said, float conf) {
+        last_command_t_ = now_s();
+        LOGI("voice: \"%s\" (confidence %.2f)", said.c_str(), conf);
+        auto in = [&](const std::vector<std::string>& v) { return std::find(v.begin(), v.end(), said) != v.end(); };
+        if (in_game_) {
+            if (in(voice_greet_)) world().request_greet();
+            else if (in(voice_calm_)) world().request_horse(World::HorseCalm);
+            else if (in(voice_stop_)) world().request_horse(World::HorseStop);
+            else if (in(voice_spur_)) world().request_horse(World::HorseSpur);
+        } else {                                 // test program: just confirm
+            confirm();
+            printf("\n  >>> %s\n", in(voice_greet_) ? "CHAO" : in(voice_calm_) ? "EASY (calm the horse)" : in(voice_stop_) ? "WHOA (stop the horse)" : "FASTER (spur the horse)");
+        }
+    });
+}
+
+void Core::load_game_files() {
+    game_files::preload(game_audio_.game_files());
+    request_reload();                                // rebuilds the effects that use recordings
 }
 
 // "heard you": two firm thumps and a short lightbar flash
@@ -150,6 +173,7 @@ void Core::build_engine(const nlohmann::json& prof0, const std::string& name) {
 bool Core::on_input(const InputState& s, OutputState& out) {
     if (reload_requested_.exchange(false)) {
         load_data();
+        apply_mic();
         LOGI("settings and data reloaded");
     }
     GameSnapshot g = in_game_ ? world().snapshot() : GameSnapshot{};
@@ -161,7 +185,9 @@ bool Core::on_input(const InputState& s, OutputState& out) {
         whistle_at_ = -1;
         double ct = std::max(last_command_t_.load(), voice_.last_command_guess.load());
         bool playing = !in_game_ || (g.valid && !g.blocked && !g.menu && !g.wheel);
-        if (ct > wt - 1.0 && ct <= wt + 0.05) {
+        if (!whistle_on_) {
+            // switched off (settings page / ini) - the detector keeps running until the game restarts
+        } else if (ct > wt - 1.0 && ct <= wt + 0.05) {
             LOGI("whistle ignored: it was a spoken word");
         } else if (!playing) {
             LOGI("whistle ignored: a menu is open / not playing");
@@ -208,6 +234,7 @@ bool Core::on_input(const InputState& s, OutputState& out) {
         h.melee_hits = g.melee_hits;
         h.melee_target_near = g.melee_target_near;
         h.hip_fire = !g.aiming;
+        h.dual_wield = g.dual_wield;
         h.ready = g.ready;
         h.fishing = g.fishing;
         h.deadeye_marks = g.deadeye_marks;

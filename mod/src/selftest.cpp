@@ -248,21 +248,36 @@ int run_selftests(const fs::path& data) {
               SettingsMenu::page_ini(*gyro, 1) == "aim" && SettingsMenu::page_ini(*gyro, 2).empty(), "choice options");
         CHECK(SettingsMenu::page_value(*trig, cfg) == 1 && SettingsMenu::page_ini(*trig, 0) == "0", "toggle 0 / 1");
     }
-    {   // the game's readiness decides re-arming (no guessed fire rate)
-        Settings s; s.manual_action = false;
-        Rig r(cat.resolve_name("WEAPON_REVOLVER_DOUBLEACTION"), s);
+    {   // double action: every quick press reaches the game, whatever its "ready to shoot" says
+        Settings st; st.manual_action = false;
+        Rig r(cat.resolve_name("WEAPON_REVOLVER_DOUBLEACTION"), st);
         r.hints.valid = true;
+        r.hints.hip_fire = false;
+        r.hints.ready = false;                      // false for 1.5 s and more after a shot in the real game
         r.pull(255, 80);
-        r.hints.ready = false;                      // the game: not ready yet
         r.release(150).pull(255, 80);
-        CHECK(r.count("shot_revolver") == 1, "no shot while the game says not ready");
-        r.hints.ready = true;
-        r.release(20).pull(255, 80);
-        CHECK(r.count("shot_revolver") == 2, "re-armed as soon as the game says ready");
+        r.release(150).pull(255, 80);
+        CHECK(r.count("shot_revolver") == 3, "three quick presses, three shots, not ready or not");
+        r.release(10).pull(190, 30).hold(190, 0.1);
+        CHECK(r.count("shot_revolver") == 4, "a quick follow-up needs no full pull");
+    }
+    {   // from the hip and with two guns the game cycles single-action guns itself: no R2 stroke of ours
+        for (int mode = 0; mode < 2; ++mode) {
+            Rig r(cat.resolve_name("WEAPON_REVOLVER_CATTLEMAN"));
+            r.hints.valid = true;
+            r.hints.hip_fire = mode == 0;
+            r.hints.dual_wield = mode == 1;
+            r.hints.ready = false;
+            r.pull(255, 80);
+            r.release(40).pull(255, 80);
+            CHECK(r.count("hammer_cock") == 0, "no hammer stroke from the hip / with two guns");
+            CHECK(r.frames.back().state != "action" && r.frames.back().state != "cycling", "never waits for a stroke");
+        }
     }
     {   // the game's readiness decides cocking: not ready -> the next stroke works the lever
         Rig r(cat.resolve_name("WEAPON_REPEATER_CARBINE"));
         r.hints.valid = true;
+        r.hints.hip_fire = false;
         r.pull();
         r.hints.ready = false;
         r.release(40);
@@ -276,6 +291,7 @@ int run_selftests(const fs::path& data) {
     {   // the game cocks it by itself (auto-cock mod, aiming): skip the stroke
         Rig r(cat.resolve_name("WEAPON_REVOLVER_CATTLEMAN"));
         r.hints.valid = true;
+        r.hints.hip_fire = false;
         r.pull(255, 40, 200);
         r.hints.ready = false;
         r.release(40, 200);
@@ -312,6 +328,7 @@ int run_selftests(const fs::path& data) {
     {   // melee in game: the hit comes from real damage
         Rig r(cat.resolve_name("WEAPON_UNARMED"));
         r.hints.valid = true;
+        r.hints.hip_fire = false;
         r.feed({0}, R1).release(20);
         r.hints.melee_hits = 1;
         r.release(5);

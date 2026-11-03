@@ -34,11 +34,12 @@ ground, and the fishing line on L2 is the game's own line tension.
 [*]Hits from their direction, nearby gunfire, heartbeat, shivers
 [*]Honor going up or down, bites / sips / puffs, gun cleaning, brushing the horse, skinning, herbs, bathing
 [*]Five finger fillet, poker, blackjack, dominoes
-[*]Gun shots built from each gun's own recordings
+[*]Gun shots built from each gun's own recordings - the game's sounds, or your sound mod's if you use one
 [/list]
 
 [size=4][b]Microphone[/b][/size]
 [list]
+[size=2]Off by default - switch them on under Settings > Controls > Controller > DualSense.[/size]
 [*]Whistle into the controller to call your horse
 [*]Say "chao" - Arthur greets the nearest person for real (counts for honor)
 [*]"easy" calms your horse

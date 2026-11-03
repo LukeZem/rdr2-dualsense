@@ -2,6 +2,8 @@
 #include "settings_ui.h"
 
 #include "config.h"
+#include "core.h"
+#include "game_files.h"
 #include "log.h"
 #include "input.h"
 #include "natives.h"
@@ -325,6 +327,7 @@ void World::tick() {
     Config& cfg = config();
     GameSnapshot s;
     s.time = now_s();
+    if (!game_files::ready()) core().load_game_files();   // scripts run: the game's archives are mounted
     settings_ui_tick(s.time);            // the Settings page's data store, also while no player exists
     Player pl = PLAYER_ID();
     Ped me = PLAYER_PED_ID();
@@ -350,6 +353,15 @@ void World::tick() {
     s.group = w ? GET_WEAPONTYPE_GROUP(w) : 0;
     s.armed = w && w != joaat("WEAPON_UNARMED");
     s.lantern = w == joaat("WEAPON_MELEE_LANTERN") || w == joaat("WEAPON_MELEE_DAVY_LANTERN");
+    s.attach_point = s.armed ? GET_DEFAULT_WEAPON_ATTACH_POINT(w) : -1;
+    {
+        Hash off = 0;
+        s.dual_wield = s.armed && GET_CURRENT_PED_WEAPON_AT(me, &off, 1) && off && off != joaat("WEAPON_UNARMED");
+        if (s.dual_wield != dual_logged_) {
+            LOGD("dual wield: %d (off hand 0x%08X)", int(s.dual_wield), off);
+            dual_logged_ = s.dual_wield;
+        }
+    }
     if (s.armed) {
         int ammo = 0;
         if (GET_AMMO_IN_CLIP(me, &ammo, w)) s.clip = ammo;

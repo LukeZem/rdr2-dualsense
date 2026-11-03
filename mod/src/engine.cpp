@@ -112,7 +112,14 @@ WeaponEngine::WeaponEngine(const json& prof, const Calibration& cal, const Setti
     clip_size_ = p_.contains("clip") && p_["clip"].is_number() ? p_["clip"].get<int>() : 0;
     clip_ = clip_size_;
     reload_ = p_.value("reload", json::object());
-    if (s.aim_resistance) aim_block_ = fx::multi_feedback(zones_from(p_, "aim_curve"));
+    if (s.aim_resistance > 0) {
+        Zones z = zones_from(p_, "aim_curve");
+        // light: only L2 zone 0 (raw 0-25) - measured (F11 aim probe): the game's aim value starts at raw 12,
+        // Arthur focuses / aims from raw 20. You feel the aim engage, the rest of the travel is free.
+        if (s.aim_resistance == 1)
+            for (size_t i = 1; i < z.size(); ++i) z[i] = 0;
+        aim_block_ = fx::multi_feedback(z);
+    }
     bow_ = p_.value("draw", json::object());
     melee_ = p_.value("melee", json::object());
     tension_ = p_.value("tension", json::object());
@@ -221,12 +228,6 @@ EngineFrame WeaponEngine::update(const InputState& in, const GameHints& g) {
             kick_.steps.clear();
             for (int a : kick_.base) kick_.steps.push_back(clampv(int(std::lround(a * ks)), 1, 8));
         }
-        if (game_tremor_ > 0.05f && aim_block_[0] != fx::OFF) {   // the gun's weight wobbles in tired hands
-            Zones az = zones_from(p_, "aim_curve");
-            float w = game_tremor_ * 1.2f * std::sin(2 * kPi * 6.0f * float(now));
-            for (auto& v : az) if (v) v = clampv(int(std::lround(v + 1 + w)), 1, 8);
-            f.l2 = fx::multi_feedback(az);
-        }
     } else if (pressed & SQUARE && clip_size_ && clip_ < clip_size_ && (state_ == "ready" || state_ == "held")) {
         start_reload(now);
     }
@@ -299,6 +300,7 @@ fx::Block WeaponEngine::update_gun(int raw, double now, EngineFrame& f, const Ga
     // Dead Eye volley: the game fires the marked shots by itself - each one kicks as it really goes off
     if (g.valid) {
         bool fired = (g.shooting && !was_shooting_) || (g.clip >= 0 && last_clip_ >= 0 && g.clip < last_clip_);
+        if (fired) LOGD("%s: the game fired, clip %d", id_.c_str(), g.clip);
         was_shooting_ = g.shooting;
         last_clip_ = g.clip;
         if (dead_eye_ && fired && now - shot_t_ > 0.14 && now - kick_t_ > 0.14) {
@@ -312,24 +314,43 @@ fx::Block WeaponEngine::update_gun(int raw, double now, EngineFrame& f, const Ga
             if (kick_.block(float(now - kick_t_), slow(), k)) return k;
         }
     }
+    // Free fire: the game decides when the gun can shoot, we only pass every press on. Its "ready to shoot" stays
+    // false for 1.5 s and more after a shot (double action, from the hip, two guns), so waiting for it swallowed
+    // presses. Working the action with R2 is kept for aimed shots with one single-action / lever / bolt / pump gun.
+    const std::string at_type = jstr(action_, "type", "none");
+    const bool manual = at_type != "none" && at_type != "semi" && set_.manual_action;
+    const bool free_fire = g.valid && (!manual || g.hip_fire || g.dual_wield);
+    const int reset = free_fire ? std::max(reset_raw_, break_raw_ - 50) : reset_raw_;
+    if (free_fire && (state_ == "action" || state_ == "cycling")) state_ = "held";
     const std::string st = state_;
     if (st == "ready") {
         crossed(ticks_, raw, f, now);
         std::string pre = jstr(p_, "pre");
         if (!pre.empty() && cal_.zone_of(prev_raw_) < 2 && cal_.zone_of(raw) >= 2) play(f, pre);
-        if (raw >= break_raw_) {
+        // quick follow-up shots don't need the whole pull again; the game must have seen R2 released (2 frames)
+        const bool follow_up = free_fire && now - shot_t_ < 0.7;
+        const int fire_at = follow_up ? std::min(break_raw_, reset + 20) : break_raw_;
+        if (raw >= fire_at && now - rt_low_t_ >= 0.034) {
+            LOGD("%s: shot at raw %d (ready %d, hip %d, dual %d, free %d, %.0f ms after the last)", id_.c_str(), raw,
+                 int(g.ready), int(g.hip_fire), int(g.dual_wield), int(free_fire), (now - shot_t_) * 1000);
             shoot(raw, now, f);
             return stop_block();
         }
         return fire_block(raw, now);
     }
     if (st == "held") {
-        if (raw <= reset_raw_) game_rt_ = 0;
+        if (raw <= reset && game_rt_ != 0) {
+            game_rt_ = 0;
+            rt_low_t_ = now;
+        }
+        if (raw >= break_raw_ && prev_raw_ < break_raw_ && now - shot_t_ > 0.05)
+            LOGD("%s: press not passed on (ready %d, hip %d, dual %d, %.0f ms after the shot)", id_.c_str(), int(g.ready),
+                 int(g.hip_fire), int(g.dual_wield), (now - shot_t_) * 1000);
         double kdt = now - kick_t_;
         fx::Block k;
         if (!last_dry_ && kdt < kick_.duration(slow())) return kick_.block(float(kdt), slow(), k) ? k : stop_block();
         bool game_rate = g.valid && ready_usable_;
-        if (game_rate && !g.ready && raw <= reset_raw_) {
+        if (!free_fire && game_rate && !g.ready && raw <= reset) {
             if (not_ready_since_ < 0) not_ready_since_ = now;
             // a manual action (single-action hammer, lever, bolt, pump) that isn't ready needs its R2 stroke
             std::string at0 = jstr(action_, "type", "none");
@@ -343,15 +364,16 @@ fx::Block WeaponEngine::update_gun(int raw, double now, EngineFrame& f, const Ga
                 LOGI("%s: the game's 'ready to shoot' never came back - using timing for this gun", id_.c_str());
             }
         }
-        bool can_rearm = game_rate ? g.ready : now - shot_t_ >= rate_s_ * slow();
-        if (can_rearm && raw <= reset_raw_ && now - shot_t_ > 0.05) {
+        bool can_rearm = free_fire || (game_rate ? g.ready : now - shot_t_ >= rate_s_ * slow());
+        // free fire: released at any moment since the shot counts - also during the kick above
+        if (can_rearm && (free_fire ? game_rt_ == 0 : raw <= reset) && now - shot_t_ > 0.05) {
             not_ready_since_ = -1;
             if (last_dry_ && clip_size_ && !g.valid) {
                 start_reload(now);
                 return fx::off();
             }
             std::string at = jstr(action_, "type", "none");
-            if (!game_rate && at != "none" && at != "semi" && set_.manual_action && clip_ != 0) {
+            if (!free_fire && !game_rate && at != "none" && at != "semi" && set_.manual_action && clip_ != 0) {
                 state_ = "action";
                 return fx::multi_feedback(action_curve_);
             }

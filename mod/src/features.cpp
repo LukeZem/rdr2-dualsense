@@ -259,18 +259,26 @@ void Features::update(const InputState& in, const GameSnapshot& g, std::vector<W
         if (!cue.empty()) cues.push_back(make(cue, life_gain_ * rng_.range(0.75f, 1.0f), pan, true));
     }
     if (!g.blocked) {
-        if (g.holstering && !was_holstering_ && action_gain_ > 0) {   // gun sliding in / out of the leather
-            // drawing if the hands were empty before, else putting it away
-            Cue c = make(armed_before_ ? "gun_holster" : "gun_draw", action_gain_ * 1.2f, 0.5f, true);
-            static const uint32_t kRevolver = joaat("GROUP_REVOLVER"), kPistol = joaat("GROUP_PISTOL");
-            c.speaker = group_before_ == kRevolver || group_before_ == kPistol || !armed_before_;   // sidearm leather
-            cues.push_back(c);
+        // Gun leather, from the weapon in hand changing (the game's holster flag may rise before or after it): the gun
+        // that left the hand is holstered, the new one drawn. The speaker only for guns the game carries in the hip
+        // holster (attach point 2 / 3: every revolver and pistol and the sawed-off), not for long arms or tools.
+        auto hip = [](int point) { return point == 2 || point == 3; };
+        if (g.weapon != weapon_before_ && action_gain_ > 0) {
+            LOGD("weapon change: 0x%08X -> 0x%08X, holstering %d", weapon_before_, g.weapon, int(g.holstering));
+            if (armed_before_) {
+                Cue c = make("gun_holster", action_gain_ * 1.2f, 0.5f, true);
+                c.speaker = hip(attach_before_);
+                cues.push_back(c);
+            }
+            if (g.armed) {
+                Cue c = make("gun_draw", action_gain_ * 1.2f, 0.5f, true);
+                c.speaker = hip(g.attach_point);
+                delayed_.push_back({now + (armed_before_ ? 0.25 : 0.0), c});    // after the old gun has gone
+            }
         }
-        if (!g.holstering) {
-            armed_before_ = g.armed;
-            group_before_ = g.group;
-        }
-        was_holstering_ = g.holstering;
+        armed_before_ = g.armed;
+        attach_before_ = g.attach_point;
+        weapon_before_ = g.weapon;
         horse(g, now, cues, out, weapon_active);
         transport(g, now, cues);
         if (heart_gain_ > 0 && g.health_core < 20 && !g.dead_eye && now >= next_heart_) {

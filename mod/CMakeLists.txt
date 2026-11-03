@@ -13,7 +13,7 @@ add_link_options(-static -static-libgcc -static-libstdc++)
 
 set(CORE_SOURCES
     src/log.cpp src/config.cpp src/ds5.cpp src/dsp.cpp src/gameaudio.cpp src/haptics.cpp
-    src/audio.cpp src/catalog.cpp src/engine.cpp src/input.cpp src/features.cpp src/core.cpp src/surfaces.cpp src/voice.cpp src/settings_menu.cpp)
+    src/audio.cpp src/catalog.cpp src/engine.cpp src/input.cpp src/features.cpp src/core.cpp src/surfaces.cpp src/voice.cpp src/settings_menu.cpp src/game_files.cpp)
 set(SYSTEM_LIBS setupapi hid ole32 uuid avrt winmm)
 
 # Import library for ScriptHookRDR2.dll from the .def (maps plain names to its MSVC exports)

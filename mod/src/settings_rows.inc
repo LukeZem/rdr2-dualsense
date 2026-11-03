@@ -4,6 +4,7 @@
 header("DS_HDR_TRIGGERS", "Triggers"),
 toggle("triggers_enabled", "Triggers", "Enabled", "DS_TRIGGERS_ENABLED", "Adaptive Triggers", true, "Every gun its own pull; fishing line on L2."),
 level("triggers_kick", "Triggers", "KickStrength", "DS_TRIGGERS_KICK", "Recoil on the Trigger", 1.0f, 2.0f, "How hard each shot kicks back against your finger."),
+choice("triggers_aim", "Triggers", "AimResistance", "DS_TRIGGERS_AIM", "Aim Resistance", "1", {{"0", "Off", "DS_TRIGGERS_AIM_0"}, {"1", "Light", "DS_TRIGGERS_AIM_1"}, {"2", "Full", "DS_TRIGGERS_AIM_2"}}, "Resistance on L2 while you aim. Light: only where Arthur starts aiming. Full: over the whole travel."),
 toggle("triggers_cocking", "Triggers", "ManualCocking", "DS_TRIGGERS_COCKING", "Work the Hammer with R2", true, "Single-action guns need their hammer, lever or bolt worked with R2 between shots. Turn off if you use an automatic cocking mod."),
 header("DS_HDR_HAPTICS", "Haptics"),
 toggle("haptics_enabled", "Haptics", "Enabled", "DS_HAPTICS_ENABLED", "Haptics", true, "Everything you feel in the grips."),

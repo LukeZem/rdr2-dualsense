@@ -34,7 +34,6 @@ private:
     int hoof_ = 0;
     double next_horse_heart_ = 0, next_breath_ = 0;
     bool rearing_ = false;
-    bool was_holstering_ = false;
     bool armed_before_ = false;
     double honor_until_ = 0;
     float minigame_gain_ = 0.7f, weather_gain_ = 0;
@@ -42,7 +41,8 @@ private:
     float life_gain_ = 0.6f;
     int texture_n_ = 0;
     bool honor_up_ = true;
-    uint32_t group_before_ = 0;
+    uint32_t weapon_before_ = 0;
+    int attach_before_ = -1;
     double last_hoof_event_ = -10;
     bool hooves_live_ = true;      // the real hoof contacts keep up with the gait
     double mount_t_ = 0;

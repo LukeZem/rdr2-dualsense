@@ -1,5 +1,6 @@
 #include "gameaudio.h"
 
+#include "game_files.h"
 #include "log.h"
 
 #include <fstream>
@@ -24,10 +25,26 @@ std::vector<float> GameSound::mono() const {
     return m;
 }
 
+// The base game's banks, in its archives (listed from WEAPONS_PLAYER.rpf, RDR3.Resident.rpf and RESIDENT.rpf)
+static std::map<std::string, std::vector<std::string>> game_banks() {
+    std::map<std::string, std::vector<std::string>> m;
+    m["WEAPONS"] = {"audio:/sfx/RDR3.Resident/weapons.awc"};
+    m["EXPLOSIONS"] = {"audio:/sfx/RESIDENT/explosions.awc"};
+    for (const char* b : {"PTL_MAUSER_FINAL", "PTL_SEMIAUTO_FINAL", "PTL_VOLCANIC_FINAL", "REV_CATTLEMAN_FINAL", "REV_DOUBLE_FINAL",
+                          "REV_SCHOFIELD_FINAL", "RFL_BOLTACTION_PLAYER", "RFL_SPRINGFIELD_FINAL", "RPT_CARBINE_FINAL",
+                          "RPT_LANCASTER_FINAL", "RPT_LITCHFIELD_PLAYER", "RPT_PUMPACTION_FINAL", "SHT_DOUBLE_FINAL", "SHT_PUMP",
+                          "SHT_REPEATING_FINAL", "SHT_SAWEDOFF", "SHT_SEMIAUTO_FINAL", "SNP_CARCANO_PLAYER", "SNP_ROLLINGBLOCK_PLAYER"})
+        m[b] = {std::string("audio:/sfx/WEAPONS_PLAYER/") + b + ".awc"};
+    for (const char* b : {"PTL_M1899", "REV_LEMAT_FINAL", "RPT_EVANS_FINAL", "REV_NAVY_FINAL"})
+        for (const char* dlc : {"dlc_extrasp", "dlc_mp006", "dlc_mp004", "dlc_mp003"})
+            m[b].push_back(std::string("audio:/sfx/") + dlc + "/" + b + ".awc");
+    return m;
+}
+
 void GameAudio::discover(const fs::path& game_dir, const fs::path& labels_json) {
     std::lock_guard<std::mutex> l(mu_);
     paths_.clear();
-    cache_.clear();
+    game_paths_.clear();
     std::error_code ec;
     fs::path lml = game_dir / "lml";
     if (fs::is_directory(lml, ec)) {
@@ -43,6 +60,11 @@ void GameAudio::discover(const fs::path& game_dir, const fs::path& labels_json) 
             }
         }
     }
+    for (auto& [bank, where] : game_banks())
+        if (!paths_.count(bank)) game_paths_[bank] = where;
+    // parsed banks from the game stay: their files were handed over once
+    for (auto it = cache_.begin(); it != cache_.end();)
+        it = game_paths_.count(it->first) ? std::next(it) : cache_.erase(it);
     labels_.clear();
     std::ifstream in(labels_json);
     if (in) {
@@ -53,13 +75,21 @@ void GameAudio::discover(const fs::path& game_dir, const fs::path& labels_json) 
             LOGW("sound_labels.json: %s", e.what());
         }
     }
-    LOGI("game audio: %zu banks (%zu weapon banks), %zu labels", paths_.size(), bank_count(true), labels_.size());
+    LOGI("game audio: %zu banks from LML mods, %zu from the game (%zu weapon banks), %zu labels", paths_.size(),
+         game_paths_.size(), bank_count(true), labels_.size());
+}
+
+std::vector<std::string> GameAudio::game_files() const {
+    std::vector<std::string> out;
+    for (auto& [bank, where] : game_paths_) out.insert(out.end(), where.begin(), where.end());
+    return out;
 }
 
 size_t GameAudio::bank_count(bool weapons_only) const {
-    if (!weapons_only) return paths_.size();
+    if (!weapons_only) return paths_.size() + game_paths_.size();
     size_t n = 0;
     for (auto& [b, _] : paths_) n += is_weapon_bank(b);
+    for (auto& [b, _] : game_paths_) n += is_weapon_bank(b);
     return n;
 }
 
@@ -67,7 +97,10 @@ const std::vector<GameSound>& GameAudio::sounds(const std::string& bank) {
     std::lock_guard<std::mutex> l(mu_);
     auto it = cache_.find(bank);
     if (it != cache_.end()) return it->second;
-    return cache_[bank] = load(bank);
+    std::vector<GameSound> loaded = load(bank);
+    static const std::vector<GameSound> kNone;
+    if (loaded.empty()) return kNone;               // not ready yet: try again after the reload
+    return cache_[bank] = std::move(loaded);
 }
 
 std::string GameAudio::role(const GameSound& s) const {
@@ -99,10 +132,23 @@ struct RawStream {
 
 std::vector<GameSound> GameAudio::load(const std::string& bank) {
     std::vector<GameSound> out;
+    std::vector<uint8_t> d;
     auto pit = paths_.find(bank);
-    if (pit == paths_.end()) return out;
-    std::ifstream f(pit->second, std::ios::binary);
-    std::vector<uint8_t> d((std::istreambuf_iterator<char>(f)), std::istreambuf_iterator<char>());
+    if (pit != paths_.end()) {
+        std::ifstream f(pit->second, std::ios::binary);
+        d.assign(std::istreambuf_iterator<char>(f), std::istreambuf_iterator<char>());
+    } else {
+        auto git = game_paths_.find(bank);
+        if (git == game_paths_.end()) return out;
+        for (const std::string& path : git->second) {
+            d = game_files::take(path);
+            if (!d.empty()) {
+                LOGI("bank %s from the game: %s, %zu bytes", bank.c_str(), path.c_str(), d.size());
+                break;
+            }
+        }
+        if (d.empty()) return out;                  // not there, or the game isn't ready yet (the reload after that fills it)
+    }
     auto u16 = [&](size_t o) { return uint16_t(d[o] | (d[o + 1] << 8)); };
     auto u32 = [&](size_t o) { return uint32_t(d[o] | (d[o + 1] << 8) | (d[o + 2] << 16) | (uint32_t(d[o + 3]) << 24)); };
     if (d.size() < 16 || std::memcmp(d.data(), "ADAT", 4) != 0) {
