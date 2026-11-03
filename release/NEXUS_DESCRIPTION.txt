@@ -20,7 +20,7 @@ ground, and the fishing line on L2 is the game's own line tension.
 [size=4][b]Triggers[/b][/size]
 [list]
 [*]Every weapon has its own pull - take-up, wall, crisp break - and the shot lands exactly on the break
-[*]Hammer / lever / bolt / pump worked with R2, following the game's own "ready to shoot"
+[*]Aimed shots with one gun: hammer / lever / bolt / pump worked with R2; from the hip and with two guns the game cycles them for you
 [*]Recoil shoves back against your finger; dirty guns feel gritty; exhaustion and cold make the pull shaky
 [*]Dead Eye: every painted target ticks, every shot of the volley kicks as it fires
 [*]Fishing: R2 tugs when a fish bites; L2 carries the real line tension and strains before it snaps
