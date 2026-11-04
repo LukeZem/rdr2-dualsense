@@ -84,6 +84,14 @@ WeaponEngine::WeaponEngine(const json& prof, const Calibration& cal, const Setti
     else if (mode_ == "weapon" || mode_ == "hybrid") break_raw_ = cal_.raw_at(weapon_fx_[1]) + s.fire_margin;
     else if (mode_ == "simple_weapon") break_raw_ = simple_fx_[1];
     else break_raw_ = cal_.raw_at(int(jnum(f, "break_zone", 6))) + s.fire_margin;
+    if (!f.contains("break_raw") && kind_ == "gun" && !learned_path.empty()) {
+        std::ifstream in(learned_path);
+        json l = json::parse(in, nullptr, false);
+        if (l.is_object() && l.contains(id_) && l[id_].is_number_integer()) {
+            break_raw_ = clampv(l[id_].get<int>(), 30, 254);
+            LOGI("%s: learned shot point %d", id_.c_str(), break_raw_);
+        }
+    }
     reset_raw_ = cal_.raw_at(int(jnum(f, "reset_zone", 2)));
     if (reset_raw_ >= break_raw_ - 10) reset_raw_ = std::max(0, break_raw_ - 25);
     stop_zone_ = int(jnum(f, "stop_zone", 0));
@@ -149,6 +157,30 @@ void WeaponEngine::schedule(double at, const std::string& name, float gain, int 
     timers_.push_back({at, c});
 }
 
+WeaponEngine::Zones WeaponEngine::action_feel() const {
+    float d = dirt();
+    int wall = -1;
+    for (int i = 0; i < 10; ++i) if (action_curve_[i] > 0) wall = i;
+    Zones z{};
+    for (int i = 0; i < 10; ++i) {
+        int v = action_curve_[i];
+        if (!v) continue;
+        float clean = i == wall ? float(v) : 1.0f;                       // light travel, one firm point, a clean snap
+        float mud = float(std::min(8, v + int(std::lround(d * 2))));     // heavy and even, like sinking in mud
+        z[i] = clampv(int(std::lround(clean * (1 - d) + mud * d)), 1, 8);
+    }
+    return z;
+}
+
+WeaponEngine::Zones WeaponEngine::after_feel() const {
+    Zones z{};
+    float d = dirt();
+    if (d < 0.15f) return z;                                             // clean: the trigger is free after the shot
+    for (int i = 0; i < 10; ++i)
+        if (after_curve_[i] > 0) z[i] = clampv(int(std::lround(after_curve_[i] * (1 + d * 2))), 1, 3);
+    return z;
+}
+
 fx::Block WeaponEngine::fire_block(int raw, double now) {
     if (clip_size_ && clip_ == 0 && empty_feel_ == "dead")
         return fx::multi_feedback({0, 1, 1, 1, 1, 1, 1, 1, 1, 1});            // slide locked open: mush
@@ -160,6 +192,10 @@ fx::Block WeaponEngine::fire_block(int raw, double now) {
         for (int i = weapon_fx_[0]; i < 10; ++i) z[i] = 0;
     if (dead_eye_)
         for (auto& v : z) if (v) v = std::min(8, v + 1);           // time thickens
+    if (float d = dirt(); d >= 0.15f) {                            // a dirty gun drags through the take-up
+        int bz = int(jnum(p_.value("fire", json::object()), "break_zone", 6));
+        for (int i = 0; i < bz && i < 10; ++i) if (z[i]) z[i] = std::min(8, z[i] + int(std::lround(d * 1.5f)));
+    }
     return fx::multi_feedback(texture(z, raw, now));
 }
 
@@ -216,6 +252,7 @@ EngineFrame WeaponEngine::update(const InputState& in, const GameHints& g) {
     f.l2 = aim_block_;
     uint32_t pressed = in.buttons & ~prev_buttons_;
 
+    in_game_ = g.valid;
     if (g.valid) {
         dead_eye_ = g.dead_eye;
         game_grit_ = g.grit;
@@ -248,6 +285,11 @@ EngineFrame WeaponEngine::update(const InputState& in, const GameHints& g) {
     else if (kind_ == "tension") blk = update_tension(raw, pressed, now, f, g);
     else if (kind_ == "tool") blk = fx::off();
     else blk = update_gun(raw, now, f, g);
+    if (kind_ == "gun" && in_game_ && !last_dry_) {    // the recoil, whenever the game's shot came
+        double kdt = now - kick_t_;
+        fx::Block k;
+        if (kdt >= 0 && kdt < kick_.duration(slow()) && kick_.block(float(kdt), slow(), k)) blk = k;
+    }
     f.r2 = blk;
     if (now < mark_tick_until_) f.r2 = fx::vibration(0, 6, 60);
 
@@ -268,7 +310,8 @@ EngineFrame WeaponEngine::update(const InputState& in, const GameHints& g) {
         }
     }
     analyse(now);
-    f.flash = now - shot_t_ >= 0 && now - shot_t_ < 0.06 && (kind_ == "gun" || kind_ == "auto" || kind_ == "bow");
+    const double flash_t = kind_ == "gun" && in_game_ ? fire_t_ : shot_t_;
+    f.flash = now - flash_t >= 0 && now - flash_t < 0.06 && (kind_ == "gun" || kind_ == "auto" || kind_ == "bow");
     f.game_rt = game_rt_;
     if (kind_ == "melee" || kind_ == "tool" || kind_ == "tension") f.game_rt = -1;
     f.state = state_;
@@ -303,6 +346,18 @@ fx::Block WeaponEngine::update_gun(int raw, double now, EngineFrame& f, const Ga
         if (fired) LOGD("%s: the game fired, clip %d", id_.c_str(), g.clip);
         was_shooting_ = g.shooting;
         last_clip_ = g.clip;
+        if (await_fire_ > 0) {
+            if (fired) {                          // the shot really went off: now the kick and the recoil
+                LOGD("%s: kick %.0f ms after the break", id_.c_str(), (now - await_fire_) * 1000);
+                kick_t_ = now;
+                fire_t_ = now;
+                schedule(now, shot_haptic_, haptic_gain_, await_variant_);
+                await_fire_ = -1;
+            } else if (now - await_fire_ > 1.5) {  // the game didn't take the shot: no kick
+                LOGD("%s: no shot from the game - no kick", id_.c_str());
+                await_fire_ = -1;
+            }
+        }
         if (dead_eye_ && fired && now - shot_t_ > 0.14 && now - kick_t_ > 0.14) {
             shot_t_ = now;
             kick_t_ = now;
@@ -357,7 +412,7 @@ fx::Block WeaponEngine::update_gun(int raw, double now, EngineFrame& f, const Ga
             if (at0 != "none" && at0 != "semi" && set_.manual_action && clip_ != 0 && now - shot_t_ > 0.08) {
                 state_ = "action";
                 not_ready_since_ = -1;
-                return fx::multi_feedback(action_curve_);
+                return fx::multi_feedback(action_feel());
             }
             if (now - not_ready_since_ > 2.5) {          // never became ready: don't trust the signal for this gun
                 ready_usable_ = false;
@@ -375,13 +430,14 @@ fx::Block WeaponEngine::update_gun(int raw, double now, EngineFrame& f, const Ga
             std::string at = jstr(action_, "type", "none");
             if (!free_fire && !game_rate && at != "none" && at != "semi" && set_.manual_action && clip_ != 0) {
                 state_ = "action";
-                return fx::multi_feedback(action_curve_);
+                return fx::multi_feedback(action_feel());
             }
             state_ = "ready";
             if (p_.value("fire", json::object()).value("reset_click", true) && !last_dry_) play(f, "reset_click");
             return fire_block(raw, now);
         }
-        return stop_block(&after_curve_);
+        Zones after = after_feel();
+        return stop_block(&after);
     }
     if (st == "action") {                         // manual cocking / cycling press
         if (g.valid && ready_usable_ && g.ready && raw <= reset_raw_) {   // the game cocked it itself
@@ -404,7 +460,7 @@ fx::Block WeaponEngine::update_gun(int raw, double now, EngineFrame& f, const Ga
             game_rt_ = 255;
             return fx::off();
         }
-        return fx::multi_feedback(action_curve_);
+        return fx::multi_feedback(action_feel());
     }
     if (st == "cycling") {
         bool done = g.valid && ready_usable_ ? g.ready : now - action_t_ >= jnum(action_, "min_ms", 120) / 1000;
@@ -451,7 +507,15 @@ void WeaponEngine::shoot(int raw, double now, EngineFrame& f, bool fanned) {
             kick_.steps.push_back(clampv(int(std::lround(std::min(kick_.base[i], au) * ks)), 1, 8));
         }
     }
-    schedule(now + lock_s_ * slow(), shot_haptic_, haptic_gain_, variant);
+    if (in_game_ && kind_ == "gun") {
+        // the break: only the sear's click under the finger. The kick waits for the game's real shot.
+        kick_t_ = -10;
+        await_fire_ = now;
+        await_variant_ = variant;
+        play(f, "reset_click", 0.6f);
+    } else {
+        schedule(now + lock_s_ * slow(), shot_haptic_, haptic_gain_, variant);
+    }
     std::string at = jstr(action_, "type", "none");
     if (!set_.manual_action || at == "semi") {
         Cue c = cue(jstr(action_, "auto"));
@@ -816,6 +880,13 @@ void WeaponEngine::analyse(double now) {
                 LOGI("%s: shot point %d -> %d (the trigger snaps at ~%d)", id_.c_str(), break_raw_, target, target - 2);
                 break_raw_ = target;
                 reset_raw_ = std::min(reset_raw_, target - 25);
+                if (!learned_path.empty()) {             // remember it for the next game start
+                    json l;
+                    { std::ifstream in(learned_path); l = json::parse(in, nullptr, false); }
+                    if (!l.is_object()) l = json::object();
+                    l[id_] = target;
+                    std::ofstream(learned_path) << l.dump(2);
+                }
             }
         }
     }

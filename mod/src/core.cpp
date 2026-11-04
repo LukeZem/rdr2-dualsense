@@ -163,6 +163,7 @@ void Core::build_engine(const nlohmann::json& prof0, const std::string& name) {
     Settings s = settings_;
     s.audio_latency_ms = std::min(25.0f, audio_.latency_ms());
     try {
+        WeaponEngine::learned_path = in_game_ ? data_dir() / "learned.json" : fs::path();
         engine_ = std::make_unique<WeaponEngine>(prof, cal_, s, kicks);
         LOGI("weapon: %s (%s, fires at raw %d)", name.c_str(), engine_->kind().c_str(), engine_->break_raw());
     } catch (const std::exception& e) {
@@ -269,7 +270,14 @@ bool Core::on_input(const InputState& s, OutputState& out) {
         tick.has_pan = true;
         if (tick.gain > 0 && s.r2 >= click_r && wheel_r2_ < click_r) { tick.pan = 0.6f; cues.push_back(tick); }
         if (tick.gain > 0 && s.l2 >= click_l && wheel_l2_ < click_l) { tick.pan = -0.6f; cues.push_back(tick); }
+        // moving the highlight to another weapon / item (the game reports which one is highlighted)
+        if (tick.gain > 0 && g.wheel && wheel_open_ && g.wheel_item != wheel_item_) {   // also onto / off empty slots
+            tick.pan = 0; cues.push_back(tick);
+            LOGD("wheel: highlight %08X", g.wheel_item);
+        }
     }
+    wheel_item_ = in_game_ ? g.wheel_item : 0;
+    wheel_open_ = in_game_ && g.wheel;
     wheel_r2_ = s.r2;
     wheel_l2_ = s.l2;
     if (!g.valid && !in_game_ && engine_) {        // standalone: engine state on the lightbar

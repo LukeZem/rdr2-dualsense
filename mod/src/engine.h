@@ -171,6 +171,16 @@ private:
     float fish_peak_ = 0, reel_acc_ = 0;
     double fish_t_ = 0, bite_until_ = 0, nibble_until_ = 0, next_surge_ = 0, next_flop_ = 0, flop_until_ = 0;
     float game_grit_ = 0, game_tremor_ = 0, game_kick_mult_ = 1;
+    // in game the kick comes with the game's real shot, not with the break
+    bool in_game_ = false;
+    double await_fire_ = -1, fire_t_ = -10;
+    int await_variant_ = -1;
+    float dirt() const { return in_game_ ? clampv(game_grit_, 0.0f, 1.0f) : 0.0f; }
+    Zones action_feel() const;       // the R2 stroke that works the action: clockwork when clean, mud when dirty
+    Zones after_feel() const;        // the trigger after the shot: free when clean, dragging when dirty
+public:
+    inline static fs::path learned_path;   // break points auto-align learned (in game only; empty = off)
+private:
     mutable Rng rng_{uint64_t(now_s() * 1e6)};
 };
 

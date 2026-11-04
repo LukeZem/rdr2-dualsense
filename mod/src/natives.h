@@ -56,6 +56,8 @@ inline bool IS_PED_DRUNK(Ped p) { return invoke<int>(0x50F124E6EF188B22ull, p) !
 inline float GET_PED_DRUNKNESS(Ped p) { return invoke<float>(0x6FB76442469ABD68ull, p); }
 inline Entity GET_LASSO_TARGET(Ped p) { return invoke<Entity>(0xB65A4DAB460A19BDull, p); }
 inline bool IS_PED_LASSOED(Ped p) { return invoke<int>(0x9682F850056C9ADEull, p) != 0; }
+inline Hash HUD_GET_INVENTORY_WHEEL_CURRENTLY_HIGHLIGHTED() { return invoke<Hash>(0x9C409BBC492CB5B1ull); }  // only while the wheel is open
+inline bool IS_ATTRIBUTE_OVERPOWERED(Ped p, int attr) { return invoke<int>(0x103C2F885ABEB00Bull, p, attr) != 0; }  // fortified ring
 inline bool IS_ATTRIBUTE_CORE_OVERPOWERED(Ped p, int core) { return invoke<int>(0x200373A8DF081F22ull, p, core) != 0; }  // fortified (gold)
 inline int GET_ATTRIBUTE_CORE_VALUE(Ped p, int core) { return invoke<int>(0x36731AC041289BB1ull, p, core); }  // 0 health 1 stamina 2 dead eye
 

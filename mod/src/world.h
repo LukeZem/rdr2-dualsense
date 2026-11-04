@@ -22,7 +22,7 @@ struct GameSnapshot {
     bool reloading = false, shooting = false, aiming = false;
     bool free_aim = false, lock_on = false;   // aiming freely / the game's aim assist holds a target
     bool dead_eye = false;
-    int health_core = 100, stamina_core = 100;
+    int health_core = 100, stamina_core = 100;   // health_core: real health in % (100 when fortified)
     float grit = 0, kick_mult = 1, tremor = 0;
     bool on_mount = false;
     float mount_speed = 0, mount_pitch = 0;
@@ -39,6 +39,7 @@ struct GameSnapshot {
     uint32_t weather = 0;
     bool lantern = false;
     bool wheel = false;            // weapon / item wheel open
+    uint32_t wheel_item = 0;          // the item highlighted in the wheel (0 when closed)
     bool ready = true;             // the game: the gun in hand can fire right now (cooldown over, cocked)
     bool holstering = false;       // a weapon is going into / coming out of the holster
     int attach_point = -1;         // where the weapon in hand is carried otherwise (GET_DEFAULT_WEAPON_ATTACH_POINT)

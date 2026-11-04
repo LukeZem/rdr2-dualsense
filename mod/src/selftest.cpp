@@ -33,6 +33,8 @@ struct Rig {
     std::vector<EngineFrame> frames;
     std::vector<int> raws;
     GameHints hints;
+    bool game_fires = true;
+    int last_rt_ = 0, rt_prev_ = 0;
     Rig(const nlohmann::json& p, Settings s = Settings{}) : eng(p, Calibration{}, s, {}) {}
     Rig& feed(const std::vector<int>& rs, uint32_t buttons = 0, int l2 = 0) {
         for (int r : rs) {
@@ -44,7 +46,11 @@ struct Rig {
             in.buttons = buttons;
             in.fresh = true;
             raws.push_back(r);
+            // the game: it fires the frame after it sees R2 go down (when it is in game and wants to fire)
+            if (hints.valid && game_fires) hints.shooting = rt_prev_ == 0 && last_rt_ == 255;
+            rt_prev_ = last_rt_;
             frames.push_back(eng.update(in, hints));
+            last_rt_ = std::max(0, frames.back().game_rt);
         }
         return *this;
     }
@@ -239,7 +245,7 @@ int run_selftests(const fs::path& data) {
         }
         CHECK(ok && steps && strength && gyro && trig, "page rows: unique ids, options only for toggles / choices");
         CHECK(SettingsMenu::page_max(*steps) == 100 && SettingsMenu::page_max(*strength) == 200, "levels: 0 .. max %");
-        CHECK(SettingsMenu::page_value(*steps, cfg) == 22, "footsteps default 0.22 shows as exactly 22%");
+        CHECK(SettingsMenu::page_value(*steps, cfg) == 35, "footsteps default 0.35 shows as exactly 35%");
         CHECK(SettingsMenu::page_ini(*steps, 37) == "0.37" && SettingsMenu::page_ini(*strength, 200) == "2" &&
               SettingsMenu::page_ini(*steps, 0) == "0", "percent -> ini value");
         CHECK(SettingsMenu::page_ini(*steps, 101).empty() && SettingsMenu::page_ini(*steps, -1).empty(),
@@ -298,6 +304,19 @@ int run_selftests(const fs::path& data) {
         r.hints.ready = true;
         r.release(5, 200).pull(255, 40, 200);
         CHECK(r.count("hammer_cock") == 0 && r.count("shot_revolver") == 2, "game-cocked: fires without a stroke");
+    }
+    {   // in game the kick comes with the game's real shot; a press the game refuses gets no kick
+        Rig r(cat.resolve_name("WEAPON_REVOLVER_CATTLEMAN"));
+        r.hints.valid = true;
+        r.game_fires = false;
+        r.pull();
+        r.hold(255, 2.0);
+        CHECK(r.count("shot_revolver") == 0 && r.count("reset_click") >= 1, "refused shot: the sear clicks, no kick");
+        Rig q(cat.resolve_name("WEAPON_REVOLVER_CATTLEMAN"));
+        q.hints.valid = true;
+        q.pull();
+        q.hold(255, 0.3);
+        CHECK(q.count("shot_revolver") == 1, "the game fires: the kick comes");
     }
     {   // recoil: a shove against the finger first, then the fading rumble
         Settings s; s.manual_action = false;

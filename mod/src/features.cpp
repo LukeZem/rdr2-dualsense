@@ -16,7 +16,7 @@ void Features::configure() {
     heart_gain_ = c.num("Haptics", "Heartbeat", 1.0f);
     cold_gain_ = c.num("Haptics", "Cold", 0.5f);
     hit_gain_ = c.num("Haptics", "HitConfirm", 0.0f);
-    step_gain_ = c.num("Haptics", "Footsteps", 0.22f);
+    step_gain_ = c.num("Haptics", "Footsteps", 0.35f);
     land_gain_ = c.num("Haptics", "Landing", 0.7f);
     action_gain_ = c.num("Haptics", "Actions", 0.5f);
     minigame_gain_ = c.num("Haptics", "TableGames", 0.7f);

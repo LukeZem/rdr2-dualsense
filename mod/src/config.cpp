@@ -64,7 +64,7 @@ KickStrength=1.0
 ; Resistance on L2 while aiming: 0 = off, 1 = light (only where the game starts aiming, the rest of
 ; the travel is free), 2 = full (the gun's weight over the whole travel)
 AimResistance=1
-; Dirty / worn guns get a gritty trigger
+; Clean guns work like clockwork, dirty / worn ones drag like mud (the game's real gun condition)
 ConditionGrit=1
 ; Express / explosive ammo kicks harder
 AmmoTypeRecoil=1
@@ -103,7 +103,7 @@ Cold=0.5
 ; A tiny tick when your shot hits someone
 HitConfirm=0
 ; Footsteps on foot, timed by Arthur's real feet, felt per surface (left foot left, right foot right)
-Footsteps=0.22
+Footsteps=0.35
 ; Landing from a jump or a drop
 Landing=0.7
 ; Grabbing a ledge, opening a door, drawing / holstering a gun

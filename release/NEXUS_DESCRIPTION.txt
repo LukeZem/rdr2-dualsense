@@ -5,26 +5,26 @@ VERSION:  1.0.0
 CATEGORY: Gameplay  (or: Utilities)
 IMAGES:   release/banner.png (main image)
 SUMMARY (short):
-Full DualSense support driven by what the game is really doing: per-weapon adaptive triggers that fire exactly
-on the break, voice-coil haptics for hooves, footsteps on the real ground, fishing line tension, Dead Eye,
-honor, camp life.
+Adaptive triggers for every weapon - each gun with its own pull, firing exactly on the break - and haptics
+from what the game is really doing: the real hooves on the real ground, footsteps, hits, Dead Eye, fishing line tension.
 
 --- DESCRIPTION ---
 
 [size=5][b]DualSense for RDR2[/b][/size]
 
-Most DualSense mods guess. This one reads the game: the trigger fires the moment it breaks, the hammer needs
-cocking only when the game says the gun isn't ready, the hooves you feel are the real hooves touching the real
-ground, and the fishing line on L2 is the game's own line tension.
+[b]All-in-one DualSense support for RDR2: adaptive triggers for every weapon and haptics for everything Arthur feels.[/b]
+It also drives the lightbar, the player LEDs and the controller's speaker, shows PlayStation buttons in the game, and
+adds its settings to the game's own menu.
 
 [size=4][b]Triggers[/b][/size]
 [list]
 [*]Every weapon has its own pull - take-up, wall, crisp break - and the shot lands exactly on the break
 [*]Aimed shots with one gun: hammer / lever / bolt / pump worked with R2; from the hip and with two guns the game cycles them for you
-[*]Recoil shoves back against your finger; dirty guns feel gritty; exhaustion and cold make the pull shaky
+[*]The kick comes with the game's real shot; a clean gun works like clockwork, a dirty one drags like mud;
+exhaustion and cold make the pull shaky
 [*]Dead Eye: every painted target ticks, every shot of the volley kicks as it fires
 [*]Fishing: R2 tugs when a fish bites; L2 carries the real line tension and strains before it snaps
-[*]Weapon wheel: L2/R2 click like a selector switch - never feel like a shot
+[*]Weapon wheel: a light tick for every weapon you move over; L2/R2 click like a selector switch - never like a shot
 [/list]
 
 [size=4][b]Haptics[/b][/size]
@@ -35,15 +35,6 @@ ground, and the fishing line on L2 is the game's own line tension.
 [*]Honor going up or down, bites / sips / puffs, gun cleaning, brushing the horse, skinning, herbs, bathing
 [*]Five finger fillet, poker, blackjack, dominoes
 [*]Gun shots built from each gun's own recordings - the game's sounds, or your sound mod's if you use one
-[/list]
-
-[size=4][b]Microphone[/b][/size]
-Off by default - switch them on under Settings > Controls > Controller > DualSense.
-[list]
-[*]Whistle into the controller to call your horse
-[*]Say "chao" - Arthur greets the nearest person for real (counts for honor)
-[*]"easy" calms your horse
-[*]Commands count only when said on their own - talking to someone in the room won't set them off
 [/list]
 
 [size=4][b]Lightbar, LEDs, speaker[/b][/size]
@@ -57,6 +48,10 @@ setting of the mod, changed with left / right like the game's own options. Chang
 [size=4][b]PlayStation buttons[/b][/size]
 The game's prompts and controller picture show PlayStation buttons instead of Xbox ones - Rockstar's own art, no extra mod needed.
 
+[size=4][b]Microphone (beta)[/b][/size]
+Off by default and still in testing: whistle into the controller to call your horse, plus a few voice
+commands. Turn it on under Settings > Controls > Controller > DualSense.
+
 [size=4][b]Requirements[/b][/size]
 [list]
 [*][url=https://www.dev-c.com/rdr2/scripthookrdr2/]Script Hook RDR2[/url] with an ASI loader (dinput8.dll or version.dll)
@@ -65,7 +60,7 @@ The game's prompts and controller picture show PlayStation buttons instead of Xb
 [*]Story mode only
 [*]For the settings page and PlayStation buttons: Lenny's Mod Loader (LML, from rdr2mods.com); any game language (page texts are
 English) - without LML, settings are in DualSenseRDR2.ini
-[*]For voice commands: Windows' English (US) speech recognition (add it under Settings > Time & language >
+[*]For the voice commands (beta): Windows' English (US) speech recognition (add it under Settings > Time & language >
 Speech on a non-English Windows); the whistle works without it
 [/list]
 
@@ -81,7 +76,3 @@ loader and LML (as for any mod), and back for story mode. The mod changes none o
 
 [size=4][b]Open source[/b][/size]
 MIT licensed - source: https://github.com/OldKrab/rdr2-dualsense
-
-[size=4][b]Credits[/b][/size]
-alloc8or (RDR3 native DB), femga (rdr3_discoveries), the decompiled-script researchers, Alexander Blade
-(Script Hook RDR2), Niels Lohmann (nlohmann/json).

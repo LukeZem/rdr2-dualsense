@@ -38,6 +38,8 @@ private:
     std::string test_weapon_;
     Calibration cal_;
     int wheel_r2_ = 0, wheel_l2_ = 0;      // last trigger positions, for the wheel's selector clicks
+    bool wheel_open_ = false;
+    uint32_t wheel_item_ = 0;              // last highlighted wheel item: a tick when it changes
     Settings settings_;
     Catalog catalog_;
     GameAudio game_audio_;

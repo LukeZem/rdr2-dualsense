@@ -369,7 +369,7 @@ void World::tick() {
         if (cfg.flag("Triggers", "AmmoTypeRecoil", true)) s.kick_mult = ammo_kick(GET_PED_AMMO_TYPE_FROM_WEAPON(me, w));
         if (cfg.flag("Triggers", "ConditionGrit", true)) {
             Entity obj = GET_CURRENT_PED_WEAPON_ENTITY_INDEX(me);
-            if (obj) s.grit = clampv(0.6f * GET_WEAPON_DEGRADATION(obj) + 0.4f * GET_WEAPON_DIRT(obj), 0.0f, 1.0f) * 0.5f;
+            if (obj) s.grit = clampv(0.6f * GET_WEAPON_DEGRADATION(obj) + 0.4f * GET_WEAPON_DIRT(obj), 0.0f, 1.0f);
         }
     }
     // fishing: the game's own fishing task (read only - the fishing script writes it back every frame)
@@ -413,20 +413,25 @@ void World::tick() {
     }
     static const Hash kWheel = joaat("INPUT_OPEN_WHEEL_MENU");
     s.wheel = IS_CONTROL_PRESSED(0, kWheel) || IS_DISABLED_CONTROL_PRESSED(0, kWheel);
+    s.wheel_item = s.wheel ? HUD_GET_INVENTORY_WHEEL_CURRENTLY_HIGHLIGHTED() : 0;
     s.shooting = IS_PED_SHOOTING(me);
     s.free_aim = IS_PLAYER_FREE_AIMING(pl);
     s.lock_on = IS_PLAYER_TARGETTING_ANYTHING(pl);
     s.aiming = s.free_aim || s.lock_on;
     s.dead_eye = IS_SPECIAL_ABILITY_ACTIVE(pl);
-    // cores: a fortified (gold) core counts as full - never a low-health warning
-    bool gold_health = IS_ATTRIBUTE_CORE_OVERPOWERED(me, 0), gold_stamina = IS_ATTRIBUTE_CORE_OVERPOWERED(me, 1);
+    // low health = Arthur's real health (the ring), like the game's own warning - not the core, which can be
+    // empty while the health is full. A fortified (gold) ring or core counts as healthy.
+    bool gold_health = IS_ATTRIBUTE_CORE_OVERPOWERED(me, 0) || IS_ATTRIBUTE_OVERPOWERED(me, 0);
+    bool gold_stamina = IS_ATTRIBUTE_CORE_OVERPOWERED(me, 1) || IS_ATTRIBUTE_OVERPOWERED(me, 1);
     int raw_health = GET_ATTRIBUTE_CORE_VALUE(me, 0), raw_stamina = GET_ATTRIBUTE_CORE_VALUE(me, 1);
-    s.health_core = gold_health ? 100 : raw_health;
+    int hp = GET_ENTITY_HEALTH(me), hp_max = GET_ENTITY_MAX_HEALTH(me);
+    int health_pct = hp_max > 0 ? clampv(hp * 100 / hp_max, 0, 100) : 100;
+    s.health_core = gold_health ? 100 : health_pct;
     s.stamina_core = gold_stamina ? 100 : raw_stamina;
-    int cores_key = raw_health / 5 * 1000 + raw_stamina / 5 * 10 + gold_health * 2 + gold_stamina;
+    int cores_key = health_pct / 5 * 100000 + raw_health / 5 * 1000 + raw_stamina / 5 * 10 + gold_health * 2 + gold_stamina;
     if (cores_key != cores_logged_) {
-        LOGD("cores: health %d%s, stamina %d%s", raw_health, gold_health ? " (fortified)" : "", raw_stamina,
-             gold_stamina ? " (fortified)" : "");
+        LOGD("health %d/%d (%d%%)%s, health core %d, stamina core %d%s", hp, hp_max, health_pct,
+             gold_health ? " (fortified)" : "", raw_health, raw_stamina, gold_stamina ? " (fortified)" : "");
         cores_logged_ = cores_key;
     }
     s.swimming = IS_PED_SWIMMING(me);
@@ -552,6 +557,15 @@ void World::tick() {
     ped_health_.swap(seen);
     greet(pl, me, pos.x, pos.y, peds, n, s, ev);
     s.melee_hits = melee_hits_;
+    // a hit only when something really hit: an attacker, a fall, or a real chunk of health. Small drops with
+    // nobody around are the health ring draining (a fortified ring wearing off, an empty core) - not hits.
+    if (hurt && !attacker && !IS_PED_FALLING(me) && !IS_PED_RAGDOLL(me)) {
+        int max_hp = GET_ENTITY_MAX_HEALTH(me);
+        if (last_health_ - health < std::max(1, max_hp * 2 / 100)) {
+            LOGD("health %d -> %d: drain, not a hit", last_health_, health);
+            hurt = false;
+        }
+    }
     if (hurt) {
         float amount = clampv(float(last_health_ - health) / 40.0f, 0.15f, 1.0f);
         WorldEvent e{WorldEvent::Damage, 0, amount, "bullet"};
