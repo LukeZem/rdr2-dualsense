@@ -1,9 +1,10 @@
 # DualSense for RDR2
 
 Full DualSense support for Red Dead Redemption 2 on PC — adaptive triggers per weapon, voice-coil haptics,
-lightbar, speaker and microphone, driven by what the game is actually doing (ScriptHookRDR2 `.asi` mod).
+lightbar, speaker and microphone (beta), driven by what the game is actually doing (ScriptHookRDR2 `.asi` mod).
 
-Players: get the release zip from the mod page and read `release/README.txt`.
+Players: download it from **[Nexus Mods](https://www.nexusmods.com/reddeadredemption2/mods/11444)** or the
+[GitHub release](https://github.com/OldKrab/rdr2-dualsense/releases/tag/v1.0.0), and read `release/README.txt`.
 
 ## Repository layout
 | Path | What |
