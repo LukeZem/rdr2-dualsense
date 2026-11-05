@@ -16,9 +16,6 @@ from what the game is really doing: the real hooves on the real ground, footstep
 It also drives the lightbar, the player LEDs and the controller's speaker, shows PlayStation buttons in the game, and
 adds its settings to the game's own menu.
 
-[b]New in 1.1.0:[/b] feel the voices - dialogue haptics (experimental), cutscenes you can feel, and plug the
-controller in any time.
-
 [size=4][b]Triggers[/b][/size]
 [list]
 [*]Every weapon has its own pull - take-up, wall, crisp break - and the shot lands exactly on the break
@@ -35,7 +32,6 @@ exhaustion and cold make the pull shaky
 [*]Hoofbeats from the real hooves at every gait, on the real ground material (mud, gravel, wood, grass, snow...)
 [*]Arthur's footsteps from his real feet, landings, ledge grabs, doors, drawing and holstering
 [*]Hits from their direction, nearby gunfire, heartbeat, shivers
-[*]Cutscenes too: steps, hooves, shots and hits, like in play
 [*]Honor going up or down, bites / sips / puffs, gun cleaning, brushing the horse, skinning, herbs, bathing
 [*]Five finger fillet, poker, blackjack, dominoes
 [*]Gun shots built from each gun's own recordings - the game's sounds, or your sound mod's if you use one
@@ -65,7 +61,7 @@ commands. Turn it on under Settings > Controls > Controller > DualSense.
 [size=4][b]Requirements[/b][/size]
 [list]
 [*][url=https://www.dev-c.com/rdr2/scripthookrdr2/]Script Hook RDR2[/url] with an ASI loader (dinput8.dll or version.dll)
-[*]DualSense on a USB cable (Bluetooth: triggers, lightbar, rumble only) - plug it in before or after starting the game
+[*]DualSense on a USB cable (Bluetooth: triggers, lightbar, rumble only)
 [*]DSX / DS4Windows closed, Steam Input OFF for RDR2
 [*]Story mode only
 [*]For the settings page and PlayStation buttons: Lenny's Mod Loader (LML, from rdr2mods.com); any game language (page texts are
