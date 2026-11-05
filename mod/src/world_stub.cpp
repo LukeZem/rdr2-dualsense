@@ -16,5 +16,6 @@ void World::add_gyro(float yaw, float pitch) {
     gyro_pitch_ = gyro_pitch_.load() + pitch;
 }
 float World::pan_to(float, float, float, float, float) const { return 0; }
+float World::frame_time() const { return 0; }
 
 }  // namespace dsr2

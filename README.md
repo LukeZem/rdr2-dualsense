@@ -1,10 +1,11 @@
 # DualSense for RDR2
 
 Full DualSense support for Red Dead Redemption 2 on PC — adaptive triggers per weapon, voice-coil haptics,
-lightbar, speaker and microphone (beta), driven by what the game is actually doing (ScriptHookRDR2 `.asi` mod).
+dialogue you can feel (experimental), lightbar, speaker and microphone (beta), driven by what the game is actually
+doing (ScriptHookRDR2 `.asi` mod).
 
 Players: download it from **[Nexus Mods](https://www.nexusmods.com/reddeadredemption2/mods/11444)** or the
-[GitHub release](https://github.com/OldKrab/rdr2-dualsense/releases/tag/v1.0.0), and read `release/README.txt`.
+[GitHub release](https://github.com/OldKrab/rdr2-dualsense/releases/latest), and read `release/README.txt`.
 
 ## Repository layout
 | Path | What |
@@ -12,7 +13,7 @@ Players: download it from **[Nexus Mods](https://www.nexusmods.com/reddeadredemp
 | `mod/` | The mod (C++17, CMake + MinGW-w64). `mod/README.md`: build, install, feature table. |
 | `mod/src/` | Controller I/O (HID, WASAPI haptics), trigger engine, game state (natives), features, voice/whistle. |
 | `tools/trigger_lab/` | Python lab to design and test trigger effects and haptic recipes outside the game; `data/` holds the weapon profiles and haptic recipes the mod ships. |
-| `tools/awc/` | Game sound bank tools (AWC decoding, sound / material name recovery). |
+| `tools/awc/` | Game sound bank tools (AWC decoding, sound / material name recovery, the speech voice table) and the read-only live-memory research scripts behind the dialogue haptics. |
 | `tools/dev/` | Release script, ini updater, one-off patch scripts. |
 | `release/` | Player README and mod page text. |
 
@@ -25,5 +26,5 @@ powershell -ExecutionPolicy Bypass -File tools/dev/make_release.ps1
 ```
 
 ## License
-MIT — see `LICENSE`. Uses nlohmann/json (MIT). Research credits: alloc8or's RDR3 native DB, femga's
+MIT — see `LICENSE`. Uses nlohmann/json (MIT) and stb_vorbis (public domain). Research credits: alloc8or's RDR3 native DB, femga's
 rdr3_discoveries, decompiled RDR3 script references.

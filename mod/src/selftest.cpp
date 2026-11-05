@@ -1,5 +1,7 @@
 // Offline checks of the C++ port against the behaviour verified in the Python lab tests.
+#include "awc.h"
 #include "catalog.h"
+#include "dialogue.h"
 #include "config.h"
 #include "dsp.h"
 #include "engine.h"
@@ -76,6 +78,25 @@ struct Rig {
 }  // namespace
 
 int run_selftests(const fs::path& data) {
+    // dialogue haptics: the spoken line's recording id from the game's speech data (a real greeting: context kept
+    // before joaat's last mixing step, variation 1 -> the stream the game read from disk)
+    CHECK(awc::line_stream_id(0xB87C92A7, 1) == 0x0C96A2A6, "speech line id: partial context hash + variation");
+    CHECK(awc::joaat_finish(0) == 0 && (joaat("greet_male") == awc::joaat_finish([] {
+              uint32_t h = 0;
+              for (char c : std::string("greet_male")) { h += uint8_t(c); h += h << 10; h ^= h >> 6; }
+              return h;
+          }())), "joaat = partial + finish");
+    {
+        std::vector<float> voice(48000, 0.0f);
+        for (size_t i = 0; i < voice.size(); ++i)          // a 'syllable' 0.2-0.4 s
+            if (i > 9600 && i < 19200)                     // a voiced 130 Hz 'vowel' with its harmonics
+                for (int h = 1; h <= 20; ++h) voice[i] += 0.3f / float(h) * std::sin(2 * kPi * 130.0f * float(h) * float(i) / 48000);
+        auto sp = speech_haptic(voice);
+        float in = 0, out = 0;
+        for (size_t i = 12000; i < 18000; ++i) in = std::max(in, std::fabs(sp[i]));
+        for (size_t i = 30000; i < 48000; ++i) out = std::max(out, std::fabs(sp[i]));
+        CHECK(in > 0.3f && out < 0.02f, "speech vibration follows the syllable");
+    }
     Catalog cat;
     cat.load(data / "weapons.json");
     std::string name;

@@ -36,7 +36,7 @@ $map = @{
   "up" = @(0x48, $true); "down" = @(0x50, $true); "left" = @(0x4B, $true); "right" = @(0x4D, $true)
   "w" = @(0x11, $false); "a" = @(0x1E, $false); "s" = @(0x1F, $false); "d" = @(0x20, $false)
   "e" = @(0x12, $false); "q" = @(0x10, $false); "tab" = @(0x0F, $false); "p" = @(0x19, $false)
-  "3" = @(0x04, $false); "4" = @(0x05, $false); "5" = @(0x06, $false); "f9" = @(0x43, $false); "f10" = @(0x44, $false); "f11" = @(0x57, $false); "z" = @(0x2C, $false); "x" = @(0x2D, $false); "c" = @(0x2E, $false)
+  "3" = @(0x04, $false); "4" = @(0x05, $false); "5" = @(0x06, $false); "f9" = @(0x43, $false); "f10" = @(0x44, $false); "f11" = @(0x57, $false); "z" = @(0x2C, $false); "x" = @(0x2D, $false); "c" = @(0x2E, $false); "n" = @(0x31, $false); "y" = @(0x15, $false); "g" = @(0x22, $false); "h" = @(0x23, $false)
 }
 $g = Get-Process -Name RDR2 -ErrorAction SilentlyContinue | Select-Object -First 1
 if (-not $g) { "game not running"; exit 1 }

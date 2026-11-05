@@ -1,8 +1,9 @@
-DualSense for RDR2  v1.0.0  -  by OldKrab
+DualSense for RDR2  v1.1.0  -  by OldKrab
 ==========================================
 
 Full DualSense support for Red Dead Redemption 2 on PC: adaptive triggers made per weapon,
-voice-coil haptics, lightbar, speaker and microphone - driven by what the game is actually doing.
+voice-coil haptics, dialogue you can feel (experimental), lightbar, speaker and microphone - driven by what
+the game is actually doing.
 
 
 REQUIREMENTS
@@ -11,7 +12,8 @@ REQUIREMENTS
 - Script Hook RDR2 + an ASI loader (dinput8.dll from Script Hook, or version.dll - either works)
   https://www.dev-c.com/rdr2/scripthookrdr2/
 - A DualSense controller connected by USB cable (haptics and the speaker need USB;
-  over Bluetooth you get triggers, lightbar and a rumble fallback)
+  over Bluetooth you get triggers, lightbar and a rumble fallback). Plug it in before or after starting
+  the game - both work.
 - Close DSX / DS4Windows, and turn Steam Input OFF for RDR2
   (Steam -> RDR2 -> Properties -> Controller -> Disable Steam Input)
 - Remove other DualSense mods (DualSenseHaptics.asi, NodixDualSense.asi ...) - they fight over the controller
@@ -27,7 +29,7 @@ INSTALL
 Copy everything from this zip into the game folder - the folder with RDR2.exe in it, not a subfolder
 (a file one folder too deep is simply never loaded):
     DualSenseRDR2.asi
-    DualSenseRDR2\  (folder with weapons.json, haptics.json, sound_labels.json)
+    DualSenseRDR2\  (folder with weapons.json, haptics.json, sound_labels.json, speech_voices.txt)
     lml\            (merges into LML's folder: lml\DualSenseRDR2 and one archive in lml\replace)
 Start the game. Settings are created on first start in DualSenseRDR2.ini.
 If you use LML's Mod Manager, make sure "DualSense for RDR2 - Settings page" is enabled.
@@ -59,6 +61,8 @@ Horse      Hoofbeats from the real hooves at every gait, on the real ground (mud
 On foot    Footsteps from Arthur's real feet on the real ground, landings, ledge grabs, doors, drawing and
            holstering.
 Around you Hits felt from the direction they came from, nearby gunfire, low-health heartbeat, shivering cold.
+Cutscenes  Steps, hooves, shots and hits are felt in cutscenes too.
+Dialogue   (experimental, off by default) Every spoken line as the speaker's voice in your hands - see below.
 Honor      A warm swell and gold glow when honor rises, a sinking thud when it falls.
 Camp life  Bites, sips and puffs, cleaning your gun, brushing / feeding the horse, skinning, stowing pelts,
            picking herbs, bathing, crafting, cooking.
@@ -67,6 +71,16 @@ Weapon wheel L2/R2 click like a selector switch while you browse.
 Lightbar   Muzzle flash, hits, Dead Eye, lantern flicker, wanted, low health, time of day.
            Player LEDs show the rounds left.
 Speaker    The game's own draw / holster / lasso sounds and mechanism clicks from the controller.
+
+
+DIALOGUE HAPTICS (experimental, off by default)
+-----------------------------------------------
+Feel the voices: every spoken line in your hands - the speaker's own voice, its rhythm and tone, from the
+side they stand on. Turn it on: Settings > Controls > Controller > DualSense > Dialogue Haptics.
+  Dialogue Strength       how strong (60% to start)
+  Dialogue Haptics In     Everywhere (cutscenes and conversations in the world) or Cutscenes only
+  TV / Headphone Delay    how late your TV or headphones play the sound. Auto knows Bluetooth headphones -
+                          raise it if you feel a line before you hear it.
 
 
 VOICE AND WHISTLE (controller microphone, English, offline - the mute button pauses it)
@@ -84,7 +98,8 @@ SETTINGS
 --------
 In the game: Pause > Settings > Controls > Controller > DualSense - every setting of the mod, changed with
 left / right like the game's own (strengths: 5% per press, hold to run). Changes apply as soon as you close
-the menu. On the title screen the page only tells you to load your story - the mod starts with the game.
+the menu. A setting's own options only show while it is On. On the title screen the page only tells you to
+load your story - the mod starts with the game.
 Everything is also in DualSenseRDR2.ini (every effect has its own strength, 0 = off); F9 reloads the file
 in game.
 Gyro aim (EXPERIMENTAL, off by default): [Gyro] Mode=aim turns on small gyro corrections while you aim
@@ -96,5 +111,17 @@ Debug=1 writes details to DualSenseRDR2.log - attach it when reporting a problem
 CREDITS
 -------
 Game research: alloc8or's RDR3 native database, femga's rdr3_discoveries, Halen84 and others' decompiled
-script references. nlohmann/json (MIT). Script Hook RDR2 by Alexander Blade.
+script references. nlohmann/json (MIT). stb_vorbis by Sean Barrett (public domain). Script Hook RDR2 by
+Alexander Blade.
 Source code (MIT): see the mod page.
+
+
+CHANGES
+-------
+1.1.0  Dialogue haptics (experimental, off by default).
+       Steps, hooves, shots and hits are felt in cutscenes too.
+       Controller plugged in after the game started (or pulled out and back) works within a second -
+       controls and haptics.
+       Settings page: the selected row is highlighted like the game's own pages, a setting's own options only
+       show while it is On, experimental features have their own sections.
+1.0.0  First release.

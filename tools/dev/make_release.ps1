@@ -1,5 +1,5 @@
 # Builds the release zip: release\DualSenseRDR2-v<version>.zip
-#   DualSenseRDR2.asi, DualSenseRDR2\ (weapons, haptics, sound labels), lml\ (the Settings page), README.txt,
+#   DualSenseRDR2.asi, DualSenseRDR2\ (weapons, haptics, sound labels, speech voices), lml\ (the Settings page), README.txt,
 #   LICENSE.txt
 # Your personal calibration.json is NOT included (players get estimated zones + auto-align).
 $ErrorActionPreference = "Stop"
@@ -12,7 +12,7 @@ $stage = "$root\release\stage"
 if (Test-Path $stage) { Remove-Item $stage -Recurse -Force }
 New-Item -ItemType Directory -Force "$stage\DualSenseRDR2" | Out-Null
 Copy-Item $asi $stage
-foreach ($f in "weapons.json", "haptics.json", "sound_labels.json") { Copy-Item "$root\tools\trigger_lab\data\$f" "$stage\DualSenseRDR2\" }
+foreach ($f in "weapons.json", "haptics.json", "sound_labels.json", "speech_voices.txt") { Copy-Item "$root\tools\trigger_lab\data\$f" "$stage\DualSenseRDR2\" }
 # the Settings page for Lenny's Mod Loader, laid out like <game>\lml
 $lml = "$root\mod\lml\DualSenseRDR2"
 $archives = @("replace\update_4\x64\data\ui\startup_data.rpf")

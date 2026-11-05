@@ -3,6 +3,8 @@
 #include "game_files.h"
 
 #include "config.h"
+#include "dialogue.h"
+#include "gamemem.h"
 #include "input.h"
 #include "log.h"
 #include "world.h"
@@ -46,6 +48,7 @@ void Core::load_data() {
     audio_.set_duck(c.num("Haptics", "Duck", 0.3f));
     audio_.set_rumble_gain(c.num("Haptics", "GameRumble", 0.35f));
     audio_.set_game_audio_gain(c.num("Haptics", "GameAudio", 0.0f));
+    dialogue().configure();
     engine_.reset();
     engine_key_ = 0;
 }
@@ -61,6 +64,7 @@ bool Core::init(bool in_game, const std::string& test_weapon) {
     }
     if (in_game) input().install_hook();
     audio_.start(&lib_);
+    if (in_game) dialogue().start(module_dir(), &audio_);      // cutscene / dialogue haptics (idle while both are off)
     audio_.start_game_audio(c.num("Haptics", "GameAudio", 0.0f), c.str("Haptics", "GameAudioDevice", ""));
     apply_mic();
     pad_.start([this](const InputState& s, OutputState& out) { return on_input(s, out); });
@@ -142,6 +146,7 @@ void Core::confirm() {
 void Core::shutdown() {
     pad_.stop();
     voice_.stop();
+    dialogue().stop();
     audio_.stop();
     LOGI("stopped");
 }
@@ -294,10 +299,22 @@ bool Core::on_input(const InputState& s, OutputState& out) {
         out.r = 40; out.g = 160; out.b = 255;
     }
     if (haptics_on_)
-        for (auto& c : cues) audio_.play(c);
+        for (auto& c : cues) {
+            if (in_game_ && g.cutscene) LOGD("cutscene: felt %s (%.2f)", c.name.c_str(), c.gain);   // which world events register in cutscenes
+            audio_.play(c);
+        }
 
     int rt = weapon_active ? frame.game_rt : -1;
     input().publish(s, rt, true);
+    // a controller the game has not seen (plugged in after the game started, or while our controller was not open
+    // yet): mark slot 1 as the game's own pad check would have - from now on the game reads it every frame
+    if (in_game_ && s.t >= next_slot_check_) {
+        next_slot_check_ = s.t + 0.5;
+        if (gamemem::pad_slot_marked(0) == 0) {
+            bool ok = gamemem::mark_pad_slot(0);
+            LOGI("controller: the game had not seen it - %s", ok ? "marked its pad slot" : "could NOT mark its pad slot");
+        }
+    }
     if (s.fresh) {
         input().track_touch(s);
         input().track_gyro(s, in_game_ ? (g.free_aim && !g.lock_on && !g.blocked && !paused) : s.l2 > 128);
@@ -324,12 +341,32 @@ bool Core::on_input(const InputState& s, OutputState& out) {
 }
 
 void Core::script_tick() {
-    if (in_game_) world().tick();
+    if (in_game_) {
+        // perf probe (debug log only): game FPS and how long our per-frame work takes, once a second
+        double t0 = now_s();
+        world().tick();
+        if (log::debug_enabled()) {
+            double ms = (now_s() - t0) * 1000;
+            perf_sum_ += ms;
+            perf_max_ = std::max(perf_max_, ms);
+            ++perf_n_;
+            float ft = world().frame_time() * 1000.0f;
+            perf_frame_max_ = std::max(perf_frame_max_, double(ft));
+            if (ms > 50) LOGD("perf: our frame work took %.0f ms", ms);
+            if (t0 - perf_t_ >= 1.0) {
+                LOGD("perf: %d frames/s (slowest %.0f ms), our work avg %.2f ms, max %.1f ms", perf_n_, perf_frame_max_,
+                     perf_sum_ / std::max(1, perf_n_), perf_max_);
+                perf_t_ = t0;
+                perf_sum_ = perf_max_ = perf_frame_max_ = 0;
+                perf_n_ = 0;
+            }
+        }
+    }
     if (!pad_.connected()) input().publish(InputState{}, -1, false);   // let other pads through
     // the controller came back (cable, Bluetooth, sleep): Windows recreated its audio devices
     bool conn = pad_.connected();
-    if (conn && !pad_was_connected_ && pad_seen_ && !restarting_.exchange(true)) {
-        LOGI("controller reconnected - reopening its audio (haptics, mic, voice)");
+    if (conn && !pad_was_connected_ && (pad_seen_ || !audio_.ok()) && !restarting_.exchange(true)) {
+        LOGI("controller %s - reopening its audio (haptics, mic, voice)", pad_seen_ ? "reconnected" : "connected after the game started");
         std::thread([this] {
             Sleep(1500);                      // give Windows a moment to publish the new endpoints
             audio_.restart();
@@ -337,6 +374,8 @@ void Core::script_tick() {
             restarting_ = false;
         }).detach();
     }
+    // (a late controller is made known to the game in on_input - gamemem::mark_pad_slot. Not by re-sending Windows'
+    // "devices changed" message: the game's window then re-checks the display too - the desktop flashed for a moment)
     if (conn) pad_seen_ = true;
     pad_was_connected_ = conn;
     int key = config().integer("General", "ReloadKey", 120);

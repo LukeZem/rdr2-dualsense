@@ -35,10 +35,13 @@ private:
     void build_engine(const nlohmann::json& profile, const std::string& name);
 
     bool in_game_ = false;
+    double next_slot_check_ = 0;          // on_input: next look at the game's pad slot
     std::string test_weapon_;
     Calibration cal_;
     int wheel_r2_ = 0, wheel_l2_ = 0;      // last trigger positions, for the wheel's selector clicks
     bool wheel_open_ = false;
+    double perf_t_ = 0, perf_sum_ = 0, perf_max_ = 0, perf_frame_max_ = 0;
+    int perf_n_ = 0;
     uint32_t wheel_item_ = 0;              // last highlighted wheel item: a tick when it changes
     Settings settings_;
     Catalog catalog_;

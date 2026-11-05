@@ -117,6 +117,14 @@ WheelClick=0.6
 CampLife=0.6
 ; Rain drops on the hat, as heavy as the game's rain (0 = off: weather, not Arthur)
 Weather=0
+; EXPERIMENTAL - dialogue haptics: every spoken line felt as the speaker's voice (its rhythm and intonation, from
+; their side). Dialogue = on / off, Speech = its strength, DialogueIn = everywhere / cutscenes
+Dialogue=0
+Speech=0.6
+DialogueIn=everywhere
+; How late your TV / headphones play the sound, in ms, so the dialogue haptics land with it:
+; auto = by the output (Bluetooth headphones 200, TV / wired 60), or a number
+SoundDelayMs=auto
 
 [Speaker]
 ; Cocking, lever, bolt and reload clicks from the controller's speaker

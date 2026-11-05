@@ -83,14 +83,54 @@ ROWS = [
     toggle("speaker_mechanics", "Speaker", "Mechanics", "Sounds from the Controller", True,
            "Holster, lasso and mechanism sounds from the controller's speaker."),
     level("speaker_volume", "Speaker", "Volume", "Speaker Volume", 0.35, 1.0, ""),
-    header("Experimental"),
+    header("Dialogue Haptics (Experimental)"),
+    toggle("haptics_dialogue", "Haptics", "Dialogue", "Dialogue Haptics", False,
+           "Feel every spoken line: the speaker's voice in your hands, from their side."),
+    level("haptics_speech", "Haptics", "Speech", "Dialogue Strength", 0.6, 1.0, ""),
+    choice("haptics_dialogue_in", "Haptics", "DialogueIn", "Dialogue Haptics In", "everywhere",
+           [("cutscenes", "Cutscenes"), ("everywhere", "Everywhere")],
+           "Only in cutscenes, or every conversation in the game too."),
+    choice("haptics_sound_delay", "Haptics", "SoundDelayMs", "TV / Headphone Delay", "auto",
+           [("auto", "Auto"), ("0", "None"), ("30", "30 ms"), ("60", "60 ms"), ("90", "90 ms"), ("120", "120 ms"),
+            ("160", "160 ms"), ("200", "200 ms"), ("250", "250 ms"), ("300", "300 ms")],
+           "How late your TV or headphones play the sound. Auto knows Bluetooth headphones. Raise it if the voice in your hands comes first."),
+    header("Microphone (Experimental)"),
     toggle("mic_whistle", "Mic", "WhistleForHorse", "Whistle for Your Horse", False,
            "Whistle into the controller's microphone to call your horse."),
     toggle("voice_enabled", "Voice", "Enabled", "Voice Commands", False,
            "Say \"chao\" to greet a stranger and \"easy\" to calm your horse."),
+    header("Gyro (Experimental)"),
     choice("gyro_mode", "Gyro", "Mode", "Gyro Aim", "off", [("off", "Off"), ("aim", "While Aiming")],
            "Small tilt corrections while aiming with L2. Still being tuned."),
 ]
+
+# Rows that only matter while a toggle is On (the page follows the toggle live, no script needed):
+#   SHOW_IF    shown only while it is On - the toggle's own settings, right under it
+#   ACTIVE_IF  greyed out while it is Off - rows of another group that the toggle also switches off (a row
+#              can follow one toggle's visibility only, so its own sub rows keep following their own toggle)
+SHOW_IF = {
+    **{r: "triggers_enabled" for r in ("triggers_kick", "triggers_aim", "triggers_cocking")},
+    **{r: "haptics_enabled" for r in ("haptics_strength", "haptics_footsteps", "haptics_horse", "haptics_damage",
+                                      "haptics_gunfire", "haptics_camp", "haptics_tables", "haptics_rumble",
+                                      "haptics_weather", "haptics_wheel")},
+    "lightbar_brightness": "lightbar_enabled",
+    "speaker_volume": "speaker_mechanics",
+    **{r: "haptics_dialogue" for r in ("haptics_speech", "haptics_dialogue_in", "haptics_sound_delay")},
+}
+ACTIVE_IF = {   # Haptics Off also silences the controller's speaker and the dialogue haptics (core.cpp, dialogue.cpp)
+    r: "haptics_enabled" for r in ("speaker_mechanics", "speaker_volume", "haptics_dialogue", "haptics_speech",
+                                   "haptics_dialogue_in", "haptics_sound_delay")
+}
+
+
+def _check_depends():
+    kinds = {r["id"]: r["kind"] for r in ROWS if r["kind"] != "header"}
+    for dep in (SHOW_IF, ACTIVE_IF):
+        for row, parent in dep.items():
+            assert row in kinds and kinds.get(parent) == "toggle", "bad dependency %s -> %s" % (row, parent)
+
+
+_check_depends()
 
 
 def label_key(row):

@@ -33,6 +33,8 @@ Tune weapons, record calibration and label sounds in the Trigger Lab (`tools/tri
 | Camp life | Bites, sips and puffs (the game's own effect moment), cleaning a gun, each brush stroke / mouthful when caring for the horse, skinning, stowing pelts on the horse, picking herbs, bathing, crafting, cooking. |
 | Table games | Five finger fillet (every stab, the miss), poker / blackjack (chips, knocks, cards, shuffles from Arthur's hand animations), dominoes. |
 | Haptics | Shots from each gun's own recordings (read from the game's archives through its file layer, or from an LML sound mod such as RWS if installed); the game's rumble converted for the voice coils; **game-audio layer**: what you hear (hooves, explosions, cutscenes, mini-games) as haptics, keeping left/right, quieter while a weapon effect plays. |
+| Dialogue | Experimental, off by default (`[Haptics] Dialogue=1`): every spoken line felt as the speaker's own voice, panned to their side. The exact recording is found from the game's speech request (voice + line + variation, `gamemem.cpp`) or the playing cutscene audio, decoded from the game's archives (`awc.cpp`, stb_vorbis) and timed by the line's own play clock; `SoundDelayMs` matches TV / headphone lag (auto: Bluetooth 200 ms, else 60 ms). |
+| Cutscenes | Steps, hooves, gunfire, hits and explosions are felt in cutscenes as in play (off only in pause menus, loading and black screens). |
 | Around you | Damage felt from its direction and by cause (bullet, melee, animal, fall); nearby gunfire pressure waves from their direction; heartbeat at low health and in Dead Eye; shivers in freezing cold. |
 | Horse | Hoofbeats from the real hooves touching the ground (height above the ground, any gait) on the ground under each hoof; the gait rhythm only if the legs can't be read; the horse's heartbeat and breathing when it is spent; rearing. |
 | Ground | The game's ground material, identified by name (mud_soft, gravel_dirt, pine_needles, wood_solid_medium...) - footsteps and hooves feel like it. |
@@ -43,6 +45,7 @@ Tune weapons, record calibration and label sounds in the Trigger Lab (`tools/tri
 | Microphone | Whistle into the controller → horse call. Say "chao" → a real greeting (counts for honor). "Easy" → calm the horse. A command only counts when said on its own (after a pause, short, confident). The mute button toggles listening (mute LED on = not listening). |
 | Weather | Rain on the hat, as heavy as the game's rain - off by default (`[Haptics] Weather`). |
 | Touchpad | Click = map (BACK). Swipes / two-finger tap can be mapped to buttons in the ini. |
+| Plug in any time | The game checks for new pads only when Windows reports a device change, before the mod has the controller open; the mod marks the game's pad slot itself (`gamemem::mark_pad_slot`) and reopens the controller's audio. |
 
 Settings: `DualSenseRDR2.ini` (F9 reloads it and the data folder in game). Log: `DualSenseRDR2.log`
 (`Debug=1` logs every weapon, strike and unknown ground material).

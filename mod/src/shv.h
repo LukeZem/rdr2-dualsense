@@ -18,6 +18,7 @@ uint64_t* shv_nativeCall();
 int shv_worldGetAllPeds(int* arr, int size);
 int shv_getGameVersion();
 uint64_t* shv_getGlobalPtr(int globalId);     // script global slot (8 bytes each)
+uint8_t* shv_getScriptHandleBaseAddress(int handle);   // the game object behind a script handle (read only!)
 }
 
 namespace dsr2::shv {

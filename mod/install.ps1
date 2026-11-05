@@ -54,7 +54,7 @@ if ($moved.Count) {
 Copy-Item $asi (Join-Path $GameDir "DualSenseRDR2.asi") -Force
 $data = Join-Path $GameDir "DualSenseRDR2"
 New-Item -ItemType Directory -Force $data | Out-Null
-foreach ($f in "weapons.json", "haptics.json", "calibration.json", "sound_labels.json") {
+foreach ($f in "weapons.json", "haptics.json", "calibration.json", "sound_labels.json", "speech_voices.txt") {
     $src = Join-Path $lab $f
     if (Test-Path $src) { Copy-Item $src (Join-Path $data $f) -Force; Write-Host "  data: $f" }
 }

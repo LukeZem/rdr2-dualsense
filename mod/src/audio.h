@@ -6,9 +6,16 @@
 #include "haptics.h"
 
 #include <deque>
+#include <map>
+#include <memory>
 #include <thread>
 
 namespace dsr2 {
+
+// the default output (where the game plays): its name and whether it is Bluetooth; any thread
+bool default_output(std::string& name, bool& bluetooth);
+// every output with what Windows reports about it (test tool)
+std::string describe_outputs();
 
 class AudioEngine {
 public:
@@ -39,6 +46,14 @@ public:
     // Bluetooth fallback: cue envelopes on the two rumble motors. Call from the controller thread.
     void rumble_tick(double now, uint8_t& left, uint8_t& right);
 
+    // Long haptic tracks that follow the game's own clock (cutscene audio, spoken lines): mono 48 kHz, played so
+    // that sample 0 is FELT at wall time t0 (now_s() clock; the device latency is taken care of here). Moving t0
+    // resyncs; stop fades out over ~60 ms. Gains are per side (direction).
+    void track_play(uint64_t key, std::shared_ptr<const std::vector<float>> mono, double t0, float gl, float gr);
+    void track_move(uint64_t key, double t0, float gl, float gr);
+    void track_stop(uint64_t key);
+    bool track_playing(uint64_t key);
+
 private:
     void render_thread();
     void loopback_thread(std::string hint);
@@ -54,6 +69,15 @@ private:
         std::vector<std::pair<float, float>> env;   // per 4 ms
         double t0;
     };
+
+    struct Track {
+        std::shared_ptr<const std::vector<float>> mono;
+        double t0 = 0;
+        float gl = 1, gr = 1;           // target gains
+        float cl = 0, cr = 0;           // current (smoothed: moves and fades never click)
+        bool stopping = false;
+    };
+    std::map<uint64_t, Track> tracks_;   // guarded by mu_
 
     HapticLibrary* lib_ = nullptr;
     std::thread render_, loop_, mic_;

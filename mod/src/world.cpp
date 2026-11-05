@@ -3,6 +3,7 @@
 
 #include "config.h"
 #include "core.h"
+#include "dialogue.h"
 #include "game_files.h"
 #include "log.h"
 #include "input.h"
@@ -39,6 +40,205 @@ std::vector<WorldEvent> World::take_events() {
 }
 
 // RAGE headings: 0 = north, counter-clockwise. Pan +1 = source on the right of the camera.
+float World::frame_time() const { return nat::GET_FRAME_TIME(); }
+
+// Speech request probe (debug log only, read only). The chain comes from disassembling the game's speech natives
+// (_GET_LAST_PLAYED_SPEECH_FOR_PED, IS_ANY/AMBIENT/SCRIPTED_SPEECH_PLAYING) in this game build (image size 0x7397600):
+//   ped object +0x9C (& 0x1FFFF) - u32 [exe+0x39ECE40] = index into the table at [exe+0x39ECE48], 0x148 bytes each
+//   entry +0x30 -> object A (low bit = flag); A+0x218 & 2; [A+0x98] +0x4438 -> speech manager M
+//     M+0x78 = array of speech requests, M+0x80 = their count (u16); request R: +0x214 type (1 ambient, 2 scripted,
+//     4 ?), +0x234 state (5 = playing), +0x1D8 the playing sound (object with a vtable)
+//   entry +0xB0 -> object B; B+0x218 & 2; B+0x48C0+0x388 = the last line's context hash *before* joaat's final mixing
+//     (the native finishes it: h *= 9, h ^= h >> 11, h *= 0x8001) - why searching memory for the final hash failed
+// Dumps each request when it appears / changes state, and its sound twice (to spot a play-position field), to find
+// the fields that name the exact recording (variation, voice) and its clock. Reads go through ReadProcessMemory,
+// which fails instead of crashing.
+static bool peek(const void* a, void* out, size_t n) {
+    SIZE_T got = 0;
+    return ReadProcessMemory(GetCurrentProcess(), a, out, n, &got) && got == n;
+}
+template <class T> static bool rd(uintptr_t a, T& v) { return a && peek(reinterpret_cast<const void*>(a), &v, sizeof v); }
+
+static uintptr_t game_exe() {
+    static uintptr_t b = [] {
+        auto m = reinterpret_cast<uintptr_t>(GetModuleHandleW(nullptr));
+        auto* dos = reinterpret_cast<const IMAGE_DOS_HEADER*>(m);
+        auto* nt = reinterpret_cast<const IMAGE_NT_HEADERS64*>(m + dos->e_lfanew);
+        if (nt->OptionalHeader.SizeOfImage != 0x7397600) {
+            LOGD("speechreq: different game build (image size 0x%X) - probe off", unsigned(nt->OptionalHeader.SizeOfImage));
+            return uintptr_t(0);
+        }
+        return m;
+    }();
+    return b;
+}
+
+static void hexdump(const char* tag, int ped, uintptr_t at, size_t n) {
+    static uint8_t buf[0x400];
+    n = std::min(n, sizeof buf);
+    if (!peek(reinterpret_cast<const void*>(at), buf, n)) { LOGD("%s: ped %d %llX unreadable", tag, ped, (unsigned long long)at); return; }
+    for (size_t o = 0; o < n; o += 0x100) {
+        char hex[0x100 * 2 + 1];
+        size_t m = std::min<size_t>(0x100, n - o);
+        for (size_t i = 0; i < m; ++i) snprintf(hex + i * 2, 3, "%02X", buf[o + i]);
+        LOGD("%s: ped %d %llX +%03zX %s", tag, ped, (unsigned long long)at, o, hex);
+    }
+}
+
+void World::speech_req(int ped, double now) {
+    uintptr_t g = game_exe();
+    auto* po = shv_getScriptHandleBaseAddress(ped);
+    if (!g || !po) return;
+    uint32_t idx = 0, lo = 0;
+    uintptr_t tab = 0;
+    if (!rd(uintptr_t(po) + 0x9C, idx) || !rd(g + 0x39ECE40, lo) || !rd(g + 0x39ECE48, tab) || !tab) return;
+    uintptr_t entry = tab + uintptr_t(uint32_t((idx & 0x1FFFF) - lo)) * 0x148;
+    uintptr_t a = 0, x = 0, mgr = 0, b = 0, arr = 0;
+    uint8_t fa = 0, fb = 0;
+    uint16_t cnt = 0;
+    uint32_t partial = 0;
+    rd(entry + 0xB0, b);
+    b &= ~uintptr_t(1);
+    if (b && rd(b + 0x218, fb) && (fb & 2)) rd(b + 0x48C0 + 0x388, partial);
+    if (!rd(entry + 0x30, a)) return;
+    a &= ~uintptr_t(1);
+    if (!a || !rd(a + 0x218, fa) || !(fa & 2) || !rd(a + 0x98, x) || !rd(x + 0x4438, mgr) || !mgr) return;
+    if (!rd(mgr + 0x80, cnt) || !rd(mgr + 0x78, arr) || !arr || cnt > 64) return;
+    for (int i = 0; i < cnt; ++i) {
+        uintptr_t r = 0;
+        uint32_t type = 0, state = 0;
+        uintptr_t snd = 0;
+        if (!rd(arr + 8 * i, r) || !r || !rd(r + 0x214, type) || !rd(r + 0x234, state)) continue;
+        rd(r + 0x1D8, snd);
+        auto it = reqs_.find(r);
+        bool fresh = it == reqs_.end();
+        Req& q = reqs_[r];
+        q.seen = now;
+        if (fresh || q.state != state || q.type != type) {
+            uintptr_t vt = 0;
+            if (snd) rd(snd, vt);
+            LOGD("speechreq: ped %d req %llX%s type %u state %u (was %d) sound %llX vt %llX partial %08X mgr %llX B %llX", ped,
+                 (unsigned long long)r, fresh ? " new" : "", type, state, fresh ? -1 : int(q.state), (unsigned long long)snd,
+                 (unsigned long long)(vt ? vt - g : 0), partial, (unsigned long long)mgr, (unsigned long long)b);
+            hexdump("speechreq-r", ped, r, 0x300);
+            if (fresh && b) hexdump("speechreq-b", ped, b + 0x48C0 + 0x300, 0x100);
+            if (state == 5 && snd) {
+                hexdump("speechreq-s0", ped, snd, 0x200);
+                q.snd = snd;
+                q.snd_t = now;
+            }
+            q.state = state;
+            q.type = type;
+        }
+        if (q.snd && q.snd_t > 0 && now - q.snd_t >= 0.5) {   // the same sound half a second later
+            hexdump("speechreq-s1", ped, q.snd, 0x200);
+            q.snd_t = -1;
+        }
+    }
+}
+
+// Anim scene probe (debug log only, read only): cutscenes are anim scenes, and their clock is what the cutscene
+// audio follows. Scene handles are not reachable from the player (AUDIO_GET_ENTITY_ANIM_SCENE gave -1), so list
+// them from the game's scene map (found by disassembling _GET_ANIM_SCENE_TIME): [exe+0x5BD41B8] -> +0x08 buckets,
+// +0x10 bucket count; node = {u32 handle, +0x08 scene object, +0x10 next}; the scene's time is the float at +0x180.
+void World::scene_probe(int me, double now) {
+    using namespace nat;
+    if (now - scene_poll_t_ < 0.25) return;
+    scene_poll_t_ = now;
+    uintptr_t g = game_exe(), m = 0, bk = 0;
+    uint32_t nb = 0;
+    if (!g || !rd(g + 0x5BD41B8, m) || !rd(m + 8, bk) || !rd(m + 0x10, nb) || !bk || !nb || nb > 0x10000) return;
+    std::map<int, Scene> next;
+    for (uint32_t i = 0; i < nb; ++i) {
+        uintptr_t n = 0;
+        rd(bk + 8 * uintptr_t(i), n);
+        for (int guard = 0; n && guard < 64; ++guard) {
+            uint32_t key = 0;
+            uintptr_t obj = 0, nx = 0;
+            rd(n, key);
+            rd(n + 8, obj);
+            rd(n + 0x10, nx);
+            if (obj) next[int(key)].obj = obj;
+            n = nx;
+        }
+    }
+    for (auto& [h, sc] : next) {
+        auto it = scenes_.find(h);
+        bool fresh = it == scenes_.end();
+        if (!fresh) sc.logged = it->second.logged;
+        bool run = IS_ANIM_SCENE_RUNNING(h), arthur = IS_ENTITY_PLAYING_ANIM_SCENE(me, h);
+        float t = GET_ANIM_SCENE_TIME(h), raw = 0;
+        rd(sc.obj + 0x180, raw);
+        if (fresh)
+            LOGD("scene: new %d obj %llX dict %08X duration %.3f running %d arthur %d", h, (unsigned long long)sc.obj,
+                 GET_ANIM_SCENE_DICT(h), GET_ANIM_SCENE_DURATION(h), int(run), int(arthur));
+        if (run && (arthur || now - sc.logged >= 1.0)) {
+            LOGD("scene: %d t %.3f raw %.3f phase %.4f rate %.2f arthur %d", h, t, raw, GET_ANIM_SCENE_PHASE(h),
+                 GET_ANIM_SCENE_RATE(h), int(arthur));
+            sc.logged = now;
+        }
+    }
+    for (auto& [h, sc] : scenes_)
+        if (!next.count(h)) LOGD("scene: gone %d", h);
+    scenes_.swap(next);
+}
+
+void World::speech_req_prune(double now) {
+    for (auto it = reqs_.begin(); it != reqs_.end();)
+        if (now - it->second.seen > 0.2) {
+            LOGD("speechreq: req %llX gone", (unsigned long long)it->first);
+            it = reqs_.erase(it);
+        } else {
+            ++it;
+        }
+}
+
+// Speech probe (debug log only, read only): logs every line a ped (or Arthur) starts and stops saying - the
+// line hash the game reports, the ped's model, where it stands - to find out how gameplay dialogue maps to the
+// speech files (x64/audio/sfx/PEDS_*, S_*, SS_*: one stream per line, id = joaat("<CONTEXT>_<NN>") & 0x1FFFFFFF).
+void World::speech_probe(int me, const int* peds, int n, float px, float py, float pz, float cam, double now) {
+    using namespace nat;
+    using shv::Vector3;
+    bool convo = IS_ANY_CONVERSATION_PLAYING();
+    if (convo != convo_) {
+        LOGD("speech: conversation %s", convo ? "started" : "ended");
+        convo_ = convo;
+    }
+    std::map<int, Talk> next;
+    auto look = [&](int p, float d, float pan) {
+        Talk t;
+        auto it = talk_.find(p);
+        if (it != talk_.end()) t = it->second;
+        bool on = IS_ANY_SPEECH_PLAYING(p);
+        uint32_t last = GET_LAST_PLAYED_SPEECH_FOR_PED(p);
+        if (on && !t.on) {
+            LOGD("speech: start ped %d model %08X line %08X (was %08X) ambient %d dist %.1f pan %+.2f%s", p,
+                 GET_ENTITY_MODEL(p), last, t.last, int(IS_AMBIENT_SPEECH_PLAYING(p)), d, pan, p == me ? " (player)" : "");
+            t.t0 = now;
+        } else if (on && last != t.last) {
+            LOGD("speech: ped %d line now %08X (was %08X), %.0f ms after start", p, last, t.last, (now - t.t0) * 1000);
+        } else if (!on && t.on) {
+            LOGD("speech: end ped %d line %08X after %.0f ms", p, last, (now - t.t0) * 1000);
+        }
+        t.on = on;
+        t.last = last;
+        if (on || last) next[p] = t;
+        speech_req(p, now);
+    };
+    look(me, 0, 0);
+    for (int i = 0; i < n; ++i) {
+        int p = peds[i];
+        if (!p || p == me) continue;
+        Vector3 q = GET_ENTITY_COORDS(p);
+        float dx = q.x - px, dy = q.y - py, dz = q.z - pz;
+        float d = std::sqrt(dx * dx + dy * dy + dz * dz);
+        if (d > 30) continue;
+        look(p, d, pan_to(q.x, q.y, cam, px, py));
+    }
+    talk_.swap(next);
+    speech_req_prune(now);
+}
+
 float World::pan_to(float x, float y, float cam_heading, float px, float py) const {
     float bearing = std::atan2(-(x - px), (y - py)) * 180.0f / kPi;
     float rel = (bearing - cam_heading) * kPi / 180.0f;
@@ -337,7 +537,19 @@ void World::tick() {
         return;
     }
     s.valid = true;
-    s.blocked = IS_PAUSE_MENU_ACTIVE() || IS_LOADING_SCREEN_VISIBLE() || IS_SCREEN_FADED_OUT() || !IS_PLAYER_CONTROL_ON(pl);
+    s.halted = IS_PAUSE_MENU_ACTIVE() || IS_LOADING_SCREEN_VISIBLE() || GET_IS_LOADING_SCREEN_ACTIVE() ||
+               IS_PLAYER_SWITCH_IN_PROGRESS() || IS_SCREEN_FADED_OUT() || !IS_SCREEN_FADED_IN();
+    s.blocked = s.halted || !IS_PLAYER_CONTROL_ON(pl);
+    s.cutscene = s.blocked && !s.halted;
+    if (log::debug_enabled()) {                       // debug: when control goes and comes back (cutscenes), and why
+        int why = (IS_PAUSE_MENU_ACTIVE() ? 1 : 0) | (IS_LOADING_SCREEN_VISIBLE() ? 2 : 0) | (IS_SCREEN_FADED_OUT() ? 4 : 0) |
+                  (!IS_PLAYER_CONTROL_ON(pl) ? 8 : 0);
+        if (why != blocked_why_) {
+            LOGD("control: %s%s%s%s%s", why ? "lost -" : "back", why & 1 ? " pause" : "", why & 2 ? " loading" : "",
+                 why & 4 ? " faded" : "", why & 8 ? " no-control (cutscene/scripted)" : "");
+            blocked_why_ = why;
+        }
+    }
     s.menu = IS_PAUSE_MENU_ACTIVE();               // (IS_ANY_UIAPP_ACTIVE is true all the time in game)
     if (s.menu != menu_logged_) {
         LOGD("menu %s", s.menu ? "open" : "closed");
@@ -479,7 +691,7 @@ void World::tick() {
     s.speed = GET_ENTITY_SPEED(me);
 
     // --- on foot: steps, landings, climbing, doors ---
-    if (!s.on_mount && !s.in_vehicle && !s.swimming && !s.blocked) {
+    if (!s.on_mount && !s.in_vehicle && !s.swimming && !s.halted) {
         if (me != feet_ped_) {
             feet_ped_ = me;
             bind_limbs(me, feet_, 2, kFootBones, 2);
@@ -555,6 +767,31 @@ void World::tick() {
         }
     }
     ped_health_.swap(seen);
+    if (log::debug_enabled() && config().flag("General", "Probes", false)) {   // research probes (General.Probes=1)
+        speech_probe(me, peds, n, pos.x, pos.y, pos.z, cam, s.time);
+        scene_probe(me, s.time);
+    }
+    // speech vibration: who near is talking (their game objects; the dialogue module reads which line)
+    talkers_.clear();
+    if (dialogue().speech_wanted()) {
+        // everyone within 25 m (nearest 16): the game's "is speaking" natives miss some conversation lines, the
+        // speech requests in memory do not
+        talkers_.push_back({shv_getScriptHandleBaseAddress(me), me, 0.0f, 0.0f, true});
+        std::vector<Dialogue::Talker> close_by;
+        for (int i = 0; i < n; ++i) {
+            int p = peds[i];
+            if (!p || p == me) continue;
+            shv::Vector3 q = GET_ENTITY_COORDS(p);
+            float dx = q.x - pos.x, dy = q.y - pos.y, dz = q.z - pos.z;
+            float d = std::sqrt(dx * dx + dy * dy + dz * dz);
+            if (d > 25) continue;
+            close_by.push_back({shv_getScriptHandleBaseAddress(p), p, pan_to(q.x, q.y, cam, pos.x, pos.y), d, false});
+        }
+        std::sort(close_by.begin(), close_by.end(), [](const auto& a, const auto& b) { return a.dist < b.dist; });
+        if (close_by.size() > 16) close_by.resize(16);
+        talkers_.insert(talkers_.end(), close_by.begin(), close_by.end());
+    }
+    dialogue().game_tick(talkers_, talkers_.empty() ? 0 : GET_LAST_PLAYED_SPEECH_FOR_PED(me));
     greet(pl, me, pos.x, pos.y, peds, n, s, ev);
     s.melee_hits = melee_hits_;
     // a hit only when something really hit: an attacker, a fall, or a real chunk of health. Small drops with

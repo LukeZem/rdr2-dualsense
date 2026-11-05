@@ -4,6 +4,7 @@
 #pragma once
 
 #include "common.h"
+#include "dialogue.h"
 #include "surfaces.h"
 
 #include <deque>
@@ -15,7 +16,10 @@ namespace dsr2 {
 struct GameSnapshot {
     bool valid = false;            // in game, player exists
     bool menu = false;             // a menu is open (pause, satchel, map, catalog...)
-    bool blocked = true;           // pause menu, loading, fade, cutscene / no control: no effects
+    bool blocked = true;           // pause menu, loading, fade, cutscene / no control: no triggers, no actions
+    bool halted = true;            // pause menu, loading, fade: no effects at all (cutscenes are NOT halted: the
+                                   // world keeps moving - steps, hooves, shots and hits are felt there too)
+    bool cutscene = false;         // no control, but the world runs (cutscene / scripted moment)
     uint32_t weapon = 0, group = 0;
     bool armed = false;
     int clip = -1, clip_max = -1;
@@ -124,6 +128,24 @@ private:
     int last_health_ = -1;
     std::map<int, int> ped_health_;
     std::map<int, double> ped_shot_t_;
+    // speech probe (debug log only): per ped speaking state, to map spoken lines to the speech files
+    struct Talk { bool on = false; uint32_t last = 0; double t0 = 0; };
+    std::map<int, Talk> talk_;
+    bool convo_ = false;
+    int blocked_why_ = 0;
+    struct Req { uint32_t state = 0, type = 0; double seen = 0; uintptr_t snd = 0; double snd_t = 0; };
+    std::map<uintptr_t, Req> reqs_;   // speech request probe (debug): requests seen, by address
+    std::vector<Dialogue::Talker> talkers_;   // speech vibration: who near is talking this frame
+    struct Scene { uintptr_t obj = 0; double logged = 0; };
+    std::map<int, Scene> scenes_;     // anim scene probe (debug): scenes by handle
+    double scene_poll_t_ = 0;
+public:
+    float frame_time() const;
+private:
+    void scene_probe(int me, double now);
+    void speech_req(int ped, double now);
+    void speech_req_prune(double now);
+    void speech_probe(int me, const int* peds, int n, float px, float py, float pz, float cam, double now);
     int melee_hits_ = 0;
     std::atomic<float> gyro_yaw_{0}, gyro_pitch_{0};
     // bodies

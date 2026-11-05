@@ -12,3 +12,4 @@ shv_nativeCall == ?nativeCall@@YAPEA_KXZ
 shv_worldGetAllPeds == ?worldGetAllPeds@@YAHPEAHH@Z
 shv_getGameVersion == ?getGameVersion@@YA?AW4eGameVersion@@XZ
 shv_getGlobalPtr == ?getGlobalPtr@@YAPEA_KH@Z
+shv_getScriptHandleBaseAddress == ?getScriptHandleBaseAddress@@YAPEAEH@Z

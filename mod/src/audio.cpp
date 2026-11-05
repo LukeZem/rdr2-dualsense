@@ -50,6 +50,20 @@ bool contains_ci(const std::wstring& hay, const std::wstring& needle) {
     return a.find(b) != std::wstring::npos;
 }
 
+// the bus the endpoint's device hangs on: "BTHENUM" / "BTHLEDEVICE" = Bluetooth, "USB", "HDAUDIO" (HDMI / jack)...
+std::wstring device_bus(IMMDevice* dev) {
+    static const PROPERTYKEY kEnumerator = {{0xa45c254e, 0xdf1c, 0x4efd, {0x80, 0x20, 0x67, 0xd1, 0x46, 0xa8, 0x50, 0xe0}}, 24};
+    ComPtr<IPropertyStore> props;
+    std::wstring out;
+    if (SUCCEEDED(dev->OpenPropertyStore(STGM_READ, &props))) {
+        PROPVARIANT v;
+        PropVariantInit(&v);
+        if (SUCCEEDED(props->GetValue(kEnumerator, &v)) && v.vt == VT_LPWSTR) out = v.pwszVal;
+        PropVariantClear(&v);
+    }
+    return out;
+}
+
 // endpoint whose name contains `match` (and not `exclude`); empty match = default endpoint
 IMMDevice* find_endpoint(EDataFlow flow, const std::wstring& match, const std::wstring& exclude) {
     ComPtr<IMMDeviceEnumerator> en;
@@ -96,6 +110,61 @@ float sample_at(const BYTE* data, const WAVEFORMATEX* f, size_t frame, int ch) {
 }
 
 }  // namespace
+
+// Where the game's sound goes now (the default output) and whether it is Bluetooth (the sound then reaches the ears
+// ~150-250 ms after the PC plays it; our haptics go over USB in ~10 ms). Any thread (COM initialised here).
+bool default_output(std::string& name, bool& bluetooth) {
+    HRESULT co = CoInitializeEx(nullptr, COINIT_MULTITHREADED);
+    IMMDevice* d = find_endpoint(eRender, L"", L"DualSense");
+    bool ok = d != nullptr;
+    if (d) {
+        name = narrow(device_name(d));
+        std::wstring bus = device_bus(d);
+        bluetooth = contains_ci(bus, L"BTH") || contains_ci(bus, L"BLUETOOTH");
+        d->Release();
+    }
+    if (SUCCEEDED(co)) CoUninitialize();
+    return ok;
+}
+
+// every output: name, bus, what Windows reports as its latency (test tool: dsr2_test --outputs)
+std::string describe_outputs() {
+    HRESULT co = CoInitializeEx(nullptr, COINIT_MULTITHREADED);
+    std::string out;
+    ComPtr<IMMDeviceEnumerator> en;
+    if (SUCCEEDED(CoCreateInstance(__uuidof(MMDeviceEnumerator), nullptr, CLSCTX_ALL, __uuidof(IMMDeviceEnumerator), (void**)&en))) {
+        std::wstring def;
+        IMMDevice* dd = nullptr;
+        if (SUCCEEDED(en->GetDefaultAudioEndpoint(eRender, eMultimedia, &dd)) && dd) { def = device_name(dd); dd->Release(); }
+        ComPtr<IMMDeviceCollection> col;
+        UINT n = 0;
+        if (SUCCEEDED(en->EnumAudioEndpoints(eRender, DEVICE_STATE_ACTIVE, &col))) col->GetCount(&n);
+        for (UINT i = 0; i < n; ++i) {
+            IMMDevice* d = nullptr;
+            if (FAILED(col->Item(i, &d))) continue;
+            std::wstring nm = device_name(d);
+            ComPtr<IAudioClient> cl;
+            WAVEFORMATEX* fmt = nullptr;
+            REFERENCE_TIME lat = 0, per_def = 0, per_min = 0;
+            UINT32 frames = 0;
+            if (SUCCEEDED(d->Activate(__uuidof(IAudioClient), CLSCTX_ALL, nullptr, (void**)&cl)) && SUCCEEDED(cl->GetMixFormat(&fmt)) &&
+                SUCCEEDED(cl->Initialize(AUDCLNT_SHAREMODE_SHARED, 0, 0, 0, fmt, nullptr))) {
+                cl->GetStreamLatency(&lat);
+                cl->GetDevicePeriod(&per_def, &per_min);
+                cl->GetBufferSize(&frames);
+            }
+            char line[512];
+            snprintf(line, sizeof line, "%s %-50s bus %-12s stream latency %5.1f ms, period %4.1f ms, buffer %5.1f ms\n",
+                     nm == def ? "*" : " ", narrow(nm).c_str(), narrow(device_bus(d)).c_str(), lat / 1e4, per_def / 1e4,
+                     fmt && fmt->nSamplesPerSec ? 1000.0 * frames / fmt->nSamplesPerSec : 0.0);
+            out += line;
+            if (fmt) CoTaskMemFree(fmt);
+            d->Release();
+        }
+    }
+    if (SUCCEEDED(co)) CoUninitialize();
+    return out;
+}
 
 bool AudioEngine::start(HapticLibrary* lib) {
     lib_ = lib;
@@ -148,6 +217,37 @@ void AudioEngine::play(const Cue& c) {
         Stereo spk;
         if (lib_->speaker_sound(c, spk)) incoming_.push_back({std::move(spk), 0, true, false});
     }
+}
+
+void AudioEngine::track_play(uint64_t key, std::shared_ptr<const std::vector<float>> mono, double t0, float gl, float gr) {
+    std::lock_guard<std::mutex> l(mu_);
+    Track& t = tracks_[key];
+    t.mono = std::move(mono);
+    t.t0 = t0;
+    t.gl = gl;
+    t.gr = gr;
+    t.stopping = false;
+}
+
+void AudioEngine::track_move(uint64_t key, double t0, float gl, float gr) {
+    std::lock_guard<std::mutex> l(mu_);
+    auto it = tracks_.find(key);
+    if (it == tracks_.end()) return;
+    it->second.t0 = t0;
+    it->second.gl = gl;
+    it->second.gr = gr;
+}
+
+void AudioEngine::track_stop(uint64_t key) {
+    std::lock_guard<std::mutex> l(mu_);
+    auto it = tracks_.find(key);
+    if (it != tracks_.end()) it->second.stopping = true;
+}
+
+bool AudioEngine::track_playing(uint64_t key) {
+    std::lock_guard<std::mutex> l(mu_);
+    auto it = tracks_.find(key);
+    return it != tracks_.end() && !it->second.stopping;
 }
 
 void AudioEngine::rumble_tick(double now, uint8_t& left, uint8_t& right) {
@@ -272,6 +372,28 @@ void AudioEngine::render_thread() {
         }
         voices.erase(std::remove_if(voices.begin(), voices.end(), [](const Voice& v) { return v.pos >= v.buf.size() / 2; }),
                      voices.end());
+        // tracks on the game's clock: the first sample written now is felt one device latency later
+        {
+            std::lock_guard<std::mutex> l(mu_);
+            const double felt = now_s() + latency_ms_.load() / 1000.0;
+            const float step = 1.0f / (0.06f * float(dsp::kSR));          // gains move / fade over ~60 ms
+            for (auto it = tracks_.begin(); it != tracks_.end();) {
+                Track& t = it->second;
+                const std::vector<float>& m = *t.mono;
+                const long long k0 = (long long)std::floor((felt - t.t0) * dsp::kSR);
+                float tl = t.stopping ? 0.0f : t.gl * strength, tr = t.stopping ? 0.0f : t.gr * strength;
+                for (UINT32 i = 0; i < n; ++i) {
+                    t.cl += clampv(tl - t.cl, -step, step);
+                    t.cr += clampv(tr - t.cr, -step, step);
+                    long long k = k0 + i;
+                    if (k < 0 || k >= (long long)m.size()) continue;
+                    mix[size_t(i) * 4 + 2] += m[size_t(k)] * t.cl;
+                    mix[size_t(i) * 4 + 3] += m[size_t(k)] * t.cr;
+                }
+                bool done = (t.stopping && t.cl <= 0 && t.cr <= 0) || k0 > (long long)m.size();
+                it = done ? tracks_.erase(it) : std::next(it);
+            }
+        }
         BYTE* out = nullptr;
         if (FAILED(render->GetBuffer(n, &out))) break;
         for (UINT32 i = 0; i < n; ++i)

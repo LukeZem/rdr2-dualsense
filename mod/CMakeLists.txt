@@ -13,7 +13,7 @@ add_link_options(-static -static-libgcc -static-libstdc++)
 
 set(CORE_SOURCES
     src/log.cpp src/config.cpp src/ds5.cpp src/dsp.cpp src/gameaudio.cpp src/haptics.cpp
-    src/audio.cpp src/catalog.cpp src/engine.cpp src/input.cpp src/features.cpp src/core.cpp src/surfaces.cpp src/voice.cpp src/settings_menu.cpp src/game_files.cpp)
+    src/audio.cpp src/catalog.cpp src/engine.cpp src/input.cpp src/features.cpp src/core.cpp src/surfaces.cpp src/voice.cpp src/settings_menu.cpp src/game_files.cpp src/awc.cpp src/gamemem.cpp src/dialogue.cpp)
 set(SYSTEM_LIBS setupapi hid ole32 uuid avrt winmm)
 
 # Import library for ScriptHookRDR2.dll from the .def (maps plain names to its MSVC exports)
@@ -25,7 +25,7 @@ add_custom_command(OUTPUT ${SHV_LIB}
     DEPENDS ${CMAKE_SOURCE_DIR}/scripthook/ScriptHookRDR2.def)
 add_custom_target(shv_import DEPENDS ${SHV_LIB})
 
-add_library(DualSenseRDR2 SHARED ${CORE_SOURCES} src/world.cpp src/settings_ui.cpp src/text_inject.cpp src/main.cpp)
+add_library(DualSenseRDR2 SHARED ${CORE_SOURCES} src/world.cpp src/settings_ui.cpp src/text_inject.cpp src/io_probe.cpp src/main.cpp)
 add_dependencies(DualSenseRDR2 shv_import)
 set_target_properties(DualSenseRDR2 PROPERTIES PREFIX "" SUFFIX ".asi")
 target_link_options(DualSenseRDR2 PRIVATE -s)     # no symbols in the shipped .asi
@@ -39,5 +39,5 @@ set(LAB_DATA ${CMAKE_SOURCE_DIR}/../tools/trigger_lab/data)
 add_custom_target(test_data ALL
     COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_BINARY_DIR}/DualSenseRDR2
     COMMAND ${CMAKE_COMMAND} -E copy_if_different ${LAB_DATA}/haptics.json ${LAB_DATA}/weapons.json
-            ${LAB_DATA}/sound_labels.json ${CMAKE_BINARY_DIR}/DualSenseRDR2/)
+            ${LAB_DATA}/sound_labels.json ${LAB_DATA}/speech_voices.txt ${CMAKE_BINARY_DIR}/DualSenseRDR2/)
 add_dependencies(dsr2_test test_data)

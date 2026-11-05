@@ -24,16 +24,20 @@ How the page works (no script runs while the pause menu is open):
     the focused row's description on the left and the rows on the right, all in one 1920x1080 panel in a
     viewbox inside a safeframe_ui_main_screen panel (a copied settings grid drew nothing). Element names
     must not repeat settings/screens/main.ymt's (its focus-lost animation hides them by name).
-  * Each row is an instance of the game's own stepper template (boot_flow/hdr/list_item_int_stepper or
-    list_item_option_stepper, streamed by settings_launcher_flow for the HDR screen) whose data context
-    is ScriptDatastoreRoot.DualSenseSettings.<row> (uiBindingContextBehavior, as hdr_calibration.ymt).
-    The template binds value TWO-WAY, so left/right changes the data store while scripts are frozen.
+  * Each row is an instance of our copy of the game's HDR-screen stepper templates (boot_flow/hdr/
+    list_item_int_stepper -> dualsense_percent_stepper, list_item_option_stepper -> dualsense_option_stepper,
+    both streamed by our state) whose data context is ScriptDatastoreRoot.DualSenseSettings.<row>
+    (uiBindingContextBehavior, as hdr_calibration.ymt). The template binds value TWO-WAY, so left/right
+    changes the data store while scripts are frozen. The copies look like Settings rows: the Settings
+    pages' red focus bar (settings_adornment_tiled) and row background.
+  * Rows that belong to a toggle (dualsense_settings.SHOW_IF / ACTIVE_IF) bind their Visible / Enabled
+    straight to that toggle's value in the data store, so they hide / grey out the moment it goes Off.
   * Texts: label keys only - the .asi adds the texts to the game's string table (text_inject.cpp).
 
 Data store contract (the .asi creates it BEFORE the pause menu opens and reads it back after;
 settings_ui.cpp page_sync):
   ScriptDatastoreRoot.DualSenseSettings.<row>   container with
-      value (int, two-way; option rows: index), enabled, visible (bool), prompt (string),
+      value (int, two-way; option rows: index), prompt (string), enabled, visible (bool; no longer bound),
       minimum, maximum, step (int)               int stepper rows
       options (hash array of text labels)        option stepper rows
 """
@@ -68,6 +72,11 @@ PERCENT_ID = "dualsense_percent_stepper"
 PERCENT_ARC = PERCENT_NAME + ".ymt"
 PERCENT_OUT = "data/ui/startup_data/" + PERCENT_ARC
 PERCENT_SRC = "x64/data/ui/startup_data/boot_flow/hdr/list_item_int_stepper.ymt"   # the game's, as the base
+OPTION_NAME = "settings/widgets/dualsense_option_stepper"    # option stepper (toggles, choices)
+OPTION_ID = "dualsense_option_stepper"
+OPTION_ARC = OPTION_NAME + ".ymt"
+OPTION_OUT = "data/ui/startup_data/" + OPTION_ARC
+OPTION_SRC = "x64/data/ui/startup_data/boot_flow/hdr/list_item_option_stepper.ymt"
 
 TRANSITION = "dualsense_settings"                        # <transition> of the row in controls.ymt
 STORE = "DualSenseSettings"                              # ScriptDatastoreRoot.<STORE>
@@ -130,16 +139,34 @@ def row_name(row):
     return "ROW_" + row["id"]
 
 
+def follow_toggles(row):
+    """The row's Visible / Enabled <- another row's toggle being On (dualsense_settings.SHOW_IF / ACTIVE_IF),
+    bound straight to that toggle's value in the data store: the page follows it while scripts are frozen."""
+    links = []
+    for member, dep in (("Visible", settings.SHOW_IF), ("Enabled", settings.ACTIVE_IF)):
+        parent = dep.get(row["id"])
+        if parent:
+            links.append('<Item><MemberPath><Path>%s</Path><PathType>PATH_LOCAL</PathType></MemberPath>'
+                         '<BindingSetup><Path>ScriptDatastoreRoot.%s.%s.value</Path><PathType>PATH_ABSOLUTE</PathType>'
+                         '</BindingSetup><Converter type="rage__fwuiBoolValueConversion"><TargetValue '
+                         'type="rage__fwuiValueInt"><value value="1"/></TargetValue><Operator>EQUAL</Operator>'
+                         '</Converter></Item>' % (member, STORE, parent))
+    if not links:
+        return ""
+    return ('<Item type="uiBehaviorDataBindingBehavior"><MemberBindingLinks>%s</MemberBindingLinks></Item>'
+            % "".join(links))
+
+
 def stepper(row):
     """One row: a stepper template with its data context in our data store (as hdr_calibration.ymt binds its
-    steppers to hdr_calibration.<setting>): levels = our percent stepper, the rest the game's option stepper."""
-    typ = PERCENT_ID if row["kind"] == "level" else "list_item_option_stepper"
+    steppers to hdr_calibration.<setting>): levels = our percent stepper, the rest our option stepper."""
+    typ = PERCENT_ID if row["kind"] == "level" else OPTION_ID
     return ('<Item type="UITemplateInstancingItem"><NameOverride>%s</NameOverride><Type>%s</Type>'
             '<Properties><Item type="SF_String"><Name>Label</Name><Value>%s</Value></Item></Properties>'
             '<Behaviors><Item type="uiBindingContextBehavior"><Context><Path><pathElements>'
             '<Item>ScriptDatastoreRoot</Item><Item>%s</Item><Item>%s</Item></pathElements></Path>'
-            '<PathType>PATH_ABSOLUTE</PathType></Context></Item></Behaviors></Item>'
-            % (row_name(row), typ, settings.label_key(row), STORE, row["id"]))
+            '<PathType>PATH_ABSOLUTE</PathType></Context></Item>%s</Behaviors></Item>'
+            % (row_name(row), typ, settings.label_key(row), STORE, row["id"], follow_toggles(row)))
 
 
 def header_template_xml():
@@ -156,9 +183,39 @@ PERCENT_ANCHOR = """        <Item type="UIPanel">
           <Name>PAN_RightArrow</Name>"""
 
 
+ROW_EDITS = [
+    # the focused row gets the Settings pages' red bar (the HDR screen's highlight has no host on our page;
+    # settings_app_host.ymt hosts these two for every page in PAN_SETTINGS_PAGE_HOST, as settings_list_item uses)
+    ("        <AdornmentID>hdr_calibration_adornment</AdornmentID>\n",
+     "        <AdornmentID>settings_adornment_tiled</AdornmentID>\n"
+     "        <HoverAdornmentID>settings_hover_adornment_tiled</HoverAdornmentID>\n"),
+    # the Settings rows' background (settings_list_item IMG_background), edge to edge
+    ("      <TextureDictionary>boot_flow</TextureDictionary>\n      <Texture>SELECTION_BOX_BG_1D</Texture>\n"
+     "      <Style>LIST_ITEM_BACKGROUND</Style>\n      <Color>COLOR_GREYMID</Color>\n      <Alpha value=\"4\"/>\n",
+     "      <TextureDictionary>pausemenu_settings_startup</TextureDictionary>\n"
+     "      <Texture>SELECTION_BOX_BG_1B</Texture>\n      <Color>COLOR_WHITE</Color>\n      <Alpha value=\"10\"/>\n"),
+    ("          <topMargin value=\"2\"/>\n          <bottomMargin value=\"2\"/>\n", ""),
+    # no Enabled / Visible <- the data store's enabled / visible: rows that follow a toggle get theirs per
+    # instance (follow_toggles), the rest stay visible and enabled
+    ("  <MemberBindings>\n    <Item>\n      <MemberName>Enabled</MemberName>\n      <Setup>\n"
+     "        <Path>enabled</Path>\n        <PathType>PATH_RELATIVE</PathType>\n      </Setup>\n    </Item>\n"
+     "    <Item>\n      <MemberName>Visible</MemberName>\n      <Setup>\n        <Path>visible</Path>\n"
+     "        <PathType>PATH_RELATIVE</PathType>\n      </Setup>\n    </Item>\n  </MemberBindings>\n", ""),
+]
+
+
+def row_template_xml(game_xml):
+    """One of the game's HDR stepper templates (they bind a data context, two-way) looking like a Settings row."""
+    for old, new in ROW_EDITS:
+        assert game_xml.count(old) == 1, "HDR stepper template changed (game update?): %r" % old[:60]
+        game_xml = game_xml.replace(old, new)
+    return game_xml
+
+
 def percent_template_xml(game_xml):
     """The game's list_item_int_stepper (HDR screen: d-pad steps, left stick adjusts smoothly) with a "%"
     text after the number. Same data context fields: value (two-way), minimum, maximum, step, prompt..."""
+    game_xml = row_template_xml(game_xml)
     assert game_xml.count(PERCENT_ANCHOR) == 1, "list_item_int_stepper layout changed (game update?)"
     pct = ('<Item type="UIText"><Name>TXT_Percent</Name><RawText>%%</RawText>%s<HAlign>CENTER</HAlign>'
            '<VAlign>CENTER</VAlign><ParagraphStyle>SINGLELINE</ParagraphStyle><Style>MENU_TEXT_BODY</Style>'
@@ -349,6 +406,21 @@ FLOW_STATE_NEW = """              <Item>
                         </PropertyKeys>
                       </Template>
                     </Item>
+                    <Item type="UITemplateStreamingDependencyResource">
+                      <Name>%(option)s</Name>
+                      <Template>
+                        <Id>%(option_id)s</Id>
+                        <PropertyKeys>
+                          <Item key="Label">
+                            <Target>
+                              <PathType>PATH_LOCAL</PathType>
+                              <Path>TXT_LeftLabel</Path>
+                            </Target>
+                            <Property>Text</Property>
+                          </Item>
+                        </PropertyKeys>
+                      </Template>
+                    </Item>
                     <Item type="UIObjectSceneStreamingDependencyResource">
                       <Name>%(scene)s</Name>
                     </Item>
@@ -377,7 +449,7 @@ FLOW_STATE_NEW = """              <Item>
                 <Guid>%(g1)s</Guid>
               </Item>
 """ % dict(scene=SCENE_NAME, host=PAGE_HOST, header=HEADER_NAME, header_id=HEADER_ID, percent=PERCENT_NAME,
-           percent_id=PERCENT_ID,
+           percent_id=PERCENT_ID, option=OPTION_NAME, option_id=OPTION_ID,
            g1=guid("dualsense_page_resources"), g2=guid("dualsense_page"))
 
 
@@ -454,8 +526,10 @@ def main(argv):
     header = header_template_xml()
     with open(os.path.join(base, PERCENT_SRC), encoding="utf-8") as fh:
         percent = percent_template_xml(fh.read())
+    with open(os.path.join(base, OPTION_SRC), encoding="utf-8") as fh:
+        option = row_template_xml(fh.read())
     flow_rbf, scene_rbf, header_rbf = to_rbf(flow_new), to_rbf(scene), to_rbf(header)
-    percent_rbf = to_rbf(percent)
+    percent_rbf, option_rbf = to_rbf(percent), to_rbf(option)
 
     write(os.path.join(out, "xml", FLOW_OUT), flow_new)
     write(os.path.join(out, "xml", SCENE_OUT), scene)
@@ -465,6 +539,8 @@ def main(argv):
     write(os.path.join(out, HEADER_OUT), header_rbf)
     write(os.path.join(out, "xml", PERCENT_OUT), percent)
     write(os.path.join(out, PERCENT_OUT), percent_rbf)
+    write(os.path.join(out, "xml", OPTION_OUT), option)
+    write(os.path.join(out, OPTION_OUT), option_rbf)
     write(os.path.join(out, "diff", "settings_group_flow.ymt.diff"),
           "".join(difflib.unified_diff(flow_orig.splitlines(True), flow_new.splitlines(True),
                                        "a/" + FLOW_REL, "b/" + FLOW_REL, n=3)))
@@ -476,13 +552,14 @@ def main(argv):
     rpf8.NAMES.add(SCENE_NAME)
     rpf8.NAMES.add(HEADER_NAME)
     rpf8.NAMES.add(PERCENT_NAME)
+    rpf8.NAMES.add(OPTION_NAME)
     top = rpf8.RPF8(os.path.join(rpf8.GAME_DIR, SRC_ARCHIVE))
     ent = next(e for e in top.entries if e.display_name().lower() == INNER)
     sub = top.nested(ent)
     fh_, _ = rpf8.path_hash(FLOW_ARC)
     fidx = next(i for i, e in enumerate(sub.entries) if e.hash == fh_)
     wrap = (lambda d: (d, "oodle")) if oodle else (lambda d: d)
-    added = {SCENE_ARC: scene_rbf, HEADER_ARC: header_rbf, PERCENT_ARC: percent_rbf}
+    added = {SCENE_ARC: scene_rbf, HEADER_ARC: header_rbf, PERCENT_ARC: percent_rbf, OPTION_ARC: option_rbf}
     built = rpf8.rebuild_archive(sub, {fidx: wrap(flow_rbf)}, {k: wrap(v) for k, v in added.items()})
     rpf_out = os.path.join(out, "replace", "update_4", "x64", "data", "ui", "startup_data.rpf")
     write(rpf_out, built)

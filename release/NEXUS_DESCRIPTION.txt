@@ -1,7 +1,7 @@
 === Nexus Mods page text (paste into the description; Nexus uses BBCode) ===
 
 NAME:     DualSense for RDR2 - Adaptive Triggers and Haptics
-VERSION:  1.0.0
+VERSION:  1.1.0
 CATEGORY: Gameplay  (or: Utilities)
 IMAGES:   release/banner.png (main image)
 SUMMARY (short):
@@ -15,6 +15,9 @@ from what the game is really doing: the real hooves on the real ground, footstep
 [b]All-in-one DualSense support for RDR2: adaptive triggers for every weapon and haptics for everything Arthur feels.[/b]
 It also drives the lightbar, the player LEDs and the controller's speaker, shows PlayStation buttons in the game, and
 adds its settings to the game's own menu.
+
+[b]New in 1.1.0:[/b] feel the voices - dialogue haptics (experimental), cutscenes you can feel, and plug the
+controller in any time.
 
 [size=4][b]Triggers[/b][/size]
 [list]
@@ -32,10 +35,17 @@ exhaustion and cold make the pull shaky
 [*]Hoofbeats from the real hooves at every gait, on the real ground material (mud, gravel, wood, grass, snow...)
 [*]Arthur's footsteps from his real feet, landings, ledge grabs, doors, drawing and holstering
 [*]Hits from their direction, nearby gunfire, heartbeat, shivers
+[*]Cutscenes too: steps, hooves, shots and hits, like in play
 [*]Honor going up or down, bites / sips / puffs, gun cleaning, brushing the horse, skinning, herbs, bathing
 [*]Five finger fillet, poker, blackjack, dominoes
 [*]Gun shots built from each gun's own recordings - the game's sounds, or your sound mod's if you use one
 [/list]
+
+[size=4][b]Dialogue haptics (experimental)[/b][/size]
+Feel the voices: every spoken line in your hands - the speaker's own voice, its rhythm and tone, from the side they
+stand on. In cutscenes and in conversations out in the world. Off by default: turn on [b]Dialogue Haptics[/b] on the
+DualSense settings page. If you feel a line before you hear it, raise [b]TV / Headphone Delay[/b] (Auto already knows
+Bluetooth headphones).
 
 [size=4][b]Lightbar, LEDs, speaker[/b][/size]
 Muzzle flash, hits, Dead Eye glow, lantern flicker, wanted, low health, honor; player LEDs show the rounds
@@ -55,7 +65,7 @@ commands. Turn it on under Settings > Controls > Controller > DualSense.
 [size=4][b]Requirements[/b][/size]
 [list]
 [*][url=https://www.dev-c.com/rdr2/scripthookrdr2/]Script Hook RDR2[/url] with an ASI loader (dinput8.dll or version.dll)
-[*]DualSense on a USB cable (Bluetooth: triggers, lightbar, rumble only)
+[*]DualSense on a USB cable (Bluetooth: triggers, lightbar, rumble only) - plug it in before or after starting the game
 [*]DSX / DS4Windows closed, Steam Input OFF for RDR2
 [*]Story mode only
 [*]For the settings page and PlayStation buttons: Lenny's Mod Loader (LML, from rdr2mods.com); any game language (page texts are
@@ -76,3 +86,10 @@ loader and LML (as for any mod), and back for story mode. The mod changes none o
 
 [size=4][b]Open source[/b][/size]
 MIT licensed - source: https://github.com/OldKrab/rdr2-dualsense
+
+--- CHANGELOG 1.1.0 (the file upload's changelog field, one line each) ---
+Dialogue haptics (experimental, off by default): every spoken line felt as the speaker's voice, from their side
+Steps, hooves, shots and hits are felt in cutscenes too
+A controller plugged in after the game started (or pulled out and back) works within a second - controls and haptics
+Settings page: the selected row is highlighted like the game's own pages
+Settings page: a setting's own options only show while it is On; experimental features have their own sections

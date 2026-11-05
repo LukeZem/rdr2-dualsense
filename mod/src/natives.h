@@ -56,6 +56,24 @@ inline bool IS_PED_DRUNK(Ped p) { return invoke<int>(0x50F124E6EF188B22ull, p) !
 inline float GET_PED_DRUNKNESS(Ped p) { return invoke<float>(0x6FB76442469ABD68ull, p); }
 inline Entity GET_LASSO_TARGET(Ped p) { return invoke<Entity>(0xB65A4DAB460A19BDull, p); }
 inline bool IS_PED_LASSOED(Ped p) { return invoke<int>(0x9682F850056C9ADEull, p) != 0; }
+// speech probe (read only): who is talking, which line
+inline float GET_FRAME_TIME() { return invoke<float>(0x5E72022914CE3C38ull); }
+// anim scene probe (read only): scene handles come from the game's scene map (see World::scene_probe), then its clock
+// loads, switches, fades: no haptics at all then (cutscenes are not halted)
+inline bool GET_IS_LOADING_SCREEN_ACTIVE() { return invoke<int>(0x71D4BF5890659B0Cull) != 0; }
+inline bool IS_SCREEN_FADED_IN() { return invoke<int>(0x37F9A426FBCF4AF2ull) != 0; }
+inline bool IS_PLAYER_SWITCH_IN_PROGRESS() { return invoke<int>(0xED20CB1F5297791Dull) != 0; }
+inline bool IS_ENTITY_PLAYING_ANIM_SCENE(Entity e, int s) { return invoke<int>(0x3AB6C7B0BB0DF4B1ull, e, s) != 0; }
+inline bool IS_ANIM_SCENE_RUNNING(int s) { return invoke<int>(0xCBFC7725DE6CE2E0ull, s, 0) != 0; }
+inline float GET_ANIM_SCENE_PHASE(int s) { return invoke<float>(0x3FBC3F51BF12DFBFull, s); }
+inline float GET_ANIM_SCENE_TIME(int s) { return invoke<float>(0x61BE7D6186260002ull, s); }
+inline float GET_ANIM_SCENE_DURATION(int s) { return invoke<float>(0x49F1D143ADE32656ull, s); }
+inline float GET_ANIM_SCENE_RATE(int s) { return invoke<float>(0x43C21623E42B821Bull, s); }
+inline Hash GET_ANIM_SCENE_DICT(int s) { return invoke<Hash>(0xAE5ADA4FE3E21ADCull, s); }
+inline Hash GET_ENTITY_MODEL(Entity e) { return invoke<Hash>(0xDA76A9F39210D365ull, e); }
+inline bool IS_ANY_SPEECH_PLAYING(Ped p) { return invoke<int>(0x729072355FA39EC9ull, p) != 0; }
+inline Hash GET_LAST_PLAYED_SPEECH_FOR_PED(Ped p) { return invoke<Hash>(0x6BFFB7C276866996ull, p); }
+inline bool IS_ANY_CONVERSATION_PLAYING() { return invoke<int>(0xA2CAC9DEF0195E6Full, 0) != 0; }
 inline Hash HUD_GET_INVENTORY_WHEEL_CURRENTLY_HIGHLIGHTED() { return invoke<Hash>(0x9C409BBC492CB5B1ull); }  // only while the wheel is open
 inline bool IS_ATTRIBUTE_OVERPOWERED(Ped p, int attr) { return invoke<int>(0x103C2F885ABEB00Bull, p, attr) != 0; }  // fortified ring
 inline bool IS_ATTRIBUTE_CORE_OVERPOWERED(Ped p, int core) { return invoke<int>(0x200373A8DF081F22ull, p, core) != 0; }  // fortified (gold)

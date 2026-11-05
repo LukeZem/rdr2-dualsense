@@ -258,7 +258,11 @@ void Features::update(const InputState& in, const GameSnapshot& g, std::vector<W
         next_texture_ = now + gap;
         if (!cue.empty()) cues.push_back(make(cue, life_gain_ * rng_.range(0.75f, 1.0f), pan, true));
     }
-    if (!g.blocked) {
+    if (!g.halted) {                    // the world keeps moving in cutscenes: hooves, wagons and trains are felt there too
+        horse(g, now, cues, out, weapon_active);
+        transport(g, now, cues);
+    }
+    if (!g.blocked) {                   // Arthur's own state: only while you play him
         // Gun leather, from the weapon in hand changing (the game's holster flag may rise before or after it): the gun
         // that left the hand is holstered, the new one drawn. The speaker only for guns the game carries in the hip
         // holster (attach point 2 / 3: every revolver and pistol and the sawed-off), not for long arms or tools.
@@ -279,8 +283,6 @@ void Features::update(const InputState& in, const GameSnapshot& g, std::vector<W
         armed_before_ = g.armed;
         attach_before_ = g.attach_point;
         weapon_before_ = g.weapon;
-        horse(g, now, cues, out, weapon_active);
-        transport(g, now, cues);
         if (heart_gain_ > 0 && g.health_core < 20 && !g.dead_eye && now >= next_heart_) {
             next_heart_ = now + 0.9;
             cues.push_back(make("heartbeat", heart_gain_ * 0.9f));

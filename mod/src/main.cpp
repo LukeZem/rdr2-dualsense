@@ -1,4 +1,6 @@
 // DualSenseRDR2.asi - loaded by the ASI loader, runs a ScriptHookRDR2 script for game state.
+#include "config.h"
+#include "io_probe.h"
 #include "common.h"
 #include "core.h"
 #include "log.h"
@@ -36,7 +38,10 @@ BOOL APIENTRY DllMain(HMODULE module, DWORD reason, LPVOID) {
         LOGI("DualSense for RDR2 %s - loading", dsr2::kVersion);
         // Controller, audio and the XInput hook start right away (menus work too);
         // game state comes from the ScriptHook script once a save is loaded.
-        std::thread([] { dsr2::core().init(true); }).detach();
+        std::thread([] {
+            dsr2::core().init(true);
+            if (dsr2::config().flag("General", "Probes", false)) dsr2::io_probe_start();   // research: which audio files the game reads
+        }).detach();
         dsr2::text_inject_start();       // our Settings texts, in the game's own string table
         shv_scriptRegister(module, script_main);
     } else if (reason == DLL_PROCESS_DETACH) {
