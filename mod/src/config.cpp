@@ -226,11 +226,14 @@ DpadDown=T
 DpadLeft=G
 DpadRight=H
 ; How a D-pad press (while Hold is held) becomes a key, so the D-pad's own aiming actions still work:
-;   hold      = a quick tap is the game's own action (L2 + down = scope, shoulder swap...), given the moment
+;   tap       = a quick tap (let go within TapTime seconds) sends the key; holding longer gives the game its
+;               own action (L2 + down = scope, shoulder swap...) from TapTime on
+;   hold      = the reverse: a quick tap is the game's own action (L2 + down = scope, shoulder swap...), given the moment
 ;               you let go; holding longer than HoldTime sends the key (keep holding to repeat)
 ;   doubletap = two taps within DoubleTap seconds send the key; a single tap reaches the game after the window
 ;   press     = every press sends the key (the game never sees the D-pad while Hold is held)
-Mode=hold
+Mode=tap
+TapTime=0.35
 HoldTime=0.3
 DoubleTap=0.25
 ; doubletap only: 1 = the first tap reaches the game at once (no delay, but it does on a double tap too)

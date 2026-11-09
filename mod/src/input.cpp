@@ -263,6 +263,22 @@ void Input::update_keys(const InputState& s, bool connected) {
         bool want_key = false;
         if (tap_mode_ == 0) {
             want_key = hold && chord_vk_[i] && fresh_press;   // single press sends the key
+        } else if (tap_mode_ == 3) {
+            // quick tap (released within TapTime) = the key; held longer = the game's own D-pad action
+            if (tap_pending_[i]) {
+                if (!now) {
+                    tap_pending_[i] = false;
+                    pulses_.push_back({chord_vk_[i], t + 0.1});   // keys_mu_ is held: no pulse_key()
+                    key(chord_vk_[i], true);
+                } else if (!hold || t >= tap_until_[i]) {
+                    tap_pending_[i] = false;
+                    hidden &= ~bit;                        // a long press: the game sees the held D-pad from now
+                }
+            } else if (fresh_press && hold && chord_vk_[i]) {
+                tap_pending_[i] = true;
+                tap_until_[i] = t + tap_time_;
+                hidden |= bit;
+            }
         } else if (tap_mode_ == 2) {
             // tap = the game's own D-pad action (given on release), hold past HoldTime = the key
             if (tap_pending_[i]) {
@@ -374,8 +390,9 @@ void Input::configure() {
         chord_vk_[1] = vk_from_name(c.str("Keys", "DpadDown", "T"));
         chord_vk_[2] = vk_from_name(c.str("Keys", "DpadLeft", "G"));
         chord_vk_[3] = vk_from_name(c.str("Keys", "DpadRight", "H"));
-        std::string mode = upper_trim(c.str("Keys", "Mode", "hold"));
-        tap_mode_ = mode == "PRESS" ? 0 : mode == "DOUBLETAP" ? 1 : 2;
+        std::string mode = upper_trim(c.str("Keys", "Mode", "tap"));
+        tap_mode_ = mode == "PRESS" ? 0 : mode == "DOUBLETAP" ? 1 : mode == "HOLD" ? 2 : 3;
+        tap_time_ = clampv(c.num("Keys", "TapTime", 0.35f), 0.05f, 2.0f);
         hold_time_ = clampv(c.num("Keys", "HoldTime", 0.3f), 0.05f, 2.0f);
         double_tap_ = clampv(c.num("Keys", "DoubleTap", 0.25f), 0.05f, 1.0f);
         pass_first_tap_ = c.flag("Keys", "PassFirstTap", false);
