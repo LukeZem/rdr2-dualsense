@@ -73,11 +73,11 @@ private:
     int chord_hold_trigger_ = 0;               // 1 = L2, 2 = R2 (analog, past chord_threshold_)
     int chord_threshold_ = 64;
     WORD chord_vk_[4] = {0, 0, 0, 0};          // D-pad up, down, left, right
-    double repeat_delay_ = 0.4, repeat_period_ = 0.125;
+    double repeat_delay_ = 0.4, repeat_period_ = 0;
     int tap_mode_ = 1;                         // 0 press, 1 double tap, 2 tap = game / hold = key, 3 tap = key / hold = game
     double tap_time_ = 0.35;                   // Mode=tap: released within this = the key
     double hold_time_ = 0.3;                   // Mode=hold: press longer than this = the key
-    double double_tap_ = 0.35;                 // Mode=doubletap: seconds between the two taps
+    double double_tap_ = 0.25;                 // Mode=doubletap: seconds between the two taps
     bool pass_first_tap_ = false;              // 1 = the first tap reaches the game at once
     bool tap_pending_[4] = {};
     double tap_until_[4] = {};

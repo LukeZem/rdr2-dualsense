@@ -235,12 +235,13 @@ DpadRight=H
 Mode=doubletap
 TapTime=0.35
 HoldTime=0.3
-DoubleTap=0.35
+DoubleTap=0.25
 ; doubletap only: 1 = the first tap reaches the game at once (no delay, but it does on a double tap too)
 PassFirstTap=0
-; Holding the D-pad repeats the key: first repeat after RepeatDelay seconds, then RepeatRate per second (0 = off)
+; Our own repeat while a key is held (0 = off: the key just stays held, and Realistic Ballistics repeats zeroing
+; and enters Precision Focus on a held T by itself). Only needed for mods that do not repeat on their own.
 RepeatDelay=0.4
-RepeatRate=8
+RepeatRate=0
 ; input = real key presses (works with every mod)
 ; hook  = keys only visible to mods inside the game that read GetAsyncKeyState / GetKeyState; the game never
 ;         sees a keyboard, so its button prompts stay PlayStation. Try it if prompts flicker to keyboard.
