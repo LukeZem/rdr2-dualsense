@@ -334,6 +334,75 @@ void World::record_limbs(const char* mode, int n, const float* x, const float* y
     if (++limb_lines_ % 120 == 0) limb_csv_.flush();
 }
 
+// Research (Record=1 with Debug=1): swimming - Arthur's hands and feet, or the swimming horse's legs, every frame to the
+// same CSV (mode "swim" / "hswim"): per limb x, y, z and the water surface there (0 = none), then the body as one more
+// row entry: x, y, z, heading, under water (1/0). To design stroke / paddle haptics from the real arm and leg motion.
+void World::record_swim(int ped, const char* mode, const int* bones, int n, float speed, double now) {
+    float x[5] = {}, y[5] = {}, z[5] = {}, w[5] = {};
+    bool flag[5] = {};
+    n = std::min(n, 4);
+    for (int i = 0; i < n; ++i) {
+        if (bones[i] < 0) continue;
+        nat::Vector3 p = nat::GET_WORLD_POSITION_OF_ENTITY_BONE(ped, bones[i]);
+        x[i] = p.x; y[i] = p.y; z[i] = p.z;
+        if (!nat::GET_WATER_HEIGHT(p.x, p.y, p.z, &w[i])) w[i] = 0;
+    }
+    nat::Vector3 b = nat::GET_ENTITY_COORDS(ped);
+    x[n] = b.x; y[n] = b.y; z[n] = b.z;
+    w[n] = nat::GET_ENTITY_HEADING(ped);
+    flag[n] = nat::IS_PED_SWIMMING_UNDER_WATER(ped);
+    record_limbs(mode, n + 1, x, y, z, w, flag, speed, now);
+}
+
+// Swimming strokes from the real arms and legs (designed on a recorded swim and horse swim): a limb's position along
+// the body's heading rises while it reaches forward and falls while it pulls the water back. A pull is felt once the
+// limb has come back by D from its furthest reach - D grows with the stroke length (hands and feet: 3 cm or 10%,
+// every pull of the recording, ~0.13 s after the reach; the horse's legs: 6 cm or 30% - their paddling is choppier).
+// Arthur swims breaststroke (~0.8 strokes/s, both hands together, the kick in between); the horse paddles like a dog.
+void World::strokes(int ped, Stroke* limbs, int n, bool horse, float speed, std::vector<WorldEvent>& ev) {
+    const float hd = nat::GET_ENTITY_HEADING(ped) * kPi / 180.0f, fx = -std::sin(hd), fy = std::cos(hd);
+    const nat::Vector3 b = nat::GET_ENTITY_COORDS(ped);
+    const float dmin = horse ? 0.06f : 0.03f, frac = horse ? 0.3f : 0.1f;
+    for (int i = 0; i < n; ++i) {
+        Stroke& S = limbs[i];
+        if (S.bone < 0) continue;
+        const nat::Vector3 p = nat::GET_WORLD_POSITION_OF_ENTITY_BONE(ped, S.bone);
+        const float f = (p.x - b.x) * fx + (p.y - b.y) * fy;          // how far forward of the body
+        if (!S.init) {
+            S.init = true;
+            S.top = S.low = f;
+            continue;
+        }
+        const float d = std::max(dmin, frac * S.size);
+        if (S.state == 0) {                                           // reaching forward
+            S.top = std::max(S.top, f);
+            if (S.top - f <= d) continue;
+            const float len = S.top - S.low;                          // the pull has begun
+            S.size = 0.7f * S.size + 0.3f * std::max(0.05f, len);
+            S.state = 1;
+            S.low = f;
+            WorldEvent e{WorldEvent::Swim, (i % 2) ? 0.4f : -0.4f, 1, ""};
+            const float reach = clampv(len / 0.6f, 0.4f, 1.0f);       // a small treading stroke is felt softer
+            if (horse) {
+                e.cause = "paddle";
+                e.strength = clampv(0.5f + speed / 6.0f, 0.6f, 1.0f) * reach * (i < 2 ? 1.0f : 0.7f);   // rear legs behind you
+                if (i >= 2) e.pan *= 0.6f;
+            } else {
+                e.cause = i < 2 ? "pull" : "kick";
+                e.strength = clampv(0.45f + speed / 5.0f, 0.6f, 1.1f) * reach;
+                if (i >= 2) e.pan *= 0.6f;
+            }
+            ev.push_back(e);
+        } else {                                                      // pulling back
+            S.low = std::min(S.low, f);
+            if (f - S.low > d) {
+                S.state = 0;
+                S.top = f;
+            }
+        }
+    }
+}
+
 // The ground under a limb, from the game's ground query - which glitches: a surface up to ~0.5 m too high, for up
 // to ~0.3 s (20% of the readings under a galloping horse). A reading that puts the limb under the ground, or jumps
 // up under it, is dropped while it is short-lived and the last plausible ground is kept; a lasting offset is real
@@ -809,6 +878,26 @@ void World::tick() {
             hoof_times_.clear();
         }
         s.hoof_bones = hoof_count_ >= 2;
+        bool horse_swims = IS_PED_SWIMMING(horse);
+        if (log::debug_enabled() && horse_swims != horse_swim_logged_) {
+            horse_swim_logged_ = horse_swims;
+            LOGD("swim: the horse %s", horse_swims ? "swims" : "is out of the water");
+        }
+        if (horse_swims && hoof_count_ == 4 && !s.halted) {
+            if (!horse_swim_was_ || horse != paddle_horse_) {          // a fresh swim: start the legs' detectors anew
+                paddle_horse_ = horse;
+                for (int i = 0; i < 4; ++i) {
+                    paddle_[i] = Stroke{};
+                    paddle_[i].bone = hooves_[i].bone;
+                }
+            }
+            strokes(horse, paddle_, 4, true, s.mount_speed, ev);
+            if (limb_probe_) {
+                int bones[4] = {hooves_[0].bone, hooves_[1].bone, hooves_[2].bone, hooves_[3].bone};
+                record_swim(horse, "hswim", bones, 4, s.mount_speed, s.time);
+            }
+        }
+        horse_swim_was_ = horse_swims;
         size_t before = ev.size();
         if (s.hoof_bones) steps(horse, hooves_, hoof_count_, s.mount_speed, s.time, true, ev);
         hoof_plants_ += int(ev.size() - before);
@@ -822,9 +911,39 @@ void World::tick() {
             hoof_stat_t_ = s.time;
         }
     }
+    if (!horse) horse_swim_was_ = false;
     s.in_train = IS_PED_IN_ANY_TRAIN(me);
     s.in_vehicle = IS_PED_IN_ANY_VEHICLE(me);
     s.speed = GET_ENTITY_SPEED(me);
+
+    // --- swimming: strokes from the real arms and legs, a splash for a jump into water ---
+    const float falling = -GET_ENTITY_VELOCITY(me).z;                 // falling speed (m/s), the fastest in 0.5 s
+    if (falling > fall_max_ || s.time - fall_max_t_ > 0.5) {
+        fall_max_ = falling;
+        fall_max_t_ = s.time;
+    }
+    if (log::debug_enabled() && s.swimming != swim_logged_) {
+        swim_logged_ = s.swimming;
+        LOGD("swim: Arthur %s (falling %.1f m/s just before)", s.swimming ? "swims" : "is out of the water", fall_max_);
+    }
+    if (s.swimming && !s.on_mount && !s.halted) {
+        if (!swim_was_ || me != swim_ped_) {                          // a fresh swim: start the detectors anew
+            swim_ped_ = me;
+            static const char* const kSwimBones[] = {"SKEL_L_Hand", "SKEL_R_Hand", "SKEL_L_Foot", "SKEL_R_Foot"};
+            for (int i = 0; i < 4; ++i) {
+                swim_[i] = Stroke{};
+                swim_[i].bone = GET_ENTITY_BONE_INDEX_BY_NAME(me, kSwimBones[i]);
+            }
+            if (fall_max_ > 2.0f)                                     // jumped or fell in
+                ev.push_back({WorldEvent::Swim, 0, clampv(fall_max_ / 8.0f, 0.4f, 1.0f), "dive"});
+        }
+        strokes(me, swim_, 4, false, s.speed, ev);
+        if (limb_probe_) {
+            int bones[4] = {swim_[0].bone, swim_[1].bone, swim_[2].bone, swim_[3].bone};
+            record_swim(me, "swim", bones, 4, s.speed, s.time);
+        }
+    }
+    swim_was_ = s.swimming && !s.on_mount;
 
     // --- on foot: steps, landings, climbing, doors ---
     if (!s.on_mount && !s.in_vehicle && !s.swimming && !s.halted) {

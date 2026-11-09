@@ -271,7 +271,6 @@ bool Core::on_input(const InputState& s, OutputState& out) {
     bool weapon_active = engine_ && triggers_on_ && !paused && !(in_game_ && (g.blocked || g.swimming));
     if (engine_ && !paused) frame = engine_->update(s, h);
     std::vector<Cue> cues = frame.cues;
-    for (auto& c : cues) c.speaker = c.speaker && speaker_mechanics_;
     if (weapon_active) {
         out.r2 = frame.r2;
         out.l2 = frame.l2;
@@ -313,6 +312,9 @@ bool Core::on_input(const InputState& s, OutputState& out) {
         out.has_lightbar = true;
         out.r = 40; out.g = 160; out.b = 255;
     }
+    // "Sounds from the Controller" Off: no effect plays on the speaker - the weapon's clicks and the lasso rope, and the
+    // gun draw / holster sounds Features adds (those slipped past when this ran before Features)
+    for (auto& c : cues) c.speaker = c.speaker && speaker_mechanics_;
     // Contrast (Returnal: the heaviest feel is kept for the greatest threats): while shots fly and hits land - ours,
     // others' or an explosion - the everyday textures (steps, hooves, wading, bushes, rain, wheels) step back
     bool fight = frame.flash;
@@ -323,7 +325,7 @@ bool Core::on_input(const InputState& s, OutputState& out) {
         for (Cue& c : cues) {
             const std::string& n = c.name;
             if (n.rfind("step_", 0) == 0 || n.rfind("hoof_", 0) == 0 || n == "wade_push" || n == "brush" || n == "brush_in" || n == "splash" ||
-                n == "rain_drop" || n == "wagon_rut" || n == "rail_clack")
+                n == "rain_drop" || n == "wagon_rut" || n == "rail_clack" || n == "swim_pull" || n == "swim_kick" || n == "horse_paddle")
                 c.gain *= 0.5f;
         }
     if (record_cues_ && haptics_on_)            // research (Record=1): every effect as it plays

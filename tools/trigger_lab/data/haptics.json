@@ -502,6 +502,23 @@
     {"type": "tone", "hz": 40, "attack_ms": 2, "decay_ms": 70, "amp": 0.5},
     {"type": "noise", "lo": 150, "hi": 400, "attack_ms": 20, "decay_ms": 120, "amp": 0.3, "delay_ms": 50}
   ]},
+  "swim_pull": {"_doc": "an arm pulling the water back: a long, heavy swell that eases off", "gain": 1.0, "variants": 3, "layers": [
+    {"type": "noise", "lo": 30, "hi": 90, "attack_ms": 90, "decay_ms": 220, "amp": 0.7},
+    {"type": "tone", "hz": 42, "to_hz": 34, "attack_ms": 60, "decay_ms": 200, "amp": 0.4}
+  ]},
+  "swim_kick": {"_doc": "the legs kicking back: a shorter, deeper push", "gain": 1.0, "variants": 3, "layers": [
+    {"type": "noise", "lo": 25, "hi": 60, "attack_ms": 40, "decay_ms": 160, "amp": 0.6},
+    {"type": "tone", "hz": 36, "to_hz": 28, "attack_ms": 20, "decay_ms": 120, "amp": 0.5}
+  ]},
+  "horse_paddle": {"_doc": "a swimming horse's leg paddling: a heavy, muffled push", "gain": 1.0, "variants": 3, "layers": [
+    {"type": "noise", "lo": 30, "hi": 80, "attack_ms": 60, "decay_ms": 180, "amp": 0.6},
+    {"type": "tone", "hz": 40, "to_hz": 30, "attack_ms": 30, "decay_ms": 150, "amp": 0.35}
+  ]},
+  "water_entry": {"_doc": "jumping / falling into water: a hard whump, then the spray coming down", "gain": 1.0, "variants": 2, "layers": [
+    {"type": "tone", "hz": 50, "to_hz": 30, "attack_ms": 3, "decay_ms": 200, "amp": 0.9},
+    {"type": "noise", "lo": 40, "hi": 200, "attack_ms": 5, "decay_ms": 300, "amp": 0.7},
+    {"type": "noise", "lo": 120, "hi": 400, "attack_ms": 20, "decay_ms": 400, "amp": 0.3, "delay_ms": 60}
+  ]},
   "hoof_ground": {"_doc": "ground: as packed earth", "gain": 1.0, "variants": 4, "layers": [
     {"type": "ref", "name": "hoof_dirt"}
   ]},

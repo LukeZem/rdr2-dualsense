@@ -228,6 +228,18 @@ void Features::update(const InputState& in, const GameSnapshot& g, std::vector<W
                 shock_t_ = now;
                 shock_amp_ = e.strength;
             }
+        } else if (e.type == WorldEvent::Swim) {
+            // swimming: Arthur's arm pulls (left / right hand) and kicks, the horse's paddling legs, a jump into water
+            if (e.cause == "paddle") {
+                if (horse_gain_ > 0)
+                    cues.push_back(make("horse_paddle", horse_gain_ * 1.2f * e.strength * rng_.range(0.9f, 1.08f), e.pan, true));
+            } else if (e.cause == "dive") {
+                if (step_gain_ > 0) cues.push_back(make("water_entry", std::min(1.2f, step_gain_ * 3.0f) * e.strength, 0, false, true));
+            } else if (step_gain_ > 0) {
+                const bool pull = e.cause == "pull";
+                cues.push_back(make(pull ? "swim_pull" : "swim_kick", step_gain_ * (pull ? 1.5f : 1.0f) * e.strength * rng_.range(0.9f, 1.08f),
+                                    e.pan, true));
+            }
         } else if (e.type == WorldEvent::HitConfirm && hit_gain_ > 0) {
             cues.push_back(make("hit_confirm", hit_gain_, 0.6f, true));
         } else if (e.type == WorldEvent::Footstep && step_gain_ > 0) {

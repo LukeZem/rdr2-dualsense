@@ -425,7 +425,8 @@ int run_selftests(const fs::path& data) {
             c.name = "hoof_" + surf;
             CHECK(lib.render(c, out), c.name.c_str());
         }
-        for (const char* r : {"wade_push", "brush", "brush_in", "splash", "rain_drop", "explosion_fire", "explosion_small", "thunder_strike"}) {
+        for (const char* r : {"wade_push", "brush", "brush_in", "splash", "rain_drop", "explosion_fire", "explosion_small", "thunder_strike",
+                              "swim_pull", "swim_kick", "horse_paddle", "water_entry"}) {
             c.name = r;
             CHECK(lib.render(c, out) && out.size() > 100, r);
         }

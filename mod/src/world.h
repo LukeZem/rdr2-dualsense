@@ -67,10 +67,10 @@ struct GameSnapshot {
 };
 
 struct WorldEvent {
-    enum Type { Damage, Gunfire, HitConfirm, Footstep, Hoof, Land, Climb, Door, Ack, Honor, Minigame, Horse, Life, Explosion } type;
+    enum Type { Damage, Gunfire, HitConfirm, Footstep, Hoof, Land, Climb, Door, Ack, Honor, Minigame, Horse, Life, Explosion, Swim } type;
     float pan = 0;          // -1 left .. +1 right (relative to the camera / which foot)
     float strength = 1;     // 0..1
-    std::string cause;      // damage: bullet melee animal fall; steps/hooves: surface
+    std::string cause;      // damage: bullet melee animal fall; steps/hooves: surface; swim: pull kick paddle dive
 };
 
 class World {
@@ -134,6 +134,20 @@ private:
     void steps(int ped, Limb* limbs, int n, float body_speed, double now, bool horse, std::vector<WorldEvent>& ev);
     bool limb_height(Limb& L, float x, float y, float z, float dt, float& h, float& raw_gz);
     static bool touchdown(Limb& L, float h, float dt, float rise_min, float stop, float margin, float swing_max);
+    void record_swim(int ped, const char* mode, const int* bones, int n, float speed, double now);
+    // swimming: a stroke is a hand / foot / leg that reached forward and starts pulling back (World::strokes)
+    struct Stroke {
+        int bone = -1;
+        bool init = false;
+        int state = 0;                          // 0 reaching forward (tracking the top), 1 pulling back (the bottom)
+        float top = 0, low = 0, size = 0.4f;    // size: the recent stroke length (m)
+    };
+    void strokes(int ped, Stroke* limbs, int n, bool horse, float speed, std::vector<WorldEvent>& ev);
+    Stroke swim_[4], paddle_[4];                // Arthur: hands, feet; the horse: its legs
+    int swim_ped_ = 0, paddle_horse_ = 0;
+    bool swim_logged_ = false, horse_swim_logged_ = false, swim_was_ = false, horse_swim_was_ = false;
+    float fall_max_ = 0;                        // fastest fall in the last 0.5 s (a jump into water)
+    double fall_max_t_ = 0;
     void record_limbs(const char* mode, int n, const float* x, const float* y, const float* z, const float* gz,
                       const bool* plant, float speed, double now);
     bool limb_probe_ = false;             // research: record limb heights (General.Probes + Debug)

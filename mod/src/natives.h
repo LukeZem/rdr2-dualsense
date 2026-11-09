@@ -68,6 +68,10 @@ inline bool IS_PED_IN_ANY_TRAIN(Ped p) { return invoke<int>(0x6F972C1AB75A1ED0ul
 inline bool IS_PED_IN_ANY_VEHICLE(Ped p) { return invoke<int>(0x997ABD671D25CA0Bull, p, 0) != 0; }
 inline bool IS_PED_IN_ANY_BOAT(Ped p) { return invoke<int>(0x2E0E1C2B4F6CB339ull, p) != 0; }
 inline bool IS_PED_SWIMMING(Ped p) { return invoke<int>(0x9DE327631295B4C2ull, p) != 0; }
+inline bool IS_PED_SWIMMING_UNDER_WATER(Ped p) { return invoke<int>(0xC024869A53992F34ull, p) != 0; }
+// the water surface at x, y (false: no water there)
+inline bool GET_WATER_HEIGHT(float x, float y, float z, float* h) { return invoke<int>(0xFCA8B23F28813F69ull, x, y, z, h) != 0; }
+inline Vector3 GET_ENTITY_VELOCITY(Entity e) { return invoke<Vector3>(0x4805D2B1D8CF94A9ull, e, 0); }
 inline bool IS_PED_RAGDOLL(Ped p) { return invoke<int>(0x47E4E977581C5B55ull, p) != 0; }
 inline bool IS_PED_FALLING(Ped p) { return invoke<int>(0xFB92A102F1C4DFA3ull, p) != 0; }
 inline bool IS_PED_IN_MELEE_COMBAT(Ped p) { return invoke<int>(0x4E209B2C1EAD5159ull, p) != 0; }

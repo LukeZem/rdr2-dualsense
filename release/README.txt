@@ -1,4 +1,4 @@
-DualSense for RDR2  v1.2.0  -  by OldKrab
+DualSense for RDR2  v1.2.1  -  by OldKrab
 ==========================================
 
 Full DualSense support for Red Dead Redemption 2 on PC: adaptive triggers made per weapon,
@@ -62,6 +62,7 @@ On foot    Footsteps from Arthur's real feet on the real ground, landings, ledge
            holstering.
 Water      Wading drags at every step - the deeper and the faster, the heavier; a splash as you go in.
 Bushes     A rustle as you walk or ride into them, brushing while you move through.
+Swimming   Every arm pull (left / right hand) and kick, the horse's paddling legs, a splash when you jump in.
 Around you Hits felt from the direction they came from, nearby gunfire, low-health heartbeat, shivering cold.
 Explosions From where and how far they go off, with the real blast; close ones shake the whole controller and
            both triggers.
@@ -125,6 +126,9 @@ Source code (MIT): see the mod page.
 
 CHANGES
 -------
+1.2.1  Swimming: every arm pull and kick is felt, left and right; the horse's paddling legs when it swims;
+       a splash when you jump into water.
+       Sounds from the Controller Off now also silences the gun draw / holster sounds.
 1.2.0  Snow: no more constant vibration; steps and hooves in deep snow are felt.
        Hoofbeats only from the real hooves - nothing generated - and steadier at a gallop; every step of both
        feet is felt (the left foot could go silent).
