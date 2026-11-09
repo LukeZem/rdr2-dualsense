@@ -261,8 +261,26 @@ void Input::update_keys(const InputState& s, bool connected) {
         bool now = (s.buttons & bit) != 0;
         bool fresh_press = now && !(prev_dpad_ & bit);    // a D-pad already held before the chord stays the game's
         bool want_key = false;
-        if (double_tap_ <= 0) {
+        if (tap_mode_ == 0) {
             want_key = hold && chord_vk_[i] && fresh_press;   // single press sends the key
+        } else if (tap_mode_ == 2) {
+            // tap = the game's own D-pad action (given on release), hold past HoldTime = the key
+            if (tap_pending_[i]) {
+                if (!now) {
+                    tap_pending_[i] = false;
+                    inject(xdpad[i], 0.1);                 // short press: the game gets its tap
+                } else if (!hold) {
+                    tap_pending_[i] = false;
+                    hidden &= ~bit;                        // aim let go first: the game sees the held press
+                } else if (t >= tap_until_[i]) {
+                    tap_pending_[i] = false;
+                    want_key = true;
+                }
+            } else if (fresh_press && hold && chord_vk_[i]) {
+                tap_pending_[i] = true;
+                tap_until_[i] = t + hold_time_;
+                hidden |= bit;
+            }
         } else if (tap_pending_[i]) {
             // first tap held back from the game: a second press in time = the key, otherwise give the game its tap
             if (fresh_press && hold && t < tap_until_[i]) {
@@ -356,7 +374,10 @@ void Input::configure() {
         chord_vk_[1] = vk_from_name(c.str("Keys", "DpadDown", "T"));
         chord_vk_[2] = vk_from_name(c.str("Keys", "DpadLeft", "G"));
         chord_vk_[3] = vk_from_name(c.str("Keys", "DpadRight", "H"));
-        double_tap_ = clampv(c.num("Keys", "DoubleTap", 0.25f), 0.0f, 1.0f);
+        std::string mode = upper_trim(c.str("Keys", "Mode", "hold"));
+        tap_mode_ = mode == "PRESS" ? 0 : mode == "DOUBLETAP" ? 1 : 2;
+        hold_time_ = clampv(c.num("Keys", "HoldTime", 0.3f), 0.05f, 2.0f);
+        double_tap_ = clampv(c.num("Keys", "DoubleTap", 0.25f), 0.05f, 1.0f);
         pass_first_tap_ = c.flag("Keys", "PassFirstTap", false);
         for (int i = 0; i < 4; ++i) { tap_pending_[i] = false; tap_until_[i] = 0; }
         chord_hidden_ = 0;
