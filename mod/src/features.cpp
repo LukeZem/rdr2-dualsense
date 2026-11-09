@@ -13,6 +13,7 @@ void Features::configure() {
     train_gain_ = c.num("Haptics", "Train", 0.6f);
     damage_gain_ = c.num("Haptics", "Damage", 1.0f);
     gunfire_gain_ = c.num("Haptics", "Gunfire", 0.6f);
+    triggers_on_ = c.flag("Triggers", "Enabled", true);
     heart_gain_ = c.num("Haptics", "Heartbeat", 1.0f);
     cold_gain_ = c.num("Haptics", "Cold", 0.5f);
     hit_gain_ = c.num("Haptics", "HitConfirm", 0.0f);
@@ -20,7 +21,7 @@ void Features::configure() {
     land_gain_ = c.num("Haptics", "Landing", 0.7f);
     action_gain_ = c.num("Haptics", "Actions", 0.5f);
     minigame_gain_ = c.num("Haptics", "TableGames", 0.7f);
-    weather_gain_ = c.num("Haptics", "Weather", 0.0f);
+    weather_gain_ = c.num("Haptics", "Weather", 0.3f);
     life_gain_ = c.num("Haptics", "CampLife", 0.6f);
     riding_pulse_ = c.integer("Triggers", "RidingPulse", 0);
     lightbar_on_ = c.flag("Lightbar", "Enabled", true);
@@ -39,44 +40,62 @@ static Cue make(const std::string& name, float gain, float pan = 0, bool has_pan
     return c;
 }
 
-void Features::horse(const GameSnapshot& g, double now, std::vector<Cue>& cues, OutputState& out, bool weapon_active) {
-    if (!g.on_mount) {
-        last_gait_t_ = now;
-        mount_t_ = now;
-        rearing_ = false;
-        hooves_live_ = true;
-        return;
+// A real step / hoof that is in water also pushes through it (deeper and faster = heavier); one in bushes brushes
+// through them (the game's own foliage state). Both ride on the real steps: nothing is felt between them.
+void Features::through(float wade, bool foliage, float foliage_h, float speed, float gain, float pan,
+                       std::vector<Cue>& cues) {
+    if (wade > 0.06f) {
+        float depth = clampv((wade - 0.06f) / 0.35f, 0.2f, 1.0f);
+        float pace = clampv(0.55f + speed / 8.0f, 0.55f, 1.1f);
+        cues.push_back(make("wade_push", gain * 1.4f * depth * pace * rng_.range(0.85f, 1.1f), pan, true));
     }
-    double dt = now - last_gait_t_;
-    last_gait_t_ = now;
-    float v = g.mount_speed;
-    // gait: stride rate and footfall pattern (fraction of the stride where each hoof lands)
-    float stride_hz, amp;
-    std::vector<float> beats;
-    if (v < 0.4f) { stride_hz = 0; amp = 0; }
-    else if (v < 2.3f) { stride_hz = 0.45f + 0.25f * v; amp = 0.35f; beats = {0.0f, 0.25f, 0.5f, 0.75f}; }    // walk, 4-beat
-    else if (v < 4.6f) { stride_hz = 1.25f + 0.08f * v; amp = 0.5f; beats = {0.0f, 0.5f}; }                     // trot, 2-beat
-    else if (v < 8.0f) { stride_hz = 1.5f + 0.05f * v; amp = 0.7f; beats = {0.0f, 0.3f, 0.45f}; }               // canter, 3-beat
-    else { stride_hz = 1.8f + 0.03f * v; amp = 0.9f; beats = {0.0f, 0.12f, 0.36f, 0.48f}; }                    // gallop, 4-beat
-    // the real hoof contacts drive the hooves while they keep up with the gait (each hoof lands once per
-    // stride); if they fall behind - or the legs were not found - the gait rhythm takes over
-    float expected = 4 * stride_hz;
-    if (!g.hoof_bones) hooves_live_ = false;
-    else if (expected > 0 && g.hoof_rate > 0.7f * expected) hooves_live_ = true;
-    else if (expected > 0 && g.hoof_rate < 0.45f * expected && now - mount_t_ > 2.0) hooves_live_ = false;
-    bool gait_driven = !hooves_live_;
-    if (gait_driven && stride_hz > 0 && horse_gain_ > 0 && dt > 0 && dt < 0.1) {
-        double before = gait_phase_;
-        gait_phase_ = std::fmod(gait_phase_ + dt * stride_hz, 1.0);
-        for (size_t i = 0; i < beats.size(); ++i) {
-            float b = beats[i];
-            bool hit = before <= gait_phase_ ? (before < b && b <= gait_phase_) : (before < b || b <= gait_phase_);
-            if (!hit) continue;
-            const std::string& surf = g.horse_surface;
-            float pan = (hoof_++ % 2 ? 0.25f : -0.25f);
-            cues.push_back(make("hoof_" + surf, amp * horse_gain_ * rng_.range(0.85f, 1.1f), pan, true));
+    (void)foliage;
+    (void)foliage_h;                     // bushes: rustle() - for as long as you move through them, not only on steps
+}
+
+// Bushes (the game's own "pushing through foliage" state): a swish going in, then a rustle for as long as you keep
+// walking through them - faster when running, stronger in taller bushes. Only while really walking (0.8 m/s): the
+// game sets the same flag when Arthur just looks at a plant he can pick, or turns beside tall grass.
+void Features::rustle(bool in, float height, float speed, float gain, bool& was, double& next, double now,
+                      std::vector<Cue>& cues) {
+    if (gain > 0) {
+        float tall = clampv(0.5f + 0.5f * height, 0.5f, 1.0f);
+        if (in && !was && speed > 0.8f) {
+            cues.push_back(make("brush_in", gain * 2.0f * tall * clampv(0.6f + speed / 6.0f, 0.6f, 1.3f),
+                                rng_.range(-0.3f, 0.3f), true));
+            next = now + 0.18;
+        } else if (in && speed > 0.8f && now >= next) {
+            cues.push_back(make("brush", gain * 1.6f * tall * clampv(0.55f + speed / 6.0f, 0.75f, 1.2f) * rng_.range(0.75f, 1.1f),
+                                rng_.range(-0.5f, 0.5f), true));
+            next = now + clampv(0.38f - speed * 0.045f, 0.12f, 0.38f) * rng_.range(0.8f, 1.2f);
         }
     }
+    was = in;
+}
+
+// Splashing into water at pace (once, when the water gets deeper than the ankles).
+void Features::splash(float wade, float& was, float speed, float gain, std::vector<Cue>& cues) {
+    if (wade > 0.06f && was <= 0.06f && speed > 1.5f && gain > 0)
+        cues.push_back(make("splash", gain * clampv(speed / 6.0f, 0.5f, 1.4f)));
+    was = wade;
+}
+
+void Features::horse(const GameSnapshot& g, double now, std::vector<Cue>& cues, OutputState& out, bool weapon_active) {
+    if (!g.on_mount) {
+        mount_t_ = now;
+        rearing_ = false;
+        return;
+    }
+    float v = g.mount_speed;
+    // The hoofbeats come only from the real hoof touchdowns (World::steps -> Hoof events, in update()); there is no
+    // generated gait rhythm any more. The gait table below only paces the optional riding pulse on the triggers.
+    float stride_hz;
+    int beats;
+    if (v < 0.4f) { stride_hz = 0; beats = 0; }
+    else if (v < 2.3f) { stride_hz = 0.45f + 0.25f * v; beats = 4; }     // walk, 4-beat
+    else if (v < 4.6f) { stride_hz = 1.25f + 0.08f * v; beats = 2; }     // trot, 2-beat
+    else if (v < 8.0f) { stride_hz = 1.5f + 0.05f * v; beats = 3; }      // canter, 3-beat
+    else { stride_hz = 1.8f + 0.03f * v; beats = 4; }                    // gallop, 4-beat
     // the horse is spent: its heart pounds, it heaves
     if (g.mount_stamina < 15 && v > 2 && horse_gain_ > 0) {
         if (now >= next_horse_heart_) {
@@ -94,7 +113,7 @@ void Features::horse(const GameSnapshot& g, double now, std::vector<Cue>& cues, 
     rearing_ = rear;
     // the triggers feel the gait while riding unarmed
     if (!weapon_active && riding_pulse_ > 0 && stride_hz > 0.8f && !g.aiming) {
-        int hz = clampv(int(std::lround(stride_hz * float(beats.size()) / 2)), 1, 8);
+        int hz = clampv(int(std::lround(stride_hz * float(beats) / 2)), 1, 8);
         out.r2 = fx::galloping(3, 9, 4, 7, hz);
         out.l2 = fx::galloping(3, 9, 4, 7, hz);
     }
@@ -194,14 +213,37 @@ void Features::update(const InputState& in, const GameSnapshot& g, std::vector<W
             damage_flash_ = 0.5f + 0.5f * e.strength;
         } else if (e.type == WorldEvent::Gunfire && gunfire_gain_ > 0) {
             cues.push_back(make("gunfire_near", gunfire_gain_ * e.strength, e.pan, true));
+        } else if (e.type == WorldEvent::Explosion && gunfire_gain_ > 0) {
+            // blasts: the game's own explosion recordings; the strength by distance, the side it came from. A close one
+            // (15 m or less) hits at full force and shakes the whole controller - only leaning to its side - and the
+            // shock reaches the triggers
+            const std::string& k = e.cause;
+            std::string name = k == "thunder" ? "thunder_strike" : k == "fire" ? "explosion_fire"
+                             : k == "small" ? "explosion_small" : "explosion_far";
+            const bool close = e.strength >= 0.8f;
+            float pan = close ? e.pan * 0.5f : e.pan;
+            cues.push_back(make(name, gunfire_gain_ * 2.0f * e.strength, pan, pan != 0, true));
+            if (k == "blast") cues.push_back(make("explosion_roll", gunfire_gain_ * 2.0f * e.strength, pan, pan != 0, true));
+            if (close && (k == "blast" || k == "thunder")) {
+                shock_t_ = now;
+                shock_amp_ = e.strength;
+            }
         } else if (e.type == WorldEvent::HitConfirm && hit_gain_ > 0) {
             cues.push_back(make("hit_confirm", hit_gain_, 0.6f, true));
         } else if (e.type == WorldEvent::Footstep && step_gain_ > 0) {
-            // boots: left foot on the left actuator, right on the right; the surface decides the feel
-            cues.push_back(make("step_" + e.cause, step_gain_ * e.strength * rng_.range(0.9f, 1.08f), e.pan, true));
-        } else if (e.type == WorldEvent::Hoof && horse_gain_ > 0 && hooves_live_) {
+            // boots: left foot on the left actuator, right on the right; the ground decides the character, the pace
+            // the weight - a sprint lands heavier and longer than a stroll, not just louder
+            Cue c = make("step_" + e.cause, step_gain_ * e.strength * rng_.range(0.9f, 1.08f), e.pan, true);
+            c.speed = g.speed < 2.2f ? 1.06f : g.speed < 4.8f ? 0.97f : 0.9f;
+            cues.push_back(c);
+            through(g.wade, g.foliage, g.foliage_height, g.speed, step_gain_, e.pan, cues);
+        } else if (e.type == WorldEvent::Hoof && horse_gain_ > 0) {
             last_hoof_event_ = now;
-            cues.push_back(make("hoof_" + e.cause, horse_gain_ * e.strength * rng_.range(0.88f, 1.08f), e.pan, true));
+            Cue c = make("hoof_" + e.cause, horse_gain_ * e.strength * rng_.range(0.88f, 1.08f), e.pan, true);
+            float v = g.mount_speed;
+            c.speed = v < 2.3f ? 1.06f : 1.0f;       // a walk crisper; faster gaits carry their energy in more hoofbeats
+            cues.push_back(c);
+            through(g.horse_wade, g.horse_foliage, g.horse_foliage_height, v, horse_gain_ * 0.8f, e.pan, cues);
         } else if (e.type == WorldEvent::Land && land_gain_ > 0) {
             cues.push_back(make("land", land_gain_ * e.strength));
             cues.push_back(make("step_" + e.cause, step_gain_ * 1.2f));
@@ -239,8 +281,9 @@ void Features::update(const InputState& in, const GameSnapshot& g, std::vector<W
         }
     }
     if (!g.blocked && weather_gain_ > 0 && !g.indoors) {             // rain on the hat, as heavy as the game's rain
+        // single drops you can count, not a buzz: ~2/s in a drizzle, ~4/s in rain, ~9/s in a downpour (was up to ~33/s)
         if (g.rain > 0.05f && now >= next_drop_) {
-            next_drop_ = now + rng_.range(0.3f, 1.7f) / (3.0f + 30.0f * g.rain);
+            next_drop_ = now + rng_.range(0.5f, 1.5f) / (1.5f + 8.0f * g.rain);
             cues.push_back(make("rain_drop", weather_gain_ * rng_.range(0.3f, 1.0f), rng_.range(-0.8f, 0.8f), true));
         }
     }
@@ -261,6 +304,12 @@ void Features::update(const InputState& in, const GameSnapshot& g, std::vector<W
     if (!g.halted) {                    // the world keeps moving in cutscenes: hooves, wagons and trains are felt there too
         horse(g, now, cues, out, weapon_active);
         transport(g, now, cues);
+        rustle(!g.on_mount && !g.in_vehicle && !g.swimming && g.foliage, g.foliage_height, g.speed, step_gain_,
+               foliage_was_, next_brush_, now, cues);
+        rustle(g.on_mount && g.horse_foliage, g.horse_foliage_height, g.mount_speed, horse_gain_, horse_foliage_was_,
+               next_horse_brush_, now, cues);
+        if (g.on_mount) splash(g.horse_wade, horse_wade_was_, g.mount_speed, horse_gain_, cues);
+        else if (!g.in_vehicle && !g.swimming) splash(g.wade, wade_was_, g.speed, step_gain_ * 1.5f, cues);
     }
     if (!g.blocked) {                   // Arthur's own state: only while you play him
         // Gun leather, from the weapon in hand changing (the game's holster flag may rise before or after it): the gun
@@ -290,6 +339,16 @@ void Features::update(const InputState& in, const GameSnapshot& g, std::vector<W
         if (cold_gain_ > 0 && g.temperature < -5 && now >= next_shiver_) {
             next_shiver_ = now + rng_.range(4.0f, 9.0f);
             cues.push_back(make("shiver", cold_gain_ * clampv((-g.temperature - 5) / 10.0f + 0.4f, 0.4f, 1.0f)));
+        }
+    }
+    // a close blast's shock in both triggers: hard at first, dying away over ~0.45 s (the weapon's own trigger feel
+    // steps aside only for that moment)
+    double since = now - shock_t_;
+    if (triggers_on_ && !g.halted && since >= 0 && since < 0.45) {
+        int a = int(std::lround(shock_amp_ * (since < 0.15 ? 8 : since < 0.3 ? 5 : 2)));
+        if (a > 0) {
+            out.r2 = fx::vibration(0, a, 35);
+            out.l2 = out.r2;
         }
     }
     lightbar(g, weapon, now, out);

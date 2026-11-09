@@ -23,6 +23,8 @@ public:
     bool set(const std::string& section, const std::string& key, const std::string& value);
 
 private:
+    void migrate();                                // older defaults still untouched -> the current ones
+    bool migrating_ = false;
     mutable std::shared_mutex mu_;                 // the settings page writes while other threads read
     std::map<std::string, std::string> values_;
     std::wstring path_;   // "section.key" lowercase -> value

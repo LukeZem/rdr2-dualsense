@@ -235,11 +235,15 @@
   "rag_light": {"gain": 1.0, "layers": [
     {"type": "noise", "lo": 80, "hi": 240, "attack_ms": 40, "decay_ms": 100, "amp": 0.2, "pan": -0.3}
   ]},
-  "explosion_far": {"gain": 0.9, "layers": [
-    {"type": "game", "bank": "EXPLOSIONS", "role": "explosion", "convert": "explosion", "amp": 1.0}
+  "explosion_far": {"_doc": "a blast: the game's own recording and a hard shove of the pressure wave (explosion_roll plays along)", "gain": 1.0, "layers": [
+    {"type": "game", "bank": "EXPLOSIONS", "role": "explosion", "convert": "explosion", "amp": 1.0},
+    {"type": "tone", "hz": 50, "to_hz": 28, "attack_ms": 2, "decay_ms": 180, "amp": 0.8}
   ], "fallback": [
     {"type": "tone", "hz": 38, "to_hz": 26, "attack_ms": 15, "decay_ms": 260, "amp": 1.0},
     {"type": "noise", "lo": 25, "hi": 140, "attack_ms": 10, "decay_ms": 300, "amp": 0.7}
+  ]},
+  "explosion_roll": {"_doc": "after a blast the ground rolls on for ~2-3 s", "gain": 1.0, "variants": 2, "layers": [
+    {"type": "noise", "lo": 25, "hi": 70, "delay_ms": 120, "attack_ms": 150, "decay_ms": 1100, "amp": 0.45}
   ]},
   "bottle_burst": {"gain": 1.0, "layers": [
     {"type": "click", "hz": 380, "cycles": 2, "amp": 0.4},
@@ -340,33 +344,37 @@
   "deadeye_out": {"gain": 1.0, "layers": [
     {"type": "tone", "hz": 35, "to_hz": 90, "attack_ms": 20, "decay_ms": 60, "amp": 0.4}
   ]},
-  "hoof_dirt": {"_doc": "packed earth: soft thud", "gain": 1.0, "layers": [
-    {"type": "tone", "hz": 58, "to_hz": 44, "attack_ms": 3, "decay_ms": 30, "amp": 0.9},
-    {"type": "noise", "lo": 50, "hi": 160, "decay_ms": 22, "amp": 0.35}
+  "hoof_dirt": {"_doc": "packed earth: a heavy thud", "gain": 1.0, "variants": 4, "layers": [
+    {"type": "tone", "hz": 58, "to_hz": 46, "attack_ms": 2, "decay_ms": 30, "amp": 0.9},
+    {"type": "noise", "lo": 50, "hi": 160, "attack_ms": 1, "decay_ms": 22, "amp": 0.35}
   ]},
-  "hoof_mud": {"_doc": "mud: dull, sucking, no click", "gain": 1.0, "layers": [
-    {"type": "tone", "hz": 46, "to_hz": 36, "attack_ms": 8, "decay_ms": 40, "amp": 0.75},
-    {"type": "noise", "lo": 40, "hi": 120, "delay_ms": 20, "attack_ms": 15, "decay_ms": 45, "amp": 0.25}
+  "hoof_mud": {"_doc": "mud: heavy, sinking - and sucking free", "gain": 1.0, "variants": 4, "layers": [
+    {"type": "tone", "hz": 44, "attack_ms": 4, "decay_ms": 42, "amp": 0.85},
+    {"type": "noise", "lo": 40, "hi": 120, "attack_ms": 15, "decay_ms": 48, "amp": 0.3},
+    {"type": "tone", "hz": 70, "to_hz": 42, "attack_ms": 10, "decay_ms": 26, "amp": 0.3, "delay_ms": 130}
   ]},
-  "hoof_stone": {"_doc": "stone, cobbles, rock: hard clack", "gain": 1.0, "layers": [
-    {"type": "click", "hz": 240, "cycles": 1, "amp": 0.8},
-    {"type": "tone", "hz": 70, "to_hz": 52, "decay_ms": 18, "amp": 0.6}
+  "hoof_stone": {"_doc": "stone / cobbles: the clip-clop of shod hooves", "gain": 1.0, "variants": 4, "layers": [
+    {"type": "click", "hz": 340, "cycles": 1.5, "amp": 0.9},
+    {"type": "tone", "hz": 76, "attack_ms": 1, "decay_ms": 16, "amp": 0.75}
   ]},
-  "hoof_wood": {"_doc": "bridge planks: hollow knock with ring", "gain": 1.0, "layers": [
-    {"type": "click", "hz": 180, "cycles": 1, "amp": 0.7},
-    {"type": "tone", "hz": 95, "to_hz": 85, "decay_ms": 45, "amp": 0.55}
+  "hoof_wood": {"_doc": "bridge planks: a hollow clop that rings", "gain": 1.0, "variants": 4, "layers": [
+    {"type": "click", "hz": 260, "cycles": 1, "amp": 0.75},
+    {"type": "tone", "hz": 100, "to_hz": 92, "attack_ms": 1, "decay_ms": 45, "amp": 0.6},
+    {"type": "tone", "hz": 62, "attack_ms": 2, "decay_ms": 26, "amp": 0.45}
   ]},
-  "hoof_snow": {"_doc": "snow: muffled crunch", "gain": 1.0, "layers": [
-    {"type": "noise", "lo": 90, "hi": 260, "attack_ms": 10, "decay_ms": 30, "amp": 0.45},
-    {"type": "tone", "hz": 50, "decay_ms": 25, "amp": 0.45}
+  "hoof_snow": {"_doc": "snow: a muffled packing thump with a crunch", "gain": 1.0, "variants": 4, "layers": [
+    {"type": "tone", "hz": 48, "attack_ms": 5, "decay_ms": 36, "amp": 0.85},
+    {"type": "noise", "lo": 90, "hi": 240, "attack_ms": 10, "decay_ms": 28, "amp": 0.28},
+    {"type": "click", "hz": 260, "cycles": 1, "amp": 0.15, "delay_ms": 20}
   ]},
-  "hoof_sand": {"gain": 1.0, "layers": [
-    {"type": "noise", "lo": 60, "hi": 180, "attack_ms": 6, "decay_ms": 28, "amp": 0.45},
-    {"type": "tone", "hz": 52, "decay_ms": 22, "amp": 0.5}
+  "hoof_sand": {"_doc": "sand: soft, spread out", "gain": 1.0, "variants": 4, "layers": [
+    {"type": "noise", "lo": 60, "hi": 180, "attack_ms": 8, "decay_ms": 36, "amp": 0.5},
+    {"type": "tone", "hz": 50, "attack_ms": 6, "decay_ms": 30, "amp": 0.6}
   ]},
-  "hoof_water": {"_doc": "wading: slow splashy push", "gain": 1.0, "layers": [
-    {"type": "noise", "lo": 50, "hi": 200, "attack_ms": 20, "decay_ms": 60, "amp": 0.45},
-    {"type": "tone", "hz": 42, "attack_ms": 15, "decay_ms": 50, "amp": 0.4}
+  "hoof_water": {"_doc": "water: a heavy splash and spray", "gain": 1.0, "variants": 4, "layers": [
+    {"type": "tone", "hz": 42, "attack_ms": 3, "decay_ms": 45, "amp": 0.5},
+    {"type": "noise", "lo": 50, "hi": 220, "attack_ms": 3, "decay_ms": 55, "amp": 0.5},
+    {"type": "noise", "lo": 150, "hi": 380, "attack_ms": 15, "decay_ms": 70, "amp": 0.22, "delay_ms": 40}
   ]},
   "horse_heartbeat": {"_doc": "a big heart under you: deep, fast lub-dub", "gain": 1.0, "layers": [
     {"type": "tone", "hz": 38, "to_hz": 30, "attack_ms": 8, "decay_ms": 40, "amp": 0.75},
@@ -417,48 +425,97 @@
     {"type": "tone", "hz": 22, "attack_ms": 120, "decay_ms": 200, "amp": 0.35},
     {"type": "noise", "lo": 18, "hi": 40, "attack_ms": 100, "decay_ms": 220, "amp": 0.25}
   ]},
-  "step_ground": {"_doc": "boot heel on packed earth: short soft thud", "gain": 1.0, "layers": [
-    {"type": "tone", "hz": 62, "to_hz": 48, "attack_ms": 2, "decay_ms": 16, "amp": 0.8},
-    {"type": "noise", "lo": 60, "hi": 170, "decay_ms": 12, "amp": 0.25}
+  "step_ground": {"_doc": "packed earth: a short heel thud", "gain": 0.75, "variants": 4, "layers": [
+    {"type": "tone", "hz": 66, "to_hz": 54, "attack_ms": 2, "decay_ms": 16, "amp": 0.8},
+    {"type": "noise", "lo": 60, "hi": 180, "attack_ms": 1, "decay_ms": 12, "amp": 0.22}
   ]},
-  "step_grass": {"_doc": "grass: softer, a brush of blades", "gain": 1.0, "layers": [
-    {"type": "tone", "hz": 56, "to_hz": 44, "attack_ms": 4, "decay_ms": 15, "amp": 0.6},
-    {"type": "noise", "lo": 110, "hi": 280, "attack_ms": 8, "decay_ms": 22, "amp": 0.22}
+  "step_grass": {"_doc": "grass: a soft thud and a brush of blades", "gain": 0.75, "variants": 4, "layers": [
+    {"type": "tone", "hz": 56, "to_hz": 48, "attack_ms": 4, "decay_ms": 15, "amp": 0.65},
+    {"type": "noise", "lo": 120, "hi": 320, "attack_ms": 8, "decay_ms": 24, "amp": 0.2, "delay_ms": 6}
   ]},
-  "step_mud": {"_doc": "mud: the boot sinks, no heel click, a slow suck", "gain": 1.0, "layers": [
-    {"type": "tone", "hz": 46, "to_hz": 36, "attack_ms": 10, "decay_ms": 30, "amp": 0.7},
-    {"type": "noise", "lo": 40, "hi": 120, "delay_ms": 25, "attack_ms": 20, "decay_ms": 40, "amp": 0.22}
+  "step_mud": {"_doc": "mud: heavier, the boot sinks - and sucks free", "gain": 0.75, "variants": 4, "layers": [
+    {"type": "tone", "hz": 44, "to_hz": 40, "attack_ms": 6, "decay_ms": 26, "amp": 0.7},
+    {"type": "noise", "lo": 40, "hi": 120, "attack_ms": 12, "decay_ms": 30, "amp": 0.25},
+    {"type": "tone", "hz": 75, "to_hz": 45, "attack_ms": 8, "decay_ms": 18, "amp": 0.25, "delay_ms": 140}
   ]},
-  "step_stone": {"_doc": "rock / cobbles: hard heel click", "gain": 1.0, "layers": [
-    {"type": "click", "hz": 260, "cycles": 1, "amp": 0.75},
-    {"type": "tone", "hz": 75, "to_hz": 58, "decay_ms": 10, "amp": 0.5}
+  "step_stone": {"_doc": "rock / cobbles: hard and clicky - heel, then toe", "gain": 0.75, "variants": 4, "layers": [
+    {"type": "click", "hz": 320, "cycles": 1.5, "amp": 0.75},
+    {"type": "tone", "hz": 88, "attack_ms": 1, "decay_ms": 9, "amp": 0.6},
+    {"type": "click", "hz": 240, "cycles": 1, "amp": 0.3, "delay_ms": 22}
   ]},
-  "step_gravel": {"_doc": "gravel: crunch with a little rattle", "gain": 1.0, "layers": [
-    {"type": "click", "hz": 220, "cycles": 1, "amp": 0.4},
-    {"type": "noise", "lo": 140, "hi": 380, "attack_ms": 3, "decay_ms": 26, "amp": 0.45},
-    {"type": "tone", "hz": 60, "decay_ms": 12, "amp": 0.4}
+  "step_gravel": {"_doc": "gravel: a granular crunch of small stones", "gain": 0.75, "variants": 4, "layers": [
+    {"type": "tone", "hz": 60, "attack_ms": 2, "decay_ms": 11, "amp": 0.55},
+    {"type": "click", "hz": 330, "cycles": 1, "amp": 0.3},
+    {"type": "click", "hz": 280, "cycles": 1, "amp": 0.26, "delay_ms": 8},
+    {"type": "click", "hz": 360, "cycles": 1, "amp": 0.24, "delay_ms": 15},
+    {"type": "click", "hz": 300, "cycles": 1, "amp": 0.18, "delay_ms": 24},
+    {"type": "noise", "lo": 150, "hi": 420, "attack_ms": 2, "decay_ms": 18, "amp": 0.3}
   ]},
-  "step_wood": {"_doc": "floorboards / boardwalk: hollow knock that rings a moment", "gain": 1.0, "layers": [
-    {"type": "click", "hz": 190, "cycles": 1, "amp": 0.65},
-    {"type": "tone", "hz": 98, "to_hz": 90, "decay_ms": 32, "amp": 0.5}
+  "step_wood": {"_doc": "boards: a short hollow knock", "gain": 0.75, "variants": 4, "layers": [
+    {"type": "click", "hz": 260, "cycles": 1, "amp": 0.6},
+    {"type": "tone", "hz": 105, "to_hz": 95, "attack_ms": 1, "decay_ms": 26, "amp": 0.45},
+    {"type": "tone", "hz": 68, "attack_ms": 2, "decay_ms": 14, "amp": 0.4}
   ]},
-  "step_snow": {"_doc": "snow: muffled crunch, packing down", "gain": 1.0, "layers": [
-    {"type": "noise", "lo": 90, "hi": 260, "attack_ms": 12, "decay_ms": 28, "amp": 0.45},
-    {"type": "tone", "hz": 52, "attack_ms": 6, "decay_ms": 18, "amp": 0.4}
+  "step_snow": {"_doc": "snow: a muffled packing-down thump with a crunch", "gain": 0.75, "variants": 4, "layers": [
+    {"type": "tone", "hz": 50, "attack_ms": 5, "decay_ms": 24, "amp": 0.7},
+    {"type": "noise", "lo": 90, "hi": 260, "attack_ms": 10, "decay_ms": 20, "amp": 0.25},
+    {"type": "click", "hz": 280, "cycles": 1, "amp": 0.15, "delay_ms": 18}
   ]},
-  "step_sand": {"gain": 1.0, "layers": [
-    {"type": "noise", "lo": 60, "hi": 170, "attack_ms": 6, "decay_ms": 24, "amp": 0.4},
-    {"type": "tone", "hz": 54, "decay_ms": 14, "amp": 0.45}
+  "step_sand": {"_doc": "sand: light and spread out", "gain": 0.75, "variants": 4, "layers": [
+    {"type": "noise", "lo": 60, "hi": 170, "attack_ms": 8, "decay_ms": 30, "amp": 0.4},
+    {"type": "tone", "hz": 50, "attack_ms": 6, "decay_ms": 20, "amp": 0.45}
   ]},
-  "step_water": {"_doc": "wading: a slow push and splash", "gain": 1.0, "layers": [
-    {"type": "noise", "lo": 50, "hi": 200, "attack_ms": 18, "decay_ms": 55, "amp": 0.45},
-    {"type": "tone", "hz": 44, "attack_ms": 12, "decay_ms": 40, "amp": 0.4}
+  "step_water": {"_doc": "shallow water: a splash", "gain": 0.75, "variants": 4, "layers": [
+    {"type": "tone", "hz": 44, "attack_ms": 3, "decay_ms": 26, "amp": 0.45},
+    {"type": "noise", "lo": 80, "hi": 260, "attack_ms": 3, "decay_ms": 32, "amp": 0.45},
+    {"type": "noise", "lo": 160, "hi": 380, "attack_ms": 12, "decay_ms": 40, "amp": 0.18, "delay_ms": 30}
   ]},
-  "hoof_ground": {"gain": 1.0, "layers": [{"type": "ref", "name": "hoof_dirt"}]},
-  "hoof_grass": {"gain": 0.85, "layers": [{"type": "ref", "name": "hoof_dirt"},
-    {"type": "noise", "lo": 110, "hi": 280, "attack_ms": 8, "decay_ms": 22, "amp": 0.18}]},
-  "hoof_gravel": {"gain": 1.0, "layers": [{"type": "ref", "name": "hoof_dirt"},
-    {"type": "noise", "lo": 140, "hi": 380, "attack_ms": 3, "decay_ms": 26, "amp": 0.35}]},
+  "brush_in": {"_doc": "pushing into a bush: a soft swish of branches", "gain": 0.45, "variants": 3, "layers": [
+    {"type": "noise", "lo": 150, "hi": 400, "attack_ms": 15, "decay_ms": 90, "amp": 0.6},
+    {"type": "noise", "lo": 80, "hi": 200, "attack_ms": 25, "decay_ms": 110, "amp": 0.25}
+  ]},
+  "explosion_fire": {"_doc": "a Molotov / lantern / fire arrow: a whoomp of flame, then crackle", "gain": 1.0, "variants": 2, "layers": [
+    {"type": "noise", "lo": 40, "hi": 160, "attack_ms": 30, "decay_ms": 250, "amp": 0.7},
+    {"type": "tone", "hz": 45, "to_hz": 30, "attack_ms": 20, "decay_ms": 200, "amp": 0.5},
+    {"type": "noise", "lo": 150, "hi": 350, "attack_ms": 80, "decay_ms": 300, "amp": 0.25, "delay_ms": 60}
+  ]},
+  "explosion_small": {"_doc": "an explosive round / firework going off: a short hard thump", "gain": 1.0, "variants": 3, "layers": [
+    {"type": "tone", "hz": 55, "to_hz": 38, "attack_ms": 3, "decay_ms": 70, "amp": 0.8},
+    {"type": "noise", "lo": 40, "hi": 180, "attack_ms": 2, "decay_ms": 90, "amp": 0.5}
+  ]},
+  "thunder_strike": {"_doc": "lightning striking near: a crack, then a long rolling rumble", "gain": 1.0, "variants": 2, "layers": [
+    {"type": "click", "hz": 200, "cycles": 1, "amp": 0.6},
+    {"type": "tone", "hz": 40, "to_hz": 28, "attack_ms": 5, "decay_ms": 300, "amp": 0.9},
+    {"type": "noise", "lo": 25, "hi": 110, "attack_ms": 40, "decay_ms": 600, "amp": 0.6, "delay_ms": 80},
+    {"type": "noise", "lo": 30, "hi": 90, "attack_ms": 200, "decay_ms": 900, "amp": 0.35, "delay_ms": 300}
+  ]},
+  "wade_push": {"_doc": "a leg pushing through water: a slow swell of resistance", "gain": 1.0, "variants": 4, "layers": [
+    {"type": "noise", "lo": 40, "hi": 140, "attack_ms": 60, "decay_ms": 120, "amp": 0.6},
+    {"type": "tone", "hz": 38, "attack_ms": 50, "decay_ms": 110, "amp": 0.35}
+  ]},
+  "brush": {"_doc": "moving through bushes / reeds / tall grass: a light rustle of leaves", "gain": 0.6, "variants": 4, "layers": [
+    {"type": "noise", "lo": 180, "hi": 420, "attack_ms": 20, "decay_ms": 70, "amp": 0.5},
+    {"type": "noise", "lo": 120, "hi": 260, "attack_ms": 30, "decay_ms": 90, "amp": 0.2, "delay_ms": 25}
+  ]},
+  "splash": {"_doc": "splashing into water", "gain": 1.0, "variants": 2, "layers": [
+    {"type": "noise", "lo": 60, "hi": 240, "attack_ms": 2, "decay_ms": 90, "amp": 0.7},
+    {"type": "tone", "hz": 40, "attack_ms": 2, "decay_ms": 70, "amp": 0.5},
+    {"type": "noise", "lo": 150, "hi": 400, "attack_ms": 20, "decay_ms": 120, "amp": 0.3, "delay_ms": 50}
+  ]},
+  "hoof_ground": {"_doc": "ground: as packed earth", "gain": 1.0, "variants": 4, "layers": [
+    {"type": "ref", "name": "hoof_dirt"}
+  ]},
+  "hoof_grass": {"_doc": "grass: the thud, softened, a brush of blades", "gain": 0.9, "variants": 4, "layers": [
+    {"type": "ref", "name": "hoof_dirt", "amp": 0.85},
+    {"type": "noise", "lo": 110, "hi": 300, "attack_ms": 6, "decay_ms": 26, "amp": 0.2}
+  ]},
+  "hoof_gravel": {"_doc": "gravel: the thud and a scatter of stones", "gain": 1.0, "variants": 4, "layers": [
+    {"type": "ref", "name": "hoof_dirt"},
+    {"type": "click", "hz": 320, "cycles": 1, "amp": 0.3, "delay_ms": 4},
+    {"type": "click", "hz": 270, "cycles": 1, "amp": 0.26, "delay_ms": 12},
+    {"type": "click", "hz": 350, "cycles": 1, "amp": 0.22, "delay_ms": 20},
+    {"type": "noise", "lo": 140, "hi": 400, "attack_ms": 3, "decay_ms": 24, "amp": 0.3}
+  ]},
   "land": {"_doc": "landing from a jump or drop: knees take it", "gain": 1.0, "layers": [
     {"type": "tone", "hz": 50, "to_hz": 34, "attack_ms": 3, "decay_ms": 55, "amp": 1.0},
     {"type": "noise", "lo": 40, "hi": 140, "decay_ms": 35, "amp": 0.4}
@@ -508,7 +565,10 @@
   "domino_clack": {"_doc": "a domino tile set down against the others", "gain": 1.0, "layers": [{"type": "click", "hz": 280, "cycles": 1, "amp": 0.7, "pan": 0.4}, {"type": "click", "hz": 250, "cycles": 1, "delay_ms": 35, "amp": 0.35, "pan": 0.4}]},
   "horse_pat": {"_doc": "your palm on the horse's neck: two soft pats", "gain": 1.0, "layers": [{"type": "tone", "hz": 65, "to_hz": 50, "attack_ms": 8, "decay_ms": 60, "amp": 0.5, "pan": 0.0}, {"type": "tone", "hz": 65, "to_hz": 50, "delay_ms": 260, "attack_ms": 8, "decay_ms": 60, "amp": 0.45, "pan": 0.0}]},
   "rein_pull": {"_doc": "the reins drawn back", "gain": 1.0, "layers": [{"type": "noise", "lo": 60, "hi": 180, "attack_ms": 60, "decay_ms": 150, "amp": 0.45, "pan": 0.0}, {"type": "tone", "hz": 50, "attack_ms": 60, "decay_ms": 160, "amp": 0.4, "pan": 0.0}]},
-  "rain_drop": {"_doc": "one drop on the hat brim", "gain": 1.0, "layers": [{"type": "click", "hz": 380, "cycles": 1, "amp": 0.3, "pan": 0.0}]},
+  "rain_drop": {"_doc": "one rain drop on the hat brim: a small, crisp tap", "gain": 0.35, "variants": 4, "layers": [
+    {"type": "click", "hz": 220, "cycles": 1.5, "amp": 1.0},
+    {"type": "tone", "hz": 150, "attack_ms": 0.5, "decay_ms": 6, "amp": 0.5}
+  ]},
   "bite": {"_doc": "teeth through food: a crunch and a chew", "gain": 1.0, "layers": [{"type": "click", "hz": 240, "cycles": 1, "amp": 0.45, "pan": 0.0}, {"type": "noise", "lo": 90, "hi": 260, "delay_ms": 10, "decay_ms": 45, "amp": 0.35, "pan": 0.0}]},
   "gulp": {"_doc": "a swallow: a soft low pulse, then a second", "gain": 1.0, "layers": [{"type": "tone", "hz": 70, "to_hz": 55, "attack_ms": 25, "decay_ms": 70, "amp": 0.45, "pan": 0.0}, {"type": "tone", "hz": 65, "to_hz": 50, "delay_ms": 260, "attack_ms": 25, "decay_ms": 70, "amp": 0.35, "pan": 0.0}]},
   "puff": {"_doc": "a long draw on the smoke, swelling", "gain": 1.0, "layers": [{"type": "noise", "lo": 40, "hi": 120, "attack_ms": 350, "decay_ms": 250, "amp": 0.3, "pan": 0.0}]},

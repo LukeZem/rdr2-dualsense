@@ -169,6 +169,7 @@ DWORD Input::get_state(DWORD idx, XINPUT_STATE* out) {
                 return real_get_ ? real_get_(idx, out) : ERROR_DEVICE_NOT_CONNECTED;
             }
             *out = state_;
+            if (state_.Gamepad.bRightTrigger >= 128) rt_press_read_t_ = now_s();   // debug: the game saw R2 pressed
             return ERROR_SUCCESS;
         }
     }

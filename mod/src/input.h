@@ -25,6 +25,7 @@ public:
 
     // game rumble (XInputSetState) 0..1
     float rumble_low() const { return rumble_low_.load(); }
+    double rt_press_read_t() const { return rt_press_read_t_.load(); }   // when the game last read R2 pressed
     float rumble_high() const { return rumble_high_.load(); }
 
     // hook targets
@@ -41,6 +42,7 @@ private:
     double lt_until_ = 0;
     int lt_probe_ = -1;
     std::atomic<float> rumble_low_{0}, rumble_high_{0};
+    std::atomic<double> rt_press_read_t_{0};
     WORD touch_click_ = XINPUT_GAMEPAD_BACK, swipe_[4] = {0, 0, 0, 0}, two_finger_ = 0;
     // touch tracking
     bool touching_ = false;

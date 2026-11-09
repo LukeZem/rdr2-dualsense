@@ -32,6 +32,26 @@ inline float GET_ENTITY_SPEED(Entity e) { return invoke<float>(0xFB6BA510A533DF8
 inline Vector3 GET_ENTITY_ROTATION(Entity e) { return invoke<Vector3>(0xE09CAF86C32CB48Full, e, 2); }
 inline bool IS_ENTITY_IN_WATER(Entity e) { return invoke<int>(0xDDE5C125AC446723ull, e) != 0; }
 inline float GET_ENTITY_SUBMERGED_LEVEL(Entity e) { return invoke<float>(0x4A77C3F73FD9E831ull, e); }
+inline int GET_ENTITY_TYPE(Entity e) { return invoke<int>(0x97F696ACA466B4E0ull, e); }   // 1 ped, 2 vehicle, 3 object
+// shape tests (asynchronous): start, then poll the result on a later frame (2 = ready)
+inline int START_SHAPE_TEST_CAPSULE(float x1, float y1, float z1, float x2, float y2, float z2, float r, int flags, Entity ignore,
+                                    int options) {
+    return invoke<int>(0x28579D1B8F8AAC80ull, x1, y1, z1, x2, y2, z2, r, flags, ignore, options);
+}
+inline int GET_SHAPE_TEST_RESULT(int handle, int* hit, Vector3* end, Vector3* normal, Entity* entity) {
+    return invoke<int>(0xEDE8AC7C5108FB1Dull, handle, hit, end, normal, entity);
+}
+// weather: a type by name hash ("RAIN", "THUNDERSTORM", "SNOW", "SUNNY"...), kept (persist) after a transition
+inline void SET_WEATHER_TYPE(Hash type, bool persist, bool p2, bool transition, float seconds, bool p5) {
+    invoke<int>(0x59174F1AFE095B5Aull, type, int(persist), int(p2), int(transition), seconds, int(p5));
+}
+inline void CLEAR_WEATHER_TYPE_PERSIST() { invoke<int>(0xD85DFE5C131E4AE9ull); }
+inline void CLEAR_OVERRIDE_WEATHER() { invoke<int>(0x80A398F16FFE3CC3ull); }
+// an explosion of this tag (-1 any) inside the sphere right now
+inline bool IS_EXPLOSION_IN_SPHERE(int tag, float x, float y, float z, float r) { return invoke<int>(0xD62DD846D82CBB90ull, tag, x, y, z, r) != 0; }
+// a ped's blackboard: "FoliageActive" (it is pushing through bushes / undergrowth), "FoliageHeight" (how high it is)
+inline bool _GET_PED_BLACKBOARD_BOOL(Ped p, const char* name) { return invoke<int>(0x498F2E77982D6945ull, p, name) != 0; }
+inline float _GET_PED_BLACKBOARD_FLOAT(Ped p, const char* name) { return invoke<float>(0x56E58D4D118FB45Eull, p, name); }
 inline bool IS_ENTITY_IN_AIR(Entity e) { return invoke<int>(0x886E37EC497200B6ull, e, 0) != 0; }
 inline bool HAS_ENTITY_BEEN_DAMAGED_BY_ENTITY(Entity a, Entity b) { return invoke<int>(0x7B6E7BEC1143AC86ull, a, b, 1, 1) != 0; }
 inline bool HAS_ENTITY_BEEN_DAMAGED_BY_ANY_PED(Entity e) { return invoke<int>(0x9934E9C42D52D87Eull, e) != 0; }

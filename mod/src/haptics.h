@@ -43,7 +43,7 @@ public:
 private:
     // audible = the same recipe an octave-and-more up, for the controller's small speaker
     const std::vector<Stereo>& render_recipe(const std::string& name, int depth, bool audible = false);
-    Stereo synth_layer(const nlohmann::json& layer, float freq_mul = 1.0f);
+    Stereo synth_layer(const nlohmann::json& layer, float freq_mul = 1.0f, int variant = 0);
 
     nlohmann::json recipes_;
     GameAudio* game_ = nullptr;

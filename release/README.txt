@@ -1,4 +1,4 @@
-DualSense for RDR2  v1.1.0  -  by OldKrab
+DualSense for RDR2  v1.2.0  -  by OldKrab
 ==========================================
 
 Full DualSense support for Red Dead Redemption 2 on PC: adaptive triggers made per weapon,
@@ -60,7 +60,13 @@ Horse      Hoofbeats from the real hooves at every gait, on the real ground (mud
            its heartbeat and breathing when it is spent, rearing.
 On foot    Footsteps from Arthur's real feet on the real ground, landings, ledge grabs, doors, drawing and
            holstering.
+Water      Wading drags at every step - the deeper and the faster, the heavier; a splash as you go in.
+Bushes     A rustle as you walk or ride into them, brushing while you move through.
 Around you Hits felt from the direction they came from, nearby gunfire, low-health heartbeat, shivering cold.
+Explosions From where and how far they go off, with the real blast; close ones shake the whole controller and
+           both triggers.
+Rain       Drops on the hat, as heavy as the game's rain.
+Fights     While shots fly, steps, hooves and rain step back so the fight comes through.
 Cutscenes  Steps, hooves, shots and hits are felt in cutscenes too.
 Dialogue   (experimental, off by default) Every spoken line as the speaker's voice in your hands - see below.
 Honor      A warm swell and gold glow when honor rises, a sinking thud when it falls.
@@ -70,7 +76,8 @@ Table games Five finger fillet (every stab - and the miss), poker and blackjack 
 Weapon wheel L2/R2 click like a selector switch while you browse.
 Lightbar   Muzzle flash, hits, Dead Eye, lantern flicker, wanted, low health, time of day.
            Player LEDs show the rounds left.
-Speaker    The game's own draw / holster / lasso sounds and mechanism clicks from the controller.
+Speaker    The game's own draw / holster / lasso sounds and mechanism clicks from the controller
+           (off by default: Sounds from the Controller).
 
 
 DIALOGUE HAPTICS (experimental, off by default)
@@ -100,8 +107,8 @@ In the game: Pause > Settings > Controls > Controller > DualSense - every settin
 left / right like the game's own (strengths: 5% per press, hold to run). Changes apply as soon as you close
 the menu. A setting's own options only show while it is On. On the title screen the page only tells you to
 load your story - the mod starts with the game.
-Everything is also in DualSenseRDR2.ini (every effect has its own strength, 0 = off); F9 reloads the file
-in game.
+Everything is also in DualSenseRDR2.ini (every effect has its own strength, 0 = off); F9 - or holding the
+PS button for a second - reloads the file in game.
 Gyro aim (EXPERIMENTAL, off by default): [Gyro] Mode=aim turns on small gyro corrections while you aim
 with L2. It is still being tuned and can feel floaty.
 F10 shows the ground under you; F10 again while shown overrides how it feels.
@@ -118,6 +125,18 @@ Source code (MIT): see the mod page.
 
 CHANGES
 -------
+1.2.0  Snow: no more constant vibration; steps and hooves in deep snow are felt.
+       Hoofbeats only from the real hooves - nothing generated - and steadier at a gallop; every step of both
+       feet is felt (the left foot could go silent).
+       Pause menu and loading screens: all vibration stops.
+       Water and mud: wading drags harder the deeper and faster you go, with a splash going in; every ground
+       has its own feel.
+       Bushes: a rustle as you walk or ride through them.
+       Explosions: felt from where and how far they go off, with the real blast; close ones shake the triggers.
+       Rain on by default (30%). In fights, steps, hooves and rain step back so shots and hits come through.
+       New defaults: Sounds from the Controller Off, Game's Own Rumble 15% (less buzzing near plants),
+       Rain 30% - applied to your ini unless you had changed them.
+       Hold PS for a second to reload the settings (like F9). Whistling while aiming no longer moves the gun.
 1.1.0  Dialogue haptics (experimental, off by default).
        Steps, hooves, shots and hits are felt in cutscenes too.
        Controller plugged in after the game started (or pulled out and back) works within a second -

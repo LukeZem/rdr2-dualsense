@@ -11,6 +11,7 @@
 #include "haptics.h"
 #include "voice.h"
 
+#include <map>
 #include <memory>
 
 namespace dsr2 {
@@ -36,6 +37,13 @@ private:
 
     bool in_game_ = false;
     double next_slot_check_ = 0;          // on_input: next look at the game's pad slot
+    double ps_since_ = -1;                // PS held since (hold ~1 s = reload)
+    double fight_until_ = 0;              // shots / hits lately: the everyday textures step back
+    bool record_cues_ = false;            // research: log every effect as it plays (Record=1)
+    bool ps_fired_ = false;
+    bool frozen_ = false;                 // debug: the game state stopped updating (pause / loading)
+    double frozen_log_t_ = 0;
+    std::map<std::string, int> frozen_cues_;
     std::string test_weapon_;
     Calibration cal_;
     int wheel_r2_ = 0, wheel_l2_ = 0;      // last trigger positions, for the wheel's selector clicks

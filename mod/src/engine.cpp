@@ -1,4 +1,5 @@
 #include "engine.h"
+#include "input.h"
 
 #include "log.h"
 
@@ -354,7 +355,11 @@ fx::Block WeaponEngine::update_gun(int raw, double now, EngineFrame& f, const Ga
                 schedule(now, shot_haptic_, haptic_gain_, await_variant_);
                 await_fire_ = -1;
             } else if (now - await_fire_ > 1.5) {  // the game didn't take the shot: no kick
-                LOGD("%s: no shot from the game - no kick", id_.c_str());
+                // debug: did the game even read the press (our XInput hook), and how full was the clip
+                double read = input().rt_press_read_t();
+                LOGD("%s: no shot from the game - no kick (the game %s R2 pressed; clip %d, reloading %d, ready %d)",
+                     id_.c_str(), read >= await_fire_ - 0.05 ? "read" : "never read", g.clip, int(g.reloading),
+                     int(g.ready));
                 await_fire_ = -1;
             }
         }

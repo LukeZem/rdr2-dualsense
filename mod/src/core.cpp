@@ -22,7 +22,8 @@ void Core::load_data() {
     log::set_debug(c.flag("General", "Debug", false));
     triggers_on_ = c.flag("Triggers", "Enabled", true);
     haptics_on_ = c.flag("Haptics", "Enabled", true);
-    speaker_mechanics_ = c.flag("Speaker", "Mechanics", true);
+    record_cues_ = log::debug_enabled() && c.flag("General", "Record", false);
+    speaker_mechanics_ = c.flag("Speaker", "Mechanics", false);
     settings_ = Settings{};
     settings_.manual_action = c.flag("Triggers", "ManualCocking", true);
     settings_.fanning = c.flag("Triggers", "Fanning", true);
@@ -31,7 +32,7 @@ void Core::load_data() {
     settings_.kick_scale = c.num("Triggers", "KickStrength", 1.0f);
     settings_.aim_resistance = clampv(c.integer("Triggers", "AimResistance", 1), 0, 2);
     settings_.reload_ticks = !in_game_;
-    settings_.scheduled_explosions = !in_game_ || c.num("Haptics", "GameAudio", 0.0f) <= 0;
+    settings_.scheduled_explosions = !in_game_;   // in game the real explosion is felt (World: IS_EXPLOSION_IN_SPHERE)
     cal_ = Calibration{};
     if (cal_.load(data_dir() / "calibration.json")) LOGI("calibration loaded");
     else LOGI("no calibration.json - estimated trigger zones (auto-align learns where your triggers break)");
@@ -46,7 +47,7 @@ void Core::load_data() {
     audio_.set_strength(c.num("Haptics", "Strength", 1.0f));
     audio_.set_speaker_volume(c.num("Speaker", "Volume", 0.35f));
     audio_.set_duck(c.num("Haptics", "Duck", 0.3f));
-    audio_.set_rumble_gain(c.num("Haptics", "GameRumble", 0.35f));
+    audio_.set_rumble_gain(c.num("Haptics", "GameRumble", 0.15f));
     audio_.set_game_audio_gain(c.num("Haptics", "GameAudio", 0.0f));
     dialogue().configure();
     engine_.reset();
@@ -181,9 +182,19 @@ bool Core::on_input(const InputState& s, OutputState& out) {
         load_data();
         apply_mic();
         LOGI("settings and data reloaded");
+        audio_.ack_flash_until = now_s() + 0.4;   // the confirmation flash: after the reload (it takes ~0.6 s)
     }
     GameSnapshot g = in_game_ ? world().snapshot() : GameSnapshot{};
     std::vector<WorldEvent> events = in_game_ ? world().take_events() : std::vector<WorldEvent>{};
+    // In the pause menu and on loading screens the game's scripts stand still - and so does our picture of the game.
+    // A stale picture must not keep anything going (the gait rhythm galloped on in the pause menu): treat it as
+    // halted, mute the game-clock tracks (dialogue) and the game's rumble until it moves again.
+    const bool frozen = in_game_ && g.valid && s.t - g.time > 0.25;
+    if (frozen) {
+        g.halted = true;
+        g.blocked = true;
+    }
+    audio_.set_tracks_muted(frozen);
 
     // a whistle is acted on at once - unless the speech recognizer has just heard / guessed a command ("chao")
     double wt = whistle_at_.load();
@@ -197,6 +208,9 @@ bool Core::on_input(const InputState& s, OutputState& out) {
             LOGI("whistle ignored: it was a spoken word");
         } else if (!playing) {
             LOGI("whistle ignored: a menu is open / not playing");
+        } else if (in_game_ && s.l2 > 30) {
+            // the whistle is D-pad Up - aiming it raises the gun, focused on someone it greets them
+            LOGI("whistle ignored: L2 held (aiming / focused on someone)");
         } else {
             input().inject(XINPUT_GAMEPAD_DPAD_UP, 0.25);
             confirm();
@@ -207,7 +221,8 @@ bool Core::on_input(const InputState& s, OutputState& out) {
     // which weapon is in hand
     uint32_t key = 0;
     if (in_game_) {
-        if (g.valid && !g.blocked && g.weapon) key = g.weapon;
+        if (frozen) key = engine_key_;             // paused: the same gun (not rebuilt), just inactive
+        else if (g.valid && !g.blocked && g.weapon) key = g.weapon;
     } else if (!test_weapon_.empty()) {
         key = joaat(test_weapon_);
     }
@@ -298,11 +313,49 @@ bool Core::on_input(const InputState& s, OutputState& out) {
         out.has_lightbar = true;
         out.r = 40; out.g = 160; out.b = 255;
     }
+    // Contrast (Returnal: the heaviest feel is kept for the greatest threats): while shots fly and hits land - ours,
+    // others' or an explosion - the everyday textures (steps, hooves, wading, bushes, rain, wheels) step back
+    bool fight = frame.flash;
+    for (const Cue& c : cues)
+        if (c.name == "gunfire_near" || c.name.rfind("hit_", 0) == 0 || c.name.rfind("explosion", 0) == 0) fight = true;
+    if (fight) fight_until_ = s.t + 3.0;
+    if (s.t < fight_until_)
+        for (Cue& c : cues) {
+            const std::string& n = c.name;
+            if (n.rfind("step_", 0) == 0 || n.rfind("hoof_", 0) == 0 || n == "wade_push" || n == "brush" || n == "brush_in" || n == "splash" ||
+                n == "rain_drop" || n == "wagon_rut" || n == "rail_clack")
+                c.gain *= 0.5f;
+        }
+    if (record_cues_ && haptics_on_)            // research (Record=1): every effect as it plays
+        for (const auto& c : cues) LOGD("cue: %s %.2f%s", c.name.c_str(), c.gain, c.has_pan ? (c.pan < -0.2f ? " left" : c.pan > 0.2f ? " right" : "") : "");
     if (haptics_on_)
         for (auto& c : cues) {
             if (in_game_ && g.cutscene) LOGD("cutscene: felt %s (%.2f)", c.name.c_str(), c.gain);   // which world events register in cutscenes
             audio_.play(c);
         }
+    // debug: what still plays while the game state is frozen (should be nothing)
+    if (in_game_ && g.valid && log::debug_enabled()) {
+        if (frozen != frozen_) {
+            frozen_ = frozen;
+            frozen_log_t_ = s.t;
+            frozen_cues_.clear();
+            if (frozen) LOGD("game state frozen (pause menu / loading) - effects paused");
+            else LOGD("game state live again");
+        }
+        if (frozen) {
+            if (haptics_on_)
+                for (const Cue& c : cues) frozen_cues_[c.name]++;
+            if (s.t - frozen_log_t_ >= 1.0) {
+                std::string what;
+                for (const auto& [name, n] : frozen_cues_) what += " " + name + " x" + std::to_string(n);
+                LOGD("frozen %.0f s: cues%s | game rumble %.2f / %.2f | haptic tracks %d", s.t - g.time,
+                     what.empty() ? " none" : what.c_str(), input().rumble_low(), input().rumble_high(),
+                     audio_.track_count());
+                frozen_cues_.clear();
+                frozen_log_t_ = s.t;
+            }
+        }
+    }
 
     int rt = weapon_active ? frame.game_rt : -1;
     input().publish(s, rt, true);
@@ -319,7 +372,7 @@ bool Core::on_input(const InputState& s, OutputState& out) {
         input().track_touch(s);
         input().track_gyro(s, in_game_ ? (g.free_aim && !g.lock_on && !g.blocked && !paused) : s.l2 > 128);
     }
-    if (paused) audio_.set_rumble(0, 0);                 // the game rumbles while you browse the wheel
+    if (paused || frozen) audio_.set_rumble(0, 0);       // the game rumbles while you browse the wheel
     else audio_.set_rumble(input().rumble_low(), input().rumble_high());
     if (!audio_.ok() && haptics_on_) {
         out.has_rumble = true;
@@ -327,6 +380,18 @@ bool Core::on_input(const InputState& s, OutputState& out) {
     }
     uint32_t pressed = s.buttons & ~prev_buttons_;
     prev_buttons_ = s.buttons;
+    // hold PS ~1 s: reload the ini and the data, like F9 (the game never sees the PS button)
+    if (s.buttons & PS) {
+        if (ps_since_ < 0) ps_since_ = s.t;
+        else if (!ps_fired_ && s.t - ps_since_ >= 1.0) {
+            ps_fired_ = true;
+            LOGI("PS held: reloading settings and data");
+            request_reload();
+        }
+    } else {
+        ps_since_ = -1;
+        ps_fired_ = false;
+    }
     if (pressed & MUTE) {
         audio_.set_mic_listening(!audio_.mic_listening());
         voice_.set_listening(audio_.mic_listening());

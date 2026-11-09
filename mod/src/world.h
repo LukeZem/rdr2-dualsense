@@ -8,6 +8,7 @@
 #include "surfaces.h"
 
 #include <deque>
+#include <fstream>
 #include <map>
 #include <set>
 
@@ -37,6 +38,9 @@ struct GameSnapshot {
     bool in_train = false, in_vehicle = false;
     float speed = 0;
     bool swimming = false;
+    float wade = 0, horse_wade = 0;          // how deep in water (0..1 of the body: Arthur / the horse)
+    bool foliage = false, horse_foliage = false;   // pushing through bushes (the game's own ped blackboard)
+    float foliage_height = 0, horse_foliage_height = 0;
     float temperature = 15;
     bool wanted = false;
     int hour = 12;
@@ -63,7 +67,7 @@ struct GameSnapshot {
 };
 
 struct WorldEvent {
-    enum Type { Damage, Gunfire, HitConfirm, Footstep, Hoof, Land, Climb, Door, Ack, Honor, Minigame, Horse, Life } type;
+    enum Type { Damage, Gunfire, HitConfirm, Footstep, Hoof, Land, Climb, Door, Ack, Honor, Minigame, Horse, Life, Explosion } type;
     float pan = 0;          // -1 left .. +1 right (relative to the camera / which foot)
     float strength = 1;     // 0..1
     std::string cause;      // damage: bullet melee animal fall; steps/hooves: surface
@@ -74,6 +78,15 @@ public:
     void tick();                                     // script thread, every frame
     // hoof diagnostics (debug log)
     int hoof_plants_ = 0;
+    int foot_plants_ = 0;                // debug: steps felt since foot_stat_t_
+    bool foliage_logged_ = false, horse_foliage_logged_ = false;
+    void bush_probe(int me);
+    int bush_handle_ = 0, bush_flag_i_ = 0;  // research probe: capsule tests against vegetation
+    std::map<int, bool> bush_hit_;
+    std::string weather_set_;            // testing: the SetWeather last applied
+    bool explosion_on_ = false;           // an explosion within 150 m right now
+    double explosion_t_ = -10;
+    std::string foot_surface_ = "-";
     bool last_ready_ = true;
     int fish_log_state_ = -1;
     int cores_logged_ = -1;
@@ -97,7 +110,7 @@ public:
     uint32_t last_item_ = 0;
     std::string care_;
     double ready_change_t_ = 0;
-    double hoof_stat_t_ = 0;
+    double hoof_stat_t_ = 0, foot_stat_t_ = 0;
     GameSnapshot snapshot();
     std::vector<WorldEvent> take_events();
     void add_gyro(float yaw_deg, float pitch_deg);
@@ -109,16 +122,23 @@ public:
     std::atomic<bool> gyro_stick_busy{false};
 
 private:
-    struct Limb {
+    struct Limb {                               // a hoof or a foot (World::steps)
         int bone = -1;
-        float x = 0, y = 0, z = 0;
-        bool have = false, swinging = false;
-        double last_plant = 0;
-        float contact = 0;          // hooves: height above the ground when standing on it (learned)
-        bool lifted = false, have_h = false;
+        double last_plant = 0, last_td = 0, last_seen = -10, reset_t = 0;   // felt / any touchdown / tracked / restarted
+        float good_gz = 0, held = 0;            // the last plausible ground under it, how long it has been held
+        bool have_gz = false, have_h = false;
+        int td = 0;                             // touchdown: 0 after one, 1 rose enough, 2 falling
+        float hi = 0, low = 0, last_low = 0, prev_h = 0, swing = 0.2f;
     };
     float pan_to(float x, float y, float cam_heading, float px, float py) const;
     void steps(int ped, Limb* limbs, int n, float body_speed, double now, bool horse, std::vector<WorldEvent>& ev);
+    bool limb_height(Limb& L, float x, float y, float z, float dt, float& h, float& raw_gz);
+    static bool touchdown(Limb& L, float h, float dt, float rise_min, float stop, float margin, float swing_max);
+    void record_limbs(const char* mode, int n, const float* x, const float* y, const float* z, const float* gz,
+                      const bool* plant, float speed, double now);
+    bool limb_probe_ = false;             // research: record limb heights (General.Probes + Debug)
+    std::ofstream limb_csv_;
+    long limb_lines_ = 0;
     void bind_limbs(int ped, Limb* limbs, int n, const char* const* names, int names_n);
     std::string surface_at(float x, float y, float z, int ped, uint32_t* mat_out = nullptr);
 

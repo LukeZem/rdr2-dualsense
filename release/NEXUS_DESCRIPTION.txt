@@ -1,7 +1,7 @@
 === Nexus Mods page text (paste into the description; Nexus uses BBCode) ===
 
 NAME:     DualSense for RDR2 - Adaptive Triggers and Haptics
-VERSION:  1.1.0
+VERSION:  1.2.0
 CATEGORY: Gameplay  (or: Utilities)
 IMAGES:   release/banner.png (main image)
 SUMMARY (short):
@@ -83,9 +83,13 @@ loader and LML (as for any mod), and back for story mode. The mod changes none o
 [size=4][b]Open source[/b][/size]
 MIT licensed - source: https://github.com/OldKrab/rdr2-dualsense
 
---- CHANGELOG 1.1.0 (the file upload's changelog field, one line each) ---
-Dialogue haptics (experimental, off by default): every spoken line felt as the speaker's voice, from their side
-Steps, hooves, shots and hits are felt in cutscenes too
-A controller plugged in after the game started (or pulled out and back) works within a second - controls and haptics
-Settings page: the selected row is highlighted like the game's own pages
-Settings page: a setting's own options only show while it is On; experimental features have their own sections
+--- CHANGELOG 1.2.0 (the file upload's changelog field, one line each) ---
+Snow: no more constant vibration; steps and hooves in deep snow are felt
+Hoofbeats only from the real hooves - nothing generated - steadier at a gallop; every step of both feet is felt
+Pause menu and loading screens: all vibration stops
+Water and mud: wading drags harder the deeper and faster you go, with a splash going in; every ground has its own feel
+Bushes: a rustle as you walk or ride through them
+Explosions: felt from where and how far they go off, with the real blast; close ones shake the triggers
+Rain on by default (30%); in fights, steps, hooves and rain step back so shots and hits come through
+New defaults: Sounds from the Controller Off, Game's Own Rumble 15%, Rain 30% - applied unless you had changed them
+Hold PS for a second to reload the settings (like F9); whistling while aiming no longer moves the gun

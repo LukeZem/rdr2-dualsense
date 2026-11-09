@@ -53,6 +53,8 @@ public:
     void track_move(uint64_t key, double t0, float gl, float gr);
     void track_stop(uint64_t key);
     bool track_playing(uint64_t key);
+    int track_count();                    // tracks queued or playing (debug)
+    void set_tracks_muted(bool m) { tracks_muted_ = m; }   // game paused: the tracks fade out, keep their clock
 
 private:
     void render_thread();
@@ -81,7 +83,7 @@ private:
 
     HapticLibrary* lib_ = nullptr;
     std::thread render_, loop_, mic_;
-    std::atomic<bool> running_{false}, ok_{false}, mic_listening_{true}, scripted_active_{false};
+    std::atomic<bool> running_{false}, ok_{false}, mic_listening_{true}, scripted_active_{false}, tracks_muted_{false};
     std::atomic<float> latency_ms_{0}, strength_{1}, speaker_vol_{0.35f}, duck_level_{0.3f};
     std::atomic<float> rumble_low_{0}, rumble_high_{0}, rumble_gain_{0.6f}, game_audio_gain_{0.45f};
     std::mutex mu_;

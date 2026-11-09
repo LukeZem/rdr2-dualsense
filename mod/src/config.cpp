@@ -1,5 +1,7 @@
 #include "config.h"
 
+#include "log.h"
+
 #include <charconv>
 
 #include <windows.h>
@@ -41,8 +43,11 @@ Enabled=1
 Debug=0
 ; The game only sees the DualSense (hides DSX/ViGEm virtual pads that would double the input)
 HideOtherPads=1
-; Key (virtual-key code) that reloads this file and the data folder in game. 120 = F9
+; Key (virtual-key code) that reloads this file and the data folder in game. 120 = F9 (or hold PS ~1 s)
 ReloadKey=120
+; Which defaults this file has. A newer version of the mod moves settings still at an older default to the new
+; one (settings you changed stay). Leave it alone.
+DefaultsVersion=2
 ; Ground is identified from the game's material automatically. This key shows what is under you;
 ; pressing it again while shown changes it (ground, grass, mud, stone, gravel, wood, snow, sand, water).
 ; Saved in DualSenseRDR2\materials.json. 121 = F10
@@ -80,7 +85,7 @@ Strength=1.0
 ; Build every gun's shot from its own recordings in the game's sound banks (lml sound mods)
 GameShots=1
 ; The game's own rumble, converted for the voice-coil actuators (0 = off)
-GameRumble=0.35
+GameRumble=0.15
 ; Everything you hear, turned into haptics (0 = off). Off by default: it also turns music and
 ; other sounds not made by your character into vibration. Try 0.3 if you want it anyway.
 GameAudio=0
@@ -115,8 +120,8 @@ WheelClick=0.6
 ; Camp life: bites, sips and puffs, cleaning your gun, brushing / feeding the horse, skinning, stowing pelts,
 ; picking herbs, bathing, crafting, cooking
 CampLife=0.6
-; Rain drops on the hat, as heavy as the game's rain (0 = off: weather, not Arthur)
-Weather=0
+; Rain drops on the hat, one by one, as heavy as the game's rain (0 = off)
+Weather=0.3
 ; EXPERIMENTAL - dialogue haptics: every spoken line felt as the speaker's voice (its rhythm and intonation, from
 ; their side). Dialogue = on / off, Speech = its strength, DialogueIn = everywhere / cutscenes
 Dialogue=0
@@ -127,8 +132,8 @@ DialogueIn=everywhere
 SoundDelayMs=auto
 
 [Speaker]
-; Cocking, lever, bolt and reload clicks from the controller's speaker
-Mechanics=1
+; Holster, lasso, cocking, lever, bolt and reload sounds from the controller's speaker (off by default)
+Mechanics=0
 Volume=0.35
 
 [Lightbar]
@@ -235,10 +240,53 @@ bool Config::load(const std::wstring& path) {
         if (c != std::string::npos) val = trim(val.substr(0, c));
         values[section + "." + key] = val;
     }
-    std::unique_lock<std::shared_mutex> l(mu_);
-    path_ = path;
-    values_.swap(values);
+    {
+        std::unique_lock<std::shared_mutex> l(mu_);
+        path_ = path;
+        values_.swap(values);
+    }
+    migrate();
     return true;
+}
+
+namespace {
+// Defaults that changed: a player's ini written by an older version still holds the old value. Moved to the new one
+// when it is still exactly the old default (the player never changed it); anything else is the player's choice.
+constexpr int kDefaultsVersion = 2;
+struct DefaultChange {
+    int version;
+    const char *section, *key, *old_value, *new_value;
+};
+constexpr DefaultChange kChanges[] = {
+    {2, "Speaker", "Mechanics", "1", "0"},           // sounds from the controller: off (out of sync, players asked)
+    {2, "Haptics", "Weather", "0", "0.3"},           // rain drops on the hat: on, subtle
+    {2, "Haptics", "GameRumble", "0.35", "0.15"},    // the game's own rumble: quieter (pulses on herbs and prompts)
+};
+
+bool same_value(const std::string& a, const std::string& b) {
+    char* ea = nullptr;
+    char* eb = nullptr;
+    double x = std::strtod(a.c_str(), &ea), y = std::strtod(b.c_str(), &eb);
+    if (ea && *ea == 0 && eb && *eb == 0 && !a.empty() && !b.empty()) return std::fabs(x - y) < 1e-4;
+    return lower(a) == lower(b);
+}
+}  // namespace
+
+void Config::migrate() {
+    if (migrating_) return;                               // set() reloads the file
+    int have = integer("General", "DefaultsVersion", 1);
+    if (have >= kDefaultsVersion) return;
+    migrating_ = true;
+    for (const auto& c : kChanges) {
+        if (c.version <= have) continue;
+        std::string cur = str(c.section, c.key, "");
+        if (cur.empty() || !same_value(cur, c.old_value)) continue;     // missing (the code default) or changed
+        set(c.section, c.key, c.new_value);
+        LOGI("settings: %s.%s %s -> %s (the new default; you had not changed it)", c.section, c.key, c.old_value,
+             c.new_value);
+    }
+    set("General", "DefaultsVersion", std::to_string(kDefaultsVersion));
+    migrating_ = false;
 }
 
 bool Config::set(const std::string& section, const std::string& key, const std::string& value) {

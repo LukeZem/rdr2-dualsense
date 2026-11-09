@@ -34,20 +34,25 @@ Tune weapons, record calibration and label sounds in the Trigger Lab (`tools/tri
 | Table games | Five finger fillet (every stab, the miss), poker / blackjack (chips, knocks, cards, shuffles from Arthur's hand animations), dominoes. |
 | Haptics | Shots from each gun's own recordings (read from the game's archives through its file layer, or from an LML sound mod such as RWS if installed); the game's rumble converted for the voice coils; **game-audio layer**: what you hear (hooves, explosions, cutscenes, mini-games) as haptics, keeping left/right, quieter while a weapon effect plays. |
 | Dialogue | Experimental, off by default (`[Haptics] Dialogue=1`): every spoken line felt as the speaker's own voice, panned to their side. The exact recording is found from the game's speech request (voice + line + variation, `gamemem.cpp`) or the playing cutscene audio, decoded from the game's archives (`awc.cpp`, stb_vorbis) and timed by the line's own play clock; `SoundDelayMs` matches TV / headphone lag (auto: Bluetooth 200 ms, else 60 ms). |
-| Cutscenes | Steps, hooves, gunfire, hits and explosions are felt in cutscenes as in play (off only in pause menus, loading and black screens). |
+| Cutscenes | Steps, hooves, gunfire, hits and explosions are felt in cutscenes as in play. |
+| Pause / loading | The script thread stops in pause menus and loading screens: when the game state is older than 0.25 s everything goes quiet (effects, the game's rumble, dialogue tracks). |
 | Around you | Damage felt from its direction and by cause (bullet, melee, animal, fall); nearby gunfire pressure waves from their direction; heartbeat at low health and in Dead Eye; shivers in freezing cold. |
-| Horse | Hoofbeats from the real hooves touching the ground (height above the ground, any gait) on the ground under each hoof; the gait rhythm only if the legs can't be read; the horse's heartbeat and breathing when it is spent; rearing. |
-| Ground | The game's ground material, identified by name (mud_soft, gravel_dirt, pine_needles, wood_solid_medium...) - footsteps and hooves feel like it. |
+| Explosions | The game's own, as they happen (`IS_EXPLOSION_IN_SPHERE`: dynamite, gas, lanterns, Molotovs, explosive rounds, lightning) - kind by explosion tag, distance by nested spheres, side by spheres left / right of the camera. Blasts: the game's explosion recordings + a pressure-wave shove + the ground rolling on for ~2 s; within 15 m the whole controller shakes and both triggers shudder. |
+| Fights | While shots, hits or explosions happen (3 s), the everyday textures (steps, hooves, wading, bushes, rain, wheels) play at half strength. |
+| Horse / feet | Hoofbeats and footsteps from the real limbs touching the ground: each limb's height above the ground under it (glitches of the ground query held, snow sinking accepted), rise -> fall -> the fall stops near the bottom = touchdown (`World::touchdown`, designed and scored offline with `tools/dev/limbs_touchdown.py`). Hooves ~88% of contacts, ~35 ms after landing; nothing is generated when the legs can't be read. The horse's heartbeat and breathing when it is spent; rearing. |
+| Ground | The game's ground material, identified by name (mud_soft, gravel_dirt, pine_needles, wood_solid_medium...) - footsteps and hooves feel like it: every material its own recipe in 4 takes, heavier at a sprint. |
+| Water / bushes | Wading (`GET_ENTITY_SUBMERGED_LEVEL`): a drag with every step that grows with depth and pace, a splash going in. Bushes (the ped blackboard's `FoliageActive` / `FoliageHeight`): a rustle going in and brushing while you move through, by plant height - nothing while standing. |
 | Trains / wagons | Rail joints (front and rear bogie), ruts. |
 | Lightbar | Muzzle flash, damage flash, Dead Eye sepia glow, lantern flicker, wanted (red/white), low-health pulse, time-of-day ambience. Player LEDs show the rounds left. |
-| Speaker | The game's own recordings for drawing / holstering a revolver, the lasso throw and the rope (found by name in the sound banks); synthesized cocking / lever / bolt / pump clicks. |
+| Speaker | Off by default (`[Speaker] Mechanics`). The game's own recordings for drawing / holstering a revolver, the lasso throw and the rope (found by name in the sound banks); synthesized cocking / lever / bolt / pump clicks. |
 | Gyro aim | Experimental, off by default: small gyro corrections while free-aiming (`[Gyro] Mode=aim`). |
 | Microphone | Whistle into the controller → horse call. Say "chao" → a real greeting (counts for honor). "Easy" → calm the horse. A command only counts when said on its own (after a pause, short, confident). The mute button toggles listening (mute LED on = not listening). |
-| Weather | Rain on the hat, as heavy as the game's rain - off by default (`[Haptics] Weather`). |
+| Weather | Rain on the hat, as dense as the game's rain (`[Haptics] Weather`, 30%). |
 | Touchpad | Click = map (BACK). Swipes / two-finger tap can be mapped to buttons in the ini. |
 | Plug in any time | The game checks for new pads only when Windows reports a device change, before the mod has the controller open; the mod marks the game's pad slot itself (`gamemem::mark_pad_slot`) and reopens the controller's audio. |
 
-Settings: `DualSenseRDR2.ini` (F9 reloads it and the data folder in game). Log: `DualSenseRDR2.log`
+Settings: `DualSenseRDR2.ini` (F9 or holding PS ~1 s reloads it and the data folder in game; changed defaults reach
+existing ini files unless the player changed that setting - `Config::migrate`). Log: `DualSenseRDR2.log`
 (`Debug=1` logs every weapon, strike and unknown ground material).
 
 ## Known limits / to verify in game

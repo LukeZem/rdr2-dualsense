@@ -310,75 +310,175 @@ std::string World::surface_at(float x, float y, float z, int ped, uint32_t* mat_
 }
 
 // A foot that comes to rest in world space has just been planted: that is the step.
-// A hoof lands when it comes down to the ground after being lifted - by height, which works at any gait
-// (at a gallop a planted hoof still slides in the animation, so "comes to rest" misses most of them).
+// A hoof lands when its fall towards the ground stops - by height, which works at any gait (at a gallop a planted
+// hoof still slides in the animation, so "comes to rest" misses most of them). Only real touchdowns are felt.
+// Research probe (General.Probes=1 with Debug=1): every frame each limb's position, the ground under it and whether
+// the detector fired, to DualSenseRDR2_limbs.csv - to design a hoof detector that catches every contact.
+void World::record_limbs(const char* mode, int n, const float* x, const float* y, const float* z, const float* gz,
+                         const bool* plant, float speed, double now) {
+    if (!limb_csv_.is_open()) {
+        fs::path path = module_dir() / "DualSenseRDR2_limbs.csv";
+        limb_csv_.open(path, std::ios::app);
+        if (!limb_csv_) return;
+        LOGI("probe: recording hoof / foot heights to %s", path.string().c_str());
+        limb_csv_ << "t,mode,speed,n,x,y,z,ground,plant (per limb)\n";
+    }
+    char buf[96];
+    std::snprintf(buf, sizeof buf, "%.4f,%s,%.2f,%d", now, mode, speed, n);
+    limb_csv_ << buf;
+    for (int i = 0; i < n; ++i) {
+        std::snprintf(buf, sizeof buf, ",%.3f,%.3f,%.4f,%.4f,%d", x[i], y[i], z[i], gz[i], int(plant[i]));
+        limb_csv_ << buf;
+    }
+    limb_csv_ << '\n';
+    if (++limb_lines_ % 120 == 0) limb_csv_.flush();
+}
+
+// The ground under a limb, from the game's ground query - which glitches: a surface up to ~0.5 m too high, for up
+// to ~0.3 s (20% of the readings under a galloping horse). A reading that puts the limb under the ground, or jumps
+// up under it, is dropped while it is short-lived and the last plausible ground is kept; a lasting offset is real
+// (sunk into deep snow) and is taken after 0.4 s. False = no ground known yet.
+bool World::limb_height(Limb& L, float x, float y, float z, float dt, float& h, float& raw_gz) {
+    float gz = 0;
+    nat::Hash mat = 0;
+    bool got = nat::GET_GROUND_Z_AND_MATERIAL(x, y, z + 0.5f, &gz, &mat) && gz != 0;
+    raw_gz = got ? gz : 0;
+    bool plausible = got && (L.held > 0.4f || (gz <= z + 0.05f && (!L.have_gz || gz - L.good_gz < 0.25f)));
+    if (plausible) {
+        if (L.held > 0.4f) L.have_h = false;          // a new ground level: heights before it don't compare
+        L.good_gz = gz;
+        L.have_gz = true;
+        L.held = 0;
+    } else {
+        L.held += dt;
+    }
+    if (!L.have_gz) return false;
+    h = z - L.good_gz;
+    return true;
+}
+
+// Touchdown, by height (designed and checked on recorded rides and walks - tools/dev/limbs_touchdown.py): the limb
+// rose clearly above its last low, falls, and the fall stops near the bottom. "Clearly" scales with the limb's own
+// swing (at least rise_min). Hooves: ~88% of the contacts at every gait, ~35 ms after the hoof lands (the old
+// "lift 7 cm, come down" rule: ~38%). Feet: one per step at any pace (the old "the foot comes to rest" rule fired
+// 2-3 times per walking step on the jittery foot speed).
+bool World::touchdown(Limb& L, float h, float dt, float rise_min, float stop, float margin, float swing_max) {
+    if (!L.have_h) {
+        L.have_h = true;
+        L.prev_h = L.hi = L.low = L.last_low = h;
+        return false;
+    }
+    float v = (h - L.prev_h) / dt;
+    L.prev_h = h;
+    float base = std::min(L.last_low, L.low);
+    if (L.td == 0) {                                  // after a touchdown: wait for a clear rise
+        L.low = std::min(L.low, h);
+        if (h < L.last_low) L.last_low = h;           // lower than the reference (an outlier was it): restart
+        L.hi = std::max(L.hi, h);
+        if (L.hi - std::min(L.last_low, L.low) > std::max(rise_min, 0.25f * L.swing)) L.td = 1;
+        return false;
+    }
+    if (L.td == 1) {                                  // risen: wait for the fall
+        L.hi = std::max(L.hi, h);
+        if (v < -stop) L.td = 2;
+        return false;
+    }
+    if (v > -stop && h < base + margin * L.swing) {    // falling: the fall stops near the bottom
+        L.swing = clampv(0.7f * L.swing + 0.3f * (L.hi - h), 0.05f, swing_max);
+        L.last_low = L.low = L.hi = h;
+        L.td = 0;
+        return true;
+    }
+    return false;
+}
+
+// Research probe (Probes + Debug): does a capsule around Arthur's legs touch vegetation? The game's FoliageActive is on
+// already near a bush. One capsule test per frame, cycling candidate flag sets; logs when each starts / stops hitting.
+void World::bush_probe(int me) {
+    using namespace nat;
+    static const int kFlags[] = {256, 16, 1, 511, 256 | 16};
+    const int nf = int(sizeof kFlags / sizeof kFlags[0]);
+    if (bush_handle_) {
+        int hit = 0;
+        Vector3 end{}, normal{};
+        Entity ent = 0;
+        int st = GET_SHAPE_TEST_RESULT(bush_handle_, &hit, &end, &normal, &ent);
+        if (st == 1) return;                                // not ready yet
+        if (st == 2) {
+            int f = kFlags[bush_flag_i_];
+            bool h = hit != 0;
+            if (h != bush_hit_[f]) {
+                int type = ent ? GET_ENTITY_TYPE(ent) : 0;     // 1 ped (or the horse), 2 vehicle, 3 object, 0 map
+                LOGD("bush probe: flags %d %s (%s, foliage flag %d)", f, h ? "HIT" : "clear",
+                     !h ? "-" : type == 1 ? "a ped / horse" : type == 2 ? "a vehicle" : type == 3 ? "an object" : "the map",
+                     int(_GET_PED_BLACKBOARD_BOOL(me, "FoliageActive")));
+            }
+            bush_hit_[f] = h;
+        }
+        bush_handle_ = 0;
+        bush_flag_i_ = (bush_flag_i_ + 1) % nf;
+    }
+    Vector3 p = GET_ENTITY_COORDS(me);
+    bush_handle_ = START_SHAPE_TEST_CAPSULE(p.x, p.y, p.z - 0.4f, p.x, p.y, p.z + 0.3f, 0.35f, kFlags[bush_flag_i_], me, 7);
+}
+
 void World::steps(int ped, Limb* limbs, int n, float body_speed, double now, bool horse, std::vector<WorldEvent>& ev) {
     double dt = now - last_tick_;
     if (dt <= 0 || dt > 0.1) dt = 1.0 / 60;
-    if (horse) {
-        for (int i = 0; i < n; ++i) {
-            Limb& L = limbs[i];
-            if (L.bone < 0) continue;
-            nat::Vector3 p = nat::GET_WORLD_POSITION_OF_ENTITY_BONE(ped, L.bone);
-            float gz = 0;
-            nat::Hash mat = 0;
-            if (!nat::GET_GROUND_Z_AND_MATERIAL(p.x, p.y, p.z + 0.5f, &gz, &mat) || gz == 0) continue;
-            float h = p.z - gz;
-            if (!L.have_h) {
-                L.contact = h;
-                L.have_h = true;
-            }
-            // standing height: the lowest it has been lately (drifts up slowly so slopes and gaits re-learn)
-            L.contact = std::min(L.contact + 0.06f * float(dt), h);
-            if (h > L.contact + 0.07f) L.lifted = true;
-            bool down = h < L.contact + 0.035f;
-            if (L.lifted && down && body_speed > 0.4f && now - L.last_plant > 0.1) {
-                L.lifted = false;
-                L.last_plant = now;
-                hoof_times_.push_back(now);
-                WorldEvent e{WorldEvent::Hoof, (i % 2) ? 0.25f : -0.25f, clampv(0.3f + body_speed / 11.0f, 0.3f, 1.0f),
-                             surface_at(p.x, p.y, p.z, ped)};
-                ev.push_back(e);
-            }
-            L.x = p.x;
-            L.y = p.y;
-            L.z = p.z;
-            L.have = true;
-        }
-        while (!hoof_times_.empty() && now - hoof_times_.front() > 1.5) hoof_times_.pop_front();
-        return;
-    }
-    float lowest = 1e9f;
-    for (int i = 0; i < n; ++i)
-        if (limbs[i].bone >= 0 && limbs[i].have) lowest = std::min(lowest, limbs[i].z);
-    for (int i = 0; i < n; ++i) {
+    const bool rec = limb_probe_ && body_speed > 0.3f && n <= 4;
+    float rx[4] = {}, ry[4] = {}, rz[4] = {}, rgz[4] = {};
+    bool rp[4] = {};
+    for (int i = 0; i < n && i < 4; ++i) {
         Limb& L = limbs[i];
         if (L.bone < 0) continue;
-        nat::Vector3 p = nat::GET_WORLD_POSITION_OF_ENTITY_BONE(ped, L.bone);
-        if (L.have) {
-            float dx = p.x - L.x, dy = p.y - L.y, dz = p.z - L.z;
-            float v = std::sqrt(dx * dx + dy * dy + dz * dz) / float(dt);
-            float hi = std::max(horse ? 1.6f : 0.9f, 0.55f * body_speed);
-            float lo = std::max(horse ? 0.6f : 0.35f, 0.22f * body_speed);
-            if (v > hi) L.swinging = true;
-            bool low_enough = p.z < lowest + (horse ? 0.25f : 0.12f);
-            if (L.swinging && v < lo && low_enough && body_speed > 0.4f && now - L.last_plant > (horse ? 0.12 : 0.2)) {
-                L.swinging = false;
-                L.last_plant = now;
-                WorldEvent e{horse ? WorldEvent::Hoof : WorldEvent::Footstep, 0, 1, surface_at(p.x, p.y, p.z, ped)};
-                // which side: feet left/right, hooves around the centre
-                e.pan = horse ? ((i % 2) ? 0.25f : -0.25f) : ((i % 2) ? 0.45f : -0.45f);
-                float sp = body_speed;
-                e.strength = horse ? clampv(0.3f + sp / 11.0f, 0.3f, 1.0f)
-                                   : clampv(sp < 2.2f ? 0.35f : sp < 4.8f ? 0.6f : 0.8f, 0.2f, 1.0f) * step_strength_;
-                ev.push_back(e);
-            }
+        // Self-healing: tracking resumes after a pause (riding, swimming, a cutscene - the ground under it is somewhere
+        // else now), or no touchdown for 2 s while moving (a stuck state: the left foot fell silent for good once):
+        // start the limb's detector afresh.
+        if (now - L.last_seen > 0.5 || (body_speed > 1.0f && L.have_h && now - L.last_td > 2.0 && now - L.reset_t > 2.0)) {
+            if (now - L.last_seen <= 0.5) LOGD("steps: %s %d silent for 2 s while moving - detector restarted", horse ? "hoof" : "foot", i);
+            int bone = L.bone;
+            L = Limb{};
+            L.bone = bone;
+            L.reset_t = L.last_td = now;
         }
-        L.x = p.x;
-        L.y = p.y;
-        L.z = p.z;
-        L.have = true;
+        L.last_seen = now;
+        nat::Vector3 p = nat::GET_WORLD_POSITION_OF_ENTITY_BONE(ped, L.bone);
+        float h = 0;
+        bool known = limb_height(L, p.x, p.y, p.z, float(dt), h, rgz[i]);
+        if (rec) {
+            rx[i] = p.x;
+            ry[i] = p.y;
+            rz[i] = p.z;
+        }
+        if (!known) continue;
+        // a hoof that lifts 4 cm has stepped; a foot needs 7 cm (a walking foot shuffles a few cm on uneven ground)
+        // and its fall must have all but stopped (a walking foot creeps the last centimetres down: fired too early)
+        bool down = horse ? touchdown(L, h, float(dt), 0.04f, 0.4f, 0.65f, 1.0f)
+                          : touchdown(L, h, float(dt), 0.07f, 0.1f, 0.5f, 0.6f);
+        if (!down) continue;
+        // the same limb can't land twice within 0.15 s (hooves) / 0.2 s (feet): a double hit
+        bool double_hit = now - L.last_td < (horse ? 0.15 : 0.2);
+        L.last_td = now;
+        if (double_hit || body_speed <= 0.4f) continue;
+        rp[i] = true;
+        L.last_plant = now;
+        WorldEvent e{horse ? WorldEvent::Hoof : WorldEvent::Footstep, 0, 1, surface_at(p.x, p.y, p.z, ped)};
+        if (horse) {
+            hoof_times_.push_back(now);
+            e.pan = (i % 2) ? 0.25f : -0.25f;                              // hooves: around the centre
+            // a gallop has twice the hoofbeats of a trot - each one must not also hit twice as hard
+            e.strength = clampv(0.35f + body_speed / 25.0f, 0.35f, 0.7f);
+        } else {
+            e.pan = (i % 2) ? 0.45f : -0.45f;                              // boots: left foot left, right foot right
+            float sp = body_speed;
+            // walk / run / sprint: a walking step must still be felt (35% of a sprint was below it)
+            e.strength = clampv(sp < 2.2f ? 0.5f : sp < 4.8f ? 0.65f : 0.8f, 0.2f, 1.0f) * step_strength_;
+        }
+        ev.push_back(e);
     }
+    if (horse)
+        while (!hoof_times_.empty() && now - hoof_times_.front() > 1.5) hoof_times_.pop_front();
+    if (rec) record_limbs(horse ? "horse" : "foot", n, rx, ry, rz, rgz, rp, body_speed, now);
 }
 
 static float wrap180(float a) {
@@ -527,6 +627,23 @@ void World::tick() {
     Config& cfg = config();
     GameSnapshot s;
     s.time = now_s();
+    limb_probe_ = log::debug_enabled() && cfg.flag("General", "Record", false);   // recorder, bush probe, cue log
+    // Testing (Debug=1): [General] SetWeather=rain / thunderstorm / snow / sunny ... sets the game's weather when it
+    // changes (edit the ini, hold PS); "clear" gives the weather back to the game.
+    if (log::debug_enabled()) {
+        std::string want = cfg.str("General", "SetWeather", "");
+        if (want != weather_set_) {
+            weather_set_ = want;
+            if (want == "clear") {
+                CLEAR_OVERRIDE_WEATHER();
+                CLEAR_WEATHER_TYPE_PERSIST();
+                LOGI("weather: back to the game's own");
+            } else if (!want.empty()) {
+                SET_WEATHER_TYPE(joaat(want), true, true, true, 4.0f, false);
+                LOGI("weather: set to %s (from the ini, SetWeather)", want.c_str());
+            }
+        }
+    }
     if (!game_files::ready()) core().load_game_files();   // scripts run: the game's archives are mounted
     settings_ui_tick(s.time);            // the Settings page's data store, also while no player exists
     Player pl = PLAYER_ID();
@@ -647,6 +764,16 @@ void World::tick() {
         cores_logged_ = cores_key;
     }
     s.swimming = IS_PED_SWIMMING(me);
+    // wading and bushes: how deep in water, and the game's own "pushing through foliage" state (the one it uses for
+    // its foliage sounds and animation)
+    s.wade = GET_ENTITY_SUBMERGED_LEVEL(me);
+    s.foliage = _GET_PED_BLACKBOARD_BOOL(me, "FoliageActive");
+    s.foliage_height = s.foliage ? _GET_PED_BLACKBOARD_FLOAT(me, "FoliageHeight") : 0.0f;
+    if (log::debug_enabled() && s.foliage != foliage_logged_) {
+        foliage_logged_ = s.foliage;
+        LOGD("foliage: Arthur %s (height %.2f)", s.foliage ? "pushing through" : "out", s.foliage_height);
+    }
+    if (limb_probe_) bush_probe(me);
 
     // --- body: exhaustion, cold, drink ---
     s.temperature = GET_TEMPERATURE_AT_COORDS(pos.x, pos.y, pos.z);
@@ -667,6 +794,13 @@ void World::tick() {
         s.mount_speed = GET_ENTITY_SPEED(horse);
         s.mount_stamina = GET_ATTRIBUTE_CORE_VALUE(horse, 1);
         s.mount_pitch = GET_ENTITY_ROTATION(horse).x;
+        s.horse_wade = GET_ENTITY_SUBMERGED_LEVEL(horse);
+        s.horse_foliage = _GET_PED_BLACKBOARD_BOOL(horse, "FoliageActive");
+        s.horse_foliage_height = s.horse_foliage ? _GET_PED_BLACKBOARD_FLOAT(horse, "FoliageHeight") : 0.0f;
+        if (log::debug_enabled() && s.horse_foliage != horse_foliage_logged_) {
+            horse_foliage_logged_ = s.horse_foliage;
+            LOGD("foliage: the horse %s (height %.2f)", s.horse_foliage ? "pushing through" : "out", s.horse_foliage_height);
+        }
         Vector3 hp = GET_ENTITY_COORDS(horse);
         s.horse_surface = surface_at(hp.x, hp.y, hp.z, horse);
         if (horse != hooves_horse_) {
@@ -681,7 +815,9 @@ void World::tick() {
         s.hoof_rate = float(hoof_times_.size()) / 1.5f;
         if (log::debug_enabled() && s.time - hoof_stat_t_ > 3.0) {
             if (s.mount_speed > 1.0f)
-                LOGD("hooves: speed %.1f m/s, %.1f plants/s detected", s.mount_speed, hoof_plants_ / (s.time - hoof_stat_t_));
+                LOGD("hooves: speed %.1f m/s, %.1f plants/s detected, ground %s, snow %.2f, in water %.2f", s.mount_speed,
+                     hoof_plants_ / (s.time - hoof_stat_t_), s.horse_surface.c_str(), GET_SNOW_LEVEL(),
+                     GET_ENTITY_SUBMERGED_LEVEL(horse));
             hoof_plants_ = 0;
             hoof_stat_t_ = s.time;
         }
@@ -698,8 +834,21 @@ void World::tick() {
         }
         bool crouch = GET_PED_CROUCH_MOVEMENT(me), carry = IS_PED_CARRYING_SOMETHING(me);
         step_strength_ = (crouch ? 0.55f : 1.0f) * (carry ? 1.25f : 1.0f);
+        size_t before_steps = ev.size();
         steps(me, feet_, 2, s.speed, s.time, false, ev);
-        bool air = IS_ENTITY_IN_AIR(me) || IS_PED_FALLING(me);
+        if (ev.size() > before_steps) {
+            foot_plants_ += int(ev.size() - before_steps);
+            foot_surface_ = ev.back().cause;
+        }
+        if (log::debug_enabled() && s.time - foot_stat_t_ > 3.0) {    // debug: how often steps are felt, and where
+            if (s.speed > 0.5f)
+                LOGD("steps: speed %.1f m/s, %.1f steps/s, ground %s, snow %.2f, in water %.2f", s.speed,
+                     foot_plants_ / (s.time - foot_stat_t_), foot_surface_.c_str(), GET_SNOW_LEVEL(),
+                     GET_ENTITY_SUBMERGED_LEVEL(me));
+            foot_plants_ = 0;
+            foot_stat_t_ = s.time;
+        }
+        bool air =IS_ENTITY_IN_AIR(me) || IS_PED_FALLING(me);
         double dt = s.time - last_tick_;
         if (air && dt > 0 && dt < 0.1) air_time_ += dt;
         if (!air) {
@@ -729,6 +878,42 @@ void World::tick() {
     if (target) {
         s.lasso_attached = true;
         s.lasso_pull = clampv(GET_ENTITY_SPEED(target) / 5.0f + (IS_ENTITY_A_PED(target) && IS_PED_RAGDOLL(target) ? 0.2f : 0.0f), 0.0f, 1.0f);
+    }
+
+    // --- explosions: the game's own, as they happen (thrown or placed dynamite - ours or anyone's -, lanterns, gas,
+    // vehicles, Molotovs, explosive rounds, lightning strikes). One check per frame; only a new one is examined: its
+    // kind (by explosion tag), how far (nested spheres) and which side (spheres left / right of the camera). ---
+    if (IS_EXPLOSION_IN_SPHERE(-1, pos.x, pos.y, pos.z, 150.0f)) {
+        if (!explosion_on_ && s.time - explosion_t_ > 0.4) {
+            auto any = [&](std::initializer_list<int> tags) {
+                for (int t : tags)
+                    if (IS_EXPLOSION_IN_SPHERE(t, pos.x, pos.y, pos.z, 150.0f)) return true;
+                return false;
+            };
+            // tags: 33 lightning; 2 3 molotov, 24 lantern, 30 fire arrow; 12 19 32 explosive / phosphorus rounds, 21 firework
+            const char* kind = any({33}) ? "thunder" : any({2, 3, 24, 30}) ? "fire" : any({12, 19, 32, 21}) ? "small" : "blast";
+            float dist = 150.0f;
+            for (float r : {6.0f, 15.0f, 35.0f, 80.0f})
+                if (IS_EXPLOSION_IN_SPHERE(-1, pos.x, pos.y, pos.z, r)) {
+                    dist = r;
+                    break;
+                }
+            float pan = 0;
+            if (dist > 6.0f) {
+                float hd = cam * kPi / 180.0f, rx = std::cos(hd), ry = std::sin(hd);      // the camera's right
+                float off = dist * 0.6f, rad = dist * 0.75f;
+                bool right = IS_EXPLOSION_IN_SPHERE(-1, pos.x + rx * off, pos.y + ry * off, pos.z, rad);
+                bool left = IS_EXPLOSION_IN_SPHERE(-1, pos.x - rx * off, pos.y - ry * off, pos.z, rad);
+                pan = right && !left ? 0.6f : left && !right ? -0.6f : 0.0f;
+            }
+            float strength = dist <= 6 ? 1.0f : dist <= 15 ? 0.8f : dist <= 35 ? 0.55f : dist <= 80 ? 0.35f : 0.2f;
+            ev.push_back({WorldEvent::Explosion, pan, strength, kind});
+            explosion_t_ = s.time;
+            LOGD("explosion: %s within %.0f m, side %+.1f", kind, dist, pan);
+        }
+        explosion_on_ = true;
+    } else {
+        explosion_on_ = false;
     }
 
     // --- people around: who shoots, who got hurt by us, who hurt us ---

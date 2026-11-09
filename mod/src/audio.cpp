@@ -250,6 +250,11 @@ bool AudioEngine::track_playing(uint64_t key) {
     return it != tracks_.end() && !it->second.stopping;
 }
 
+int AudioEngine::track_count() {
+    std::lock_guard<std::mutex> l(mu_);
+    return int(tracks_.size());
+}
+
 void AudioEngine::rumble_tick(double now, uint8_t& left, uint8_t& right) {
     float l = 0, r = 0;
     std::lock_guard<std::mutex> lk(mu_);
@@ -377,11 +382,13 @@ void AudioEngine::render_thread() {
             std::lock_guard<std::mutex> l(mu_);
             const double felt = now_s() + latency_ms_.load() / 1000.0;
             const float step = 1.0f / (0.06f * float(dsp::kSR));          // gains move / fade over ~60 ms
+            const bool muted = tracks_muted_.load();                        // the game is paused
             for (auto it = tracks_.begin(); it != tracks_.end();) {
                 Track& t = it->second;
                 const std::vector<float>& m = *t.mono;
                 const long long k0 = (long long)std::floor((felt - t.t0) * dsp::kSR);
-                float tl = t.stopping ? 0.0f : t.gl * strength, tr = t.stopping ? 0.0f : t.gr * strength;
+                const bool silent = t.stopping || muted;
+                float tl = silent ? 0.0f : t.gl * strength, tr = silent ? 0.0f : t.gr * strength;
                 for (UINT32 i = 0; i < n; ++i) {
                     t.cl += clampv(tl - t.cl, -step, step);
                     t.cr += clampv(tr - t.cr, -step, step);

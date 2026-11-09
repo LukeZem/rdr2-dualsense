@@ -249,6 +249,21 @@ int run_selftests(const fs::path& data) {
         in.close();
         fs::remove(tmp);
     }
+    {   // new defaults reach players who already have an ini: untouched old defaults move, changed ones stay, once
+        fs::path tmp = fs::temp_directory_path() / "dsr2_migrate_test.ini";
+        { std::ofstream o(tmp); o << "[General]\nDebug=0\n[Haptics]\nWeather=0.5\nGameRumble=0.35\n[Speaker]\nMechanics=1\n"; }
+        Config cfg;
+        cfg.load(tmp.wstring());
+        CHECK(cfg.str("Speaker", "Mechanics", "") == "0" && std::fabs(cfg.num("Haptics", "GameRumble", 9) - 0.15f) < 1e-4f,
+              "untouched old defaults -> the new ones");
+        CHECK(std::fabs(cfg.num("Haptics", "Weather", 9) - 0.5f) < 1e-4f, "a value the player changed stays");
+        CHECK(cfg.integer("General", "DefaultsVersion", 0) == 2, "the file remembers it is up to date");
+        cfg.set("Speaker", "Mechanics", "1");             // the player turns it back on later
+        Config again;
+        again.load(tmp.wstring());
+        CHECK(again.str("Speaker", "Mechanics", "") == "1", "only once: a later choice of the old value stays");
+        fs::remove(tmp);
+    }
     {   // the in-game page: toggles and choices = option steppers (index), levels = whole percents
         Config cfg;
         std::set<std::string> ids;
@@ -410,6 +425,24 @@ int run_selftests(const fs::path& data) {
             c.name = "hoof_" + surf;
             CHECK(lib.render(c, out), c.name.c_str());
         }
+        for (const char* r : {"wade_push", "brush", "brush_in", "splash", "rain_drop", "explosion_fire", "explosion_small", "thunder_strike"}) {
+            c.name = r;
+            CHECK(lib.render(c, out) && out.size() > 100, r);
+        }
+        // a blast rolls on after the bang: still felt 1.5 s in
+        c.name = "explosion_roll";
+        CHECK(lib.render(c, out) && out.size() / 2 > size_t(1.5 * 48000), "a blast lasts over 1.5 s");
+        // "variants": every take of a material its own grain - no two steps on the same ground identical
+        c.name = "step_gravel";
+        lib.render(c, out);
+        CHECK(lib.variant_count("step_gravel") == 4, "a material renders 4 variants");
+        Stereo a, b;
+        c.variant = 0;
+        lib.render(c, a);
+        c.variant = 1;
+        lib.render(c, b);
+        CHECK(!a.empty() && a != b, "variants differ");
+        c.variant = -1;
     }
     {   // surface teaching: cycles labels, persists, context fallbacks
         fs::path tmp = fs::temp_directory_path() / "dsr2_materials_test.json";

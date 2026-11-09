@@ -47,7 +47,7 @@ void HapticLibrary::load(const fs::path& recipes_json, GameAudio* game) {
     LOGI("haptics: %d recipes", n);
 }
 
-Stereo HapticLibrary::synth_layer(const json& L, float fm) {
+Stereo HapticLibrary::synth_layer(const json& L, float fm, int variant) {
     const std::string type = L.value("type", "");
     float amp = jf(L, "amp", 1.0f);
     std::vector<float> mono;
@@ -76,7 +76,7 @@ Stereo HapticLibrary::synth_layer(const json& L, float fm) {
         float lo = jf(L, "lo", 60) * fm, hi = std::min(20000.0f, jf(L, "hi", 300) * fm);
         float att = jf(L, "attack_ms", 0.5f) / 1000, dec = std::max(1e-4f, jf(L, "decay_ms", 30) / 1000);
         int n = int(dsp::kSR * (att + 5 * dec));
-        Rng r(uint64_t(jf(L, "seed", 7)) * 7919 + 1);
+        Rng r((uint64_t(jf(L, "seed", 7)) + uint64_t(variant) * 101) * 7919 + 1);   // each variant its own grain
         dsp::Band band(lo, hi);
         std::vector<float> noise(n + 2400);
         for (auto& s : noise) s = band.run(r.gauss());
@@ -112,7 +112,11 @@ const std::vector<Stereo>& HapticLibrary::render_recipe(const std::string& name,
     if (depth > 4) throw std::runtime_error("references nest too deep");
     if (!recipes_.contains(name)) throw std::runtime_error("unknown recipe " + name);
     const json& r = recipes_[name];
-    Stereo statics;
+    // "variants": N - N takes of a synthesized recipe (each its own noise grain, pitch a few % apart), one picked per
+    // play: no two steps on the same ground feel identical
+    static const float kJitter[8] = {1.0f, 0.96f, 1.04f, 0.98f, 1.03f, 0.95f, 1.05f, 1.01f};
+    const int nvar = audible ? 1 : std::clamp(r.value("variants", 1), 1, 8);
+    std::vector<Stereo> statics(static_cast<size_t>(nvar));
     std::vector<std::vector<Stereo>> variant_layers;
     std::string src = "synth";
     for (const auto& L : r.value("layers", json::array())) {
@@ -134,21 +138,23 @@ const std::vector<Stereo>& HapticLibrary::render_recipe(const std::string& name,
                 }
                 variant_layers.push_back(std::move(vs));
             } else if (r.contains("fallback")) {
-                for (const auto& F : r["fallback"]) place(statics, synth_layer(F, fm), 0);
+                for (const auto& F : r["fallback"])
+                    for (int v = 0; v < nvar; ++v) place(statics[v], synth_layer(F, fm * kJitter[v], v), 0);
             }
         } else if (type == "ref") {
             const auto& ref = render_recipe(L.value("name", ""), depth + 1, audible);
-            if (!ref.empty()) place(statics, ref[0], jf(L, "delay_ms", 0), jf(L, "amp", 1));
+            for (int v = 0; v < nvar && !ref.empty(); ++v)
+                place(statics[v], ref[size_t(v) % ref.size()], jf(L, "delay_ms", 0), jf(L, "amp", 1));
         } else {
-            place(statics, synth_layer(L, fm), 0);
+            for (int v = 0; v < nvar; ++v) place(statics[v], synth_layer(L, fm * kJitter[v], v), 0);
         }
     }
     float gain = jf(r, "gain", 1);
-    size_t count = 1;
+    size_t count = size_t(nvar);
     for (auto& v : variant_layers) count = std::max(count, v.size());
     std::vector<Stereo> out;
     for (size_t i = 0; i < count; ++i) {
-        Stereo b = statics;
+        Stereo b = statics[i % statics.size()];
         for (auto& v : variant_layers) place(b, v[i % v.size()], 0);
         for (auto& s : b) s = clampv(s * gain, -1.0f, 1.0f);
         if (b.empty()) b = {0, 0};
