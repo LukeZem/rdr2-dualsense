@@ -45,7 +45,7 @@ Bluetooth headphones).
 
 [size=4][b]Lightbar, LEDs, speaker[/b][/size]
 Muzzle flash, hits, Dead Eye glow, lantern flicker, wanted, low health, honor; player LEDs show the rounds
-left; the game's own holster and lasso sounds from the controller speaker.
+left; the game's own holster and lasso sounds from the controller speaker (off by default).
 
 [size=4][b]Settings in the game's own menu[/b][/size]
 Pause > Settings > Controls > Controller > [b]DualSense[/b] - a real page of the game's Settings with every
