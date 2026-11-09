@@ -52,6 +52,10 @@ private:
     int touch_id_ = -1, sx_ = 0, sy_ = 0, lx_ = 0, ly_ = 0;
     double touch_t_ = 0;
     bool two_ = false;
+    bool clicked_ = false;                     // the touchpad was clicked during this touch
+    // per-half (0 left, 1 right) up / down swipes; set = overrides SwipeUp / SwipeDown on that half
+    WORD half_swipe_[2][2] = {{0, 0}, {0, 0}}, half_swipe_vk_[2][2] = {{0, 0}, {0, 0}};
+    bool half_set_[2][2] = {{false, false}, {false, false}};
     // gyro
     float bias_[3] = {0, 0, 0};
     float still_time_ = 0, smooth_yaw_ = 0, smooth_pitch_ = 0;

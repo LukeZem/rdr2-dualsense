@@ -206,6 +206,12 @@ SwipeDown=
 SwipeLeft=
 SwipeRight=
 TwoFingerTap=
+; Up / down swipes that start on one half of the touchpad (empty = that half uses SwipeUp / SwipeDown).
+; Right half: Numpad + / - (Bullet Time Pro's slow-motion strength). A swipe is touch only - click-drags don't count.
+LeftSwipeUp=
+LeftSwipeDown=
+RightSwipeUp=KEY:NUMPADPLUS
+RightSwipeDown=KEY:NUMPADMINUS
 
 [Keys]
 ; Keyboard keys from the controller, for mods that only take keys (e.g. Realistic Ballistics sight zeroing).

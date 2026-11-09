@@ -121,6 +121,9 @@ WORD vk_from_name(const std::string& n0) {
         {"END", VK_END}, {"PAGEUP", VK_PRIOR}, {"PRIOR", VK_PRIOR}, {"PAGEDOWN", VK_NEXT}, {"NEXT", VK_NEXT},
         {"CAPSLOCK", VK_CAPITAL}, {"MULTIPLY", VK_MULTIPLY}, {"ADD", VK_ADD}, {"SUBTRACT", VK_SUBTRACT},
         {"DECIMAL", VK_DECIMAL}, {"DIVIDE", VK_DIVIDE}, {"MINUS", VK_OEM_MINUS}, {"PLUS", VK_OEM_PLUS},
+        {"NUMPADPLUS", VK_ADD}, {"NUMPAD+", VK_ADD}, {"NUMPADADD", VK_ADD}, {"NUMPADMINUS", VK_SUBTRACT},
+        {"NUMPAD-", VK_SUBTRACT}, {"NUMPADSUBTRACT", VK_SUBTRACT}, {"NUMPADMULTIPLY", VK_MULTIPLY},
+        {"NUMPAD*", VK_MULTIPLY}, {"NUMPADDIVIDE", VK_DIVIDE}, {"NUMPAD/", VK_DIVIDE},
         {"COMMA", VK_OEM_COMMA}, {"PERIOD", VK_OEM_PERIOD}, {"LBUTTON", VK_LBUTTON}, {"RBUTTON", VK_RBUTTON},
         {"MBUTTON", VK_MBUTTON}, {"XBUTTON1", VK_XBUTTON1}, {"XBUTTON2", VK_XBUTTON2},
     };
@@ -305,6 +308,13 @@ void Input::configure() {
         static const char* names[4] = {"SwipeUp", "SwipeDown", "SwipeLeft", "SwipeRight"};
         for (int i = 0; i < 4; ++i) parse_touch(c.str("Touchpad", names[i], ""), swipe_[i], swipe_vk_[i]);
         parse_touch(c.str("Touchpad", "TwoFingerTap", ""), two_finger_, two_finger_vk_);
+        // per-half up / down swipes (empty = that half uses SwipeUp / SwipeDown)
+        static const char* half_names[2][2] = {{"LeftSwipeUp", "LeftSwipeDown"}, {"RightSwipeUp", "RightSwipeDown"}};
+        static const char* half_defaults[2][2] = {{"", ""}, {"KEY:NUMPADPLUS", "KEY:NUMPADMINUS"}};
+        for (int h = 0; h < 2; ++h)
+            for (int d = 0; d < 2; ++d)
+                half_set_[h][d] = parse_touch(c.str("Touchpad", half_names[h][d], half_defaults[h][d]),
+                                              half_swipe_[h][d], half_swipe_vk_[h][d]);
 
         std::string hold = upper_trim(c.str("Keys", "Hold", "L2"));
         chord_hold_trigger_ = hold == "L2" || hold == "LT" ? 1 : hold == "R2" || hold == "RT" ? 2 : 0;
@@ -446,25 +456,32 @@ void Input::track_touch(const InputState& s) {
         sy_ = ly_ = a.y;
         touch_t_ = s.t;
         two_ = false;
+        clicked_ = false;
     }
     if (touching_ && a.active) {
         lx_ = a.x;
         ly_ = a.y;
         if (both) two_ = true;
+        if (s.buttons & TOUCHPAD) clicked_ = true;         // a click-and-drag is not a swipe
     }
     if (touching_ && !a.active) {
         touching_ = false;
         double dt = s.t - touch_t_;
         int dx = lx_ - sx_, dy = ly_ - sy_;
         int gesture = -1;                                  // 0-3 swipes, 4 two-finger tap
-        if (two_ && dt < 0.35 && std::abs(dx) < 150 && std::abs(dy) < 150) gesture = 4;
+        if (clicked_) gesture = -1;
+        else if (two_ && dt < 0.35 && std::abs(dx) < 150 && std::abs(dy) < 150) gesture = 4;
         else if (dt < 0.5) {
             if (std::abs(dy) > 300 && std::abs(dy) > std::abs(dx)) gesture = dy < 0 ? 0 : 1;
             else if (std::abs(dx) > 450) gesture = dx < 0 ? 2 : 3;
         }
+        int half = sx_ >= 960 ? 1 : 0;                     // where the finger started (touchpad x 0..1919)
         if (gesture == 4) {
             inject(two_finger_, 0.12);
             pulse_key(two_finger_vk_, 0.12);
+        } else if ((gesture == 0 || gesture == 1) && half_set_[half][gesture]) {
+            inject(half_swipe_[half][gesture], 0.12);      // this half has its own up / down binding
+            pulse_key(half_swipe_vk_[half][gesture], 0.12);
         } else if (gesture >= 0) {
             inject(swipe_[gesture], 0.12);
             pulse_key(swipe_vk_[gesture], 0.12);
