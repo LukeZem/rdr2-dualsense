@@ -232,10 +232,10 @@ DpadRight=H
 ;               you let go; holding longer than HoldTime sends the key (keep holding to repeat)
 ;   doubletap = two taps within DoubleTap seconds send the key; a single tap reaches the game after the window
 ;   press     = every press sends the key (the game never sees the D-pad while Hold is held)
-Mode=tap
+Mode=doubletap
 TapTime=0.35
 HoldTime=0.3
-DoubleTap=0.25
+DoubleTap=0.35
 ; doubletap only: 1 = the first tap reaches the game at once (no delay, but it does on a double tap too)
 PassFirstTap=0
 ; Holding the D-pad repeats the key: first repeat after RepeatDelay seconds, then RepeatRate per second (0 = off)

@@ -390,11 +390,11 @@ void Input::configure() {
         chord_vk_[1] = vk_from_name(c.str("Keys", "DpadDown", "T"));
         chord_vk_[2] = vk_from_name(c.str("Keys", "DpadLeft", "G"));
         chord_vk_[3] = vk_from_name(c.str("Keys", "DpadRight", "H"));
-        std::string mode = upper_trim(c.str("Keys", "Mode", "tap"));
+        std::string mode = upper_trim(c.str("Keys", "Mode", "doubletap"));
         tap_mode_ = mode == "PRESS" ? 0 : mode == "DOUBLETAP" ? 1 : mode == "HOLD" ? 2 : 3;
         tap_time_ = clampv(c.num("Keys", "TapTime", 0.35f), 0.05f, 2.0f);
         hold_time_ = clampv(c.num("Keys", "HoldTime", 0.3f), 0.05f, 2.0f);
-        double_tap_ = clampv(c.num("Keys", "DoubleTap", 0.25f), 0.05f, 1.0f);
+        double_tap_ = clampv(c.num("Keys", "DoubleTap", 0.35f), 0.05f, 1.0f);
         pass_first_tap_ = c.flag("Keys", "PassFirstTap", false);
         for (int i = 0; i < 4; ++i) { tap_pending_[i] = false; tap_until_[i] = 0; }
         chord_hidden_ = 0;
