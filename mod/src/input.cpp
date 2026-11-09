@@ -253,19 +253,45 @@ void Input::update_keys(const InputState& s, bool connected) {
     bool hold = chord_hold_trigger_ == 1 ? s.l2 >= chord_threshold_
               : chord_hold_trigger_ == 2 ? s.r2 >= chord_threshold_
               : chord_hold_ != 0 && (s.buttons & chord_hold_) != 0;
+    static const WORD xdpad[4] = {XINPUT_GAMEPAD_DPAD_UP, XINPUT_GAMEPAD_DPAD_DOWN, XINPUT_GAMEPAD_DPAD_LEFT,
+                                  XINPUT_GAMEPAD_DPAD_RIGHT};
     uint32_t hidden = chord_hidden_.load();
     for (int i = 0; i < 4; ++i) {
         uint32_t bit = dbits[i];
         bool now = (s.buttons & bit) != 0;
+        bool fresh_press = now && !(prev_dpad_ & bit);    // a D-pad already held before the chord stays the game's
+        bool want_key = false;
+        if (double_tap_ <= 0) {
+            want_key = hold && chord_vk_[i] && fresh_press;   // single press sends the key
+        } else if (tap_pending_[i]) {
+            // first tap held back from the game: a second press in time = the key, otherwise give the game its tap
+            if (fresh_press && hold && t < tap_until_[i]) {
+                tap_pending_[i] = false;
+                want_key = true;
+            } else if (t >= tap_until_[i] || !hold) {
+                tap_pending_[i] = false;
+                if (now) hidden &= ~bit;                   // still held: the game sees the real (held) press from now
+                else inject(xdpad[i], 0.1);                // tapped and let go: replay the tap
+            }
+        } else if (fresh_press && hold && chord_vk_[i]) {
+            if (pass_first_tap_) {
+                if (t < tap_until_[i]) want_key = true;    // second tap (the first already went to the game)
+                else tap_until_[i] = t + double_tap_;
+            } else {
+                tap_pending_[i] = true;                    // hold the first tap back
+                tap_until_[i] = t + double_tap_;
+                hidden |= bit;
+            }
+        }
         if (!now) {                                        // released: key up, the game may see it again
             if (chord_key_down_[i]) key(chord_vk_[i], false);
             chord_key_down_[i] = false;
             chord_active_ &= ~bit;
-            hidden &= ~bit;
+            if (!tap_pending_[i]) hidden &= ~bit;
             continue;
         }
-        bool fresh_press = !(prev_dpad_ & bit);            // a D-pad already held before the chord stays the game's
-        if (hold && chord_vk_[i] && fresh_press) {
+        if (want_key) {
+            tap_until_[i] = 0;                             // a third tap starts a new double tap
             key(chord_vk_[i], true);
             chord_key_down_[i] = true;
             chord_active_ |= bit;
@@ -330,6 +356,10 @@ void Input::configure() {
         chord_vk_[1] = vk_from_name(c.str("Keys", "DpadDown", "T"));
         chord_vk_[2] = vk_from_name(c.str("Keys", "DpadLeft", "G"));
         chord_vk_[3] = vk_from_name(c.str("Keys", "DpadRight", "H"));
+        double_tap_ = clampv(c.num("Keys", "DoubleTap", 0.25f), 0.0f, 1.0f);
+        pass_first_tap_ = c.flag("Keys", "PassFirstTap", false);
+        for (int i = 0; i < 4; ++i) { tap_pending_[i] = false; tap_until_[i] = 0; }
+        chord_hidden_ = 0;
         repeat_delay_ = std::max(0.05f, c.num("Keys", "RepeatDelay", 0.4f));
         float rate = c.num("Keys", "RepeatRate", 8.0f);
         repeat_period_ = rate > 0.1f ? 1.0 / rate : 0;

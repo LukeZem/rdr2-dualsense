@@ -225,6 +225,12 @@ DpadUp=Z
 DpadDown=T
 DpadLeft=G
 DpadRight=H
+; Double tap the D-pad (within DoubleTap seconds) to send its key; a single tap still reaches the game
+; (e.g. L2 + down = scope). 0 = every press sends the key.
+DoubleTap=0.25
+; 0 = a single tap reaches the game after the DoubleTap window (a double tap never touches the game)
+; 1 = a single tap reaches the game at once (no delay, but the first tap of a double tap does too)
+PassFirstTap=0
 ; Holding the D-pad repeats the key: first repeat after RepeatDelay seconds, then RepeatRate per second (0 = off)
 RepeatDelay=0.4
 RepeatRate=8

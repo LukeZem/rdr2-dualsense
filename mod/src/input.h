@@ -74,6 +74,10 @@ private:
     int chord_threshold_ = 64;
     WORD chord_vk_[4] = {0, 0, 0, 0};          // D-pad up, down, left, right
     double repeat_delay_ = 0.4, repeat_period_ = 0.125;
+    double double_tap_ = 0.25;                 // seconds between taps for a key (0 = single press)
+    bool pass_first_tap_ = false;              // 1 = the first tap reaches the game at once
+    bool tap_pending_[4] = {};
+    double tap_until_[4] = {};
     uint32_t chord_active_ = 0;                // D-pad bits currently sending their key
     std::atomic<uint32_t> chord_hidden_{0};    // D-pad bits hidden from the game until released
     uint32_t prev_dpad_ = 0;
