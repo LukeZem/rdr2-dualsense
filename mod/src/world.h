@@ -84,6 +84,12 @@ public:
     int bush_handle_ = 0, bush_flag_i_ = 0;  // research probe: capsule tests against vegetation
     std::map<int, bool> bush_hit_;
     std::string weather_set_;            // testing: the SetWeather last applied
+    int damaged_me_by_ = 0;               // the game's last damage event on Arthur: by whom, when
+    double damaged_me_t_ = -10;
+    std::map<int, double> hit_by_me_t_;   // people Arthur damaged in the last second (their damage events)
+    bool storm_ = false;                  // testing: SetWeather=storm runs
+    double next_bolt_ = 0, storm_t0_ = 0;
+    int storm_reapplied_ = 0;
     bool explosion_on_ = false;           // an explosion within 150 m right now
     double explosion_t_ = -10;
     std::string foot_surface_ = "-";

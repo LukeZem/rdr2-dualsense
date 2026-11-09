@@ -48,6 +48,10 @@ void Core::load_data() {
     audio_.set_speaker_volume(c.num("Speaker", "Volume", 0.35f));
     audio_.set_duck(c.num("Haptics", "Duck", 0.3f));
     audio_.set_rumble_gain(c.num("Haptics", "GameRumble", 0.15f));
+    // Bluetooth: haptics as audio in the controller's reports (Bluetooth=0: the rumble motors instead). The sample
+    // format and the channel order are switchable while testing (BluetoothFormat=s8 / u8, BluetoothSwap=1).
+    audio_.set_bluetooth_options(c.flag("Haptics", "Bluetooth", true), c.str("Haptics", "BluetoothFormat", "s8") == "u8",
+                                 c.flag("Haptics", "BluetoothSwap", false));
     audio_.set_game_audio_gain(c.num("Haptics", "GameAudio", 0.0f));
     dialogue().configure();
     engine_.reset();
@@ -64,6 +68,8 @@ bool Core::init(bool in_game, const std::string& test_weapon) {
         return false;
     }
     if (in_game) input().install_hook();
+    audio_.set_bluetooth_output([this](const uint8_t* pcm) { return pad_.send_haptics(pcm); },
+                                [this] { return pad_.connected() && !pad_.usb(); });
     audio_.start(&lib_);
     if (in_game) dialogue().start(module_dir(), &audio_);      // cutscene / dialogue haptics (idle while both are off)
     audio_.start_game_audio(c.num("Haptics", "GameAudio", 0.0f), c.str("Haptics", "GameAudioDevice", ""));
@@ -330,8 +336,12 @@ bool Core::on_input(const InputState& s, OutputState& out) {
         }
     if (record_cues_ && haptics_on_)            // research (Record=1): every effect as it plays
         for (const auto& c : cues) LOGD("cue: %s %.2f%s", c.name.c_str(), c.gain, c.has_pan ? (c.pan < -0.2f ? " left" : c.pan > 0.2f ? " right" : "") : "");
+    // rumble only (Bluetooth without haptics): the fine textures would blur into one endless rumble - left out
+    const bool rumble_only = !audio_.ok();
     if (haptics_on_)
         for (auto& c : cues) {
+            if (rumble_only && (c.name == "rain_drop" || c.name == "brush" || c.name == "brush_in" || c.name == "wade_push"))
+                continue;
             if (in_game_ && g.cutscene) LOGD("cutscene: felt %s (%.2f)", c.name.c_str(), c.gain);   // which world events register in cutscenes
             audio_.play(c);
         }
@@ -379,6 +389,16 @@ bool Core::on_input(const InputState& s, OutputState& out) {
     if (!audio_.ok() && haptics_on_) {
         out.has_rumble = true;
         audio_.rumble_tick(s.t, out.rumble_left, out.rumble_right);
+        if (log::debug_enabled()) {                    // debug: what the motors are actually given (Bluetooth)
+            bt_max_l_ = std::max(bt_max_l_, int(out.rumble_left));
+            bt_max_r_ = std::max(bt_max_r_, int(out.rumble_right));
+            if (s.t - bt_log_t_ > 2.0) {
+                LOGD("bluetooth rumble: strongest in 2 s left %d right %d (of 255), game rumble %.2f / %.2f", bt_max_l_,
+                     bt_max_r_, input().rumble_low(), input().rumble_high());
+                bt_max_l_ = bt_max_r_ = 0;
+                bt_log_t_ = s.t;
+            }
+        }
     }
     uint32_t pressed = s.buttons & ~prev_buttons_;
     prev_buttons_ = s.buttons;

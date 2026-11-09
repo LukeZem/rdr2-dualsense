@@ -4,6 +4,7 @@
 #include "common.h"
 #include "effects.h"
 
+#include <mutex>
 #include <thread>
 
 namespace dsr2 {
@@ -63,6 +64,8 @@ public:
     bool usb() const { return usb_.load(); }
     float report_rate() const { return rate_.load(); }
     std::string name() const;
+    // Bluetooth haptics: one report 0x32 with 64 bytes of audio (32 stereo frames, 3 kHz, 8 bit). Any thread.
+    bool send_haptics(const uint8_t* pcm64);
 
 private:
     void loop();
@@ -76,7 +79,9 @@ private:
     std::atomic<bool> running_{false}, connected_{false}, usb_{true};
     std::atomic<float> rate_{0};
     HANDLE dev_ = INVALID_HANDLE_VALUE;
-    HANDLE read_ev_ = nullptr, write_ev_ = nullptr;
+    HANDLE read_ev_ = nullptr, write_ev_ = nullptr, hap_ev_ = nullptr;
+    std::mutex dev_mu_;                  // dev_ while another thread (Bluetooth haptics) writes to it
+    uint8_t hap_counter_ = 0;
     size_t in_len_ = 64, out_len_ = 48;
     uint8_t bt_seq_ = 0;
     bool lightbar_released_ = false;

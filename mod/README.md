@@ -6,7 +6,7 @@ whistle-to-call-your-horse, touchpad gestures.
 
 ## Requirements
 - Script Hook RDR2 + its ASI loader (`ScriptHookRDR2.dll`, `dinput8.dll`) in the game folder
-- DualSense on **USB** (Bluetooth works but falls back to rumble emulation - no voice-coil haptics, no speaker/mic)
+- DualSense on **USB** or **Bluetooth** (Bluetooth: haptics as 3 kHz audio in HID report 0x32 - format by [SAxense](https://apps.sdore.me/SAxense); no speaker/mic. `[Haptics] Bluetooth=0`: rumble emulation)
 - **Quit DSX / DS4Windows** and turn **Steam Input off** for RDR2 (Steam → RDR2 → Properties → Controller → Disable
   Steam Input). The mod talks to the controller directly and becomes the game's only gamepad.
 
@@ -36,7 +36,7 @@ Tune weapons, record calibration and label sounds in the Trigger Lab (`tools/tri
 | Dialogue | Experimental, off by default (`[Haptics] Dialogue=1`): every spoken line felt as the speaker's own voice, panned to their side. The exact recording is found from the game's speech request (voice + line + variation, `gamemem.cpp`) or the playing cutscene audio, decoded from the game's archives (`awc.cpp`, stb_vorbis) and timed by the line's own play clock; `SoundDelayMs` matches TV / headphone lag (auto: Bluetooth 200 ms, else 60 ms). |
 | Cutscenes | Steps, hooves, gunfire, hits and explosions are felt in cutscenes as in play. |
 | Pause / loading | The script thread stops in pause menus and loading screens: when the game state is older than 0.25 s everything goes quiet (effects, the game's rumble, dialogue tracks). |
-| Around you | Damage felt from its direction and by cause (bullet, melee, animal, fall); nearby gunfire pressure waves from their direction; heartbeat at low health and in Dead Eye; shivers in freezing cold. |
+| Around you | Damage felt from its direction and by cause (bullet, melee, animal, fall) - a hit is a health drop the game reports as damage (`EVENT_ENTITY_DAMAGED`: who, from where), small drops without one are drain; nearby gunfire pressure waves from their direction; heartbeat at low health and in Dead Eye; shivers in freezing cold. |
 | Explosions | The game's own, as they happen (`IS_EXPLOSION_IN_SPHERE`: dynamite, gas, lanterns, Molotovs, explosive rounds, lightning) - kind by explosion tag, distance by nested spheres, side by spheres left / right of the camera. Blasts: the game's explosion recordings + a pressure-wave shove + the ground rolling on for ~2 s; within 15 m the whole controller shakes and both triggers shudder. |
 | Fights | While shots, hits or explosions happen (3 s), the everyday textures (steps, hooves, wading, bushes, rain, wheels) play at half strength. |
 | Horse / feet | Hoofbeats and footsteps from the real limbs touching the ground: each limb's height above the ground under it (glitches of the ground query held, snow sinking accepted), rise -> fall -> the fall stops near the bottom = touchdown (`World::touchdown`, designed and scored offline with `tools/dev/limbs_touchdown.py`). Hooves ~88% of contacts, ~35 ms after landing; nothing is generated when the legs can't be read. The horse's heartbeat and breathing when it is spent; rearing. |

@@ -703,14 +703,42 @@ void World::tick() {
         std::string want = cfg.str("General", "SetWeather", "");
         if (want != weather_set_) {
             weather_set_ = want;
+            if (storm_) SET_RAIN(-1.0f);                  // leaving the test storm: the weather's own rain again
+            storm_ = false;
             if (want == "clear") {
                 CLEAR_OVERRIDE_WEATHER();
                 CLEAR_WEATHER_TYPE_PERSIST();
                 LOGI("weather: back to the game's own");
+            } else if (want == "storm") {                // the worst there is: hurricane, full rain, full wind, lightning
+                CLEAR_OVERRIDE_WEATHER();                // close by - for testing rain and thunder
+                CLEAR_WEATHER_TYPE_PERSIST();
+                SET_WEATHER_TYPE(joaat("hurricane"), true, true, true, 2.0f, false);
+                storm_ = true;
+                storm_t0_ = s.time;
+                storm_reapplied_ = 0;
+                next_bolt_ = s.time + 6.0;
+                LOGI("weather: test storm (hurricane, full rain and wind, lightning 25-80 m away every 8-20 s)");
             } else if (!want.empty()) {
                 SET_WEATHER_TYPE(joaat(want), true, true, true, 4.0f, false);
                 LOGI("weather: set to %s (from the ini, SetWeather)", want.c_str());
             }
+        }
+    }
+    if (storm_) {
+        // the game restores its own weather after loading a story: set the storm again 10 and 30 s in
+        const double again[2] = {10.0, 30.0};
+        if (storm_reapplied_ < 2 && s.time - storm_t0_ > again[storm_reapplied_]) {
+            SET_WEATHER_TYPE(joaat("hurricane"), true, true, true, 2.0f, false);
+            ++storm_reapplied_;
+        }
+        SET_RAIN(1.0f);
+        SET_WIND_SPEED(12.0f);
+        if (s.time >= next_bolt_) {
+            Vector3 me_at = GET_ENTITY_COORDS(PLAYER_PED_ID());
+            const float a = float(std::rand() % 360) * kPi / 180.0f, d = 25.0f + float(std::rand() % 56);
+            FORCE_LIGHTNING_FLASH_AT_COORDS(me_at.x + d * std::cos(a), me_at.y + d * std::sin(a), me_at.z);
+            LOGI("weather: lightning %.0f m away", d);
+            next_bolt_ = s.time + 8.0 + double(std::rand() % 13);
         }
     }
     if (!game_files::ready()) core().load_game_files();   // scripts run: the game's archives are mounted
@@ -1039,11 +1067,43 @@ void World::tick() {
     int peds[256];
     int n = shv_worldGetAllPeds(peds, 256);
     Ped melee_target = GET_MELEE_TARGET_FOR_PED(me);
+    // Who really damaged whom just now: the game's own damage events (EVENT_ENTITY_DAMAGED: [0] damaged, [1] by whom),
+    // read only. The "has X ever damaged Y" record lasts forever - a gunman from minutes ago turned every later bit
+    // of health drain (a tonic's gold wearing off) into a felt hit.
+    {
+        static const Hash kDamaged = 0x18010D37;       // EVENT_ENTITY_DAMAGED
+        int n_ev = GET_NUMBER_OF_EVENTS(0);
+        for (int i = 0; i < n_ev; ++i) {
+            if (GET_EVENT_AT_INDEX(0, i) != kDamaged) continue;
+            alignas(8) uint64_t d[9] = {};
+            if (!GET_EVENT_DATA(0, i, d, 9)) continue;
+            const int victim = int(uint32_t(d[0])), by = int(uint32_t(d[1]));
+            if (victim == me) {
+                if (log::debug_enabled() && s.time - damaged_me_t_ > 0.3)
+                    LOGD("damage event: Arthur hurt by %s", !by ? "nothing (fall, fire...)" : by == me ? "himself"
+                         : !DOES_ENTITY_EXIST(by) || !IS_ENTITY_A_PED(by) ? "an object" : IS_PED_HUMAN(by) ? "a person" : "an animal");
+                damaged_me_by_ = by;
+                damaged_me_t_ = s.time;
+            } else if (by == me && victim) {
+                hit_by_me_t_[victim] = s.time;
+            }
+        }
+        for (auto it = hit_by_me_t_.begin(); it != hit_by_me_t_.end();)
+            it = s.time - it->second > 1.0 ? hit_by_me_t_.erase(it) : std::next(it);
+    }
     std::map<int, int> seen;
     int attacker = 0;
     float attacker_dist = 1e9f;
     int health = GET_ENTITY_HEALTH(me);
     bool hurt = last_health_ >= 0 && health < last_health_;
+    const bool damage_now = s.time - damaged_me_t_ < 0.3;   // the game reported damage to Arthur this moment
+    if (hurt && damage_now && damaged_me_by_ && damaged_me_by_ != me && DOES_ENTITY_EXIST(damaged_me_by_) &&
+        IS_ENTITY_A_PED(damaged_me_by_)) {
+        Vector3 q = GET_ENTITY_COORDS(damaged_me_by_);
+        float dx = q.x - pos.x, dy = q.y - pos.y, dz = q.z - pos.z;
+        attacker = damaged_me_by_;
+        attacker_dist = std::sqrt(dx * dx + dy * dy + dz * dz);
+    }
     for (int i = 0; i < n; ++i) {
         Ped p = peds[i];
         if (!p || p == me) continue;
@@ -1060,14 +1120,11 @@ void World::tick() {
             int h = GET_ENTITY_HEALTH(p);
             seen[p] = h;
             auto it = ped_health_.find(p);
-            if (it != ped_health_.end() && h < it->second && HAS_ENTITY_BEEN_DAMAGED_BY_ENTITY(p, me)) {
+            auto hit = hit_by_me_t_.find(p);
+            if (it != ped_health_.end() && h < it->second && hit != hit_by_me_t_.end() && s.time - hit->second < 0.3) {
                 if (d < 3.0f) ++melee_hits_;
                 else ev.push_back({WorldEvent::HitConfirm, 0.5f, 1.0f, ""});
             }
-        }
-        if (hurt && d < attacker_dist && HAS_ENTITY_BEEN_DAMAGED_BY_ENTITY(me, p)) {
-            attacker = p;
-            attacker_dist = d;
         }
     }
     ped_health_.swap(seen);

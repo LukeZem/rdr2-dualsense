@@ -27,4 +27,4 @@ powershell -ExecutionPolicy Bypass -File tools/dev/make_release.ps1
 
 ## License
 MIT — see `LICENSE`. Uses nlohmann/json (MIT) and stb_vorbis (public domain). Research credits: alloc8or's RDR3 native DB, femga's
-rdr3_discoveries, decompiled RDR3 script references.
+rdr3_discoveries, decompiled RDR3 script references, [SAxense](https://apps.sdore.me/SAxense) (DualSense haptics over Bluetooth).

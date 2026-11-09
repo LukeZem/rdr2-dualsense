@@ -34,6 +34,7 @@ bool DualSense::start(Handler h) {
     running_ = true;
     read_ev_ = CreateEventW(nullptr, TRUE, FALSE, nullptr);
     write_ev_ = CreateEventW(nullptr, TRUE, FALSE, nullptr);
+    hap_ev_ = CreateEventW(nullptr, TRUE, FALSE, nullptr);
     thread_ = std::thread([this] { loop(); });
     return true;
 }
@@ -85,7 +86,10 @@ bool DualSense::open() {
         HANDLE h = CreateFileW(c.path.c_str(), GENERIC_READ | GENERIC_WRITE, FILE_SHARE_READ | FILE_SHARE_WRITE, nullptr,
                                OPEN_EXISTING, FILE_FLAG_OVERLAPPED, nullptr);
         if (h == INVALID_HANDLE_VALUE) continue;
-        dev_ = h;
+        {
+            std::lock_guard<std::mutex> l(dev_mu_);
+            dev_ = h;
+        }
         usb_ = c.usb;
         in_len_ = c.in;
         out_len_ = c.out;
@@ -107,9 +111,10 @@ void DualSense::close() {
         OutputState off;
         write(off, true);
         CancelIo(dev_);
+        std::lock_guard<std::mutex> l(dev_mu_);
         CloseHandle(dev_);
+        dev_ = INVALID_HANDLE_VALUE;
     }
-    dev_ = INVALID_HANDLE_VALUE;
     connected_ = false;
 }
 
@@ -236,6 +241,41 @@ bool DualSense::write(const OutputState& o, bool force) {
     }
     last_payload_.assign(payload, payload + 47);
     return true;
+}
+
+// Haptics over Bluetooth (format worked out by SAxense, https://apps.sdore.me/SAxense): report 0x32 = a header byte,
+// a 0x11 block (7 bytes, the last a running counter) and a 0x12 block with 64 bytes of 8-bit audio, CRC-32 (seed byte
+// 0xA2) over the first 138 bytes, stored after them.
+bool DualSense::send_haptics(const uint8_t* pcm64) {
+    std::lock_guard<std::mutex> l(dev_mu_);
+    if (dev_ == INVALID_HANDLE_VALUE || usb_ || !connected_) return false;
+    std::vector<uint8_t> rep(std::max<size_t>(out_len_, 142), 0);
+    rep[0] = 0x32;
+    rep[2] = 0x80 | 0x11;
+    rep[3] = 7;
+    const uint8_t b11[7] = {0xFE, 0, 0, 0, 0, 0xFF, hap_counter_++};
+    std::memcpy(rep.data() + 4, b11, 7);
+    rep[11] = 0x80 | 0x12;
+    rep[12] = 64;
+    std::memcpy(rep.data() + 13, pcm64, 64);
+    uint8_t seed = 0xA2;
+    uint32_t crc = crc32(&seed, 1);
+    crc = ~crc32(rep.data(), 138, crc);
+    std::memcpy(rep.data() + 138, &crc, 4);
+    OVERLAPPED ov{};
+    ov.hEvent = hap_ev_;
+    ResetEvent(hap_ev_);
+    DWORD n = 0;
+    BOOL ok = WriteFile(dev_, rep.data(), DWORD(rep.size()), &n, &ov);
+    if (!ok && GetLastError() == ERROR_IO_PENDING) {
+        if (WaitForSingleObject(hap_ev_, 30) != WAIT_OBJECT_0) {
+            CancelIoEx(dev_, &ov);
+            GetOverlappedResult(dev_, &ov, &n, TRUE);     // the cancel must finish before ov goes away
+            return false;
+        }
+        ok = GetOverlappedResult(dev_, &ov, &n, FALSE);
+    }
+    return ok != FALSE;
 }
 
 void DualSense::loop() {

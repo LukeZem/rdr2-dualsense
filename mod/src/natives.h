@@ -47,6 +47,10 @@ inline void SET_WEATHER_TYPE(Hash type, bool persist, bool p2, bool transition, 
 }
 inline void CLEAR_WEATHER_TYPE_PERSIST() { invoke<int>(0xD85DFE5C131E4AE9ull); }
 inline void CLEAR_OVERRIDE_WEATHER() { invoke<int>(0x80A398F16FFE3CC3ull); }
+// testing storms: rain intensity (negative: back to the weather's own), wind, a lightning strike at a spot
+inline void SET_RAIN(float intensity) { invoke<int>(0x193DFC0526830FD6ull, intensity); }
+inline void SET_WIND_SPEED(float speed) { invoke<int>(0xD00C2D82DC04A99Full, speed); }
+inline void FORCE_LIGHTNING_FLASH_AT_COORDS(float x, float y, float z) { invoke<int>(0x67943537D179597Cull, x, y, z, -1.0f); }
 // an explosion of this tag (-1 any) inside the sphere right now
 inline bool IS_EXPLOSION_IN_SPHERE(int tag, float x, float y, float z, float r) { return invoke<int>(0xD62DD846D82CBB90ull, tag, x, y, z, r) != 0; }
 // a ped's blackboard: "FoliageActive" (it is pushing through bushes / undergrowth), "FoliageHeight" (how high it is)

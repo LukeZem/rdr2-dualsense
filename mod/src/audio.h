@@ -6,6 +6,7 @@
 #include "haptics.h"
 
 #include <deque>
+#include <functional>
 #include <map>
 #include <memory>
 #include <thread>
@@ -42,6 +43,15 @@ public:
     void set_mic_listening(bool on) { mic_listening_ = on; }
     bool mic_listening() const { return mic_listening_.load(); }
     bool scripted_active() const { return scripted_active_.load(); }
+
+    // Bluetooth: the haptics as 3 kHz 8-bit audio inside the controller's HID reports. sink sends one report's 64 bytes
+    // (32 stereo frames), ready says the controller is connected over Bluetooth. Set before start().
+    void set_bluetooth_output(std::function<bool(const uint8_t*)> sink, std::function<bool()> ready) {
+        bt_sink_ = std::move(sink);
+        bt_ready_ = std::move(ready);
+    }
+    void set_bluetooth_options(bool on, bool unsigned8, bool swap) { bt_on_ = on; bt_u8_ = unsigned8; bt_swap_ = swap; }
+    bool bluetooth_haptics() const { return bt_active_.load(); }
 
     // Bluetooth fallback: cue envelopes on the two rumble motors. Call from the controller thread.
     void rumble_tick(double now, uint8_t& left, uint8_t& right);
@@ -80,6 +90,14 @@ private:
         bool stopping = false;
     };
     std::map<uint64_t, Track> tracks_;   // guarded by mu_
+    // the mix (render thread or Bluetooth loop)
+    void mix_block(std::vector<float>& mix, uint32_t n, float sr);
+    void bt_loop();
+    std::vector<Voice> mix_voices_;
+    float duck_ = 1.0f, rl_ = 0, rh_ = 0, ph_l_ = 0, ph_h_ = 0;
+    std::function<bool(const uint8_t*)> bt_sink_;
+    std::function<bool()> bt_ready_;
+    std::atomic<bool> bt_on_{true}, bt_u8_{false}, bt_swap_{false}, bt_active_{false};
 
     HapticLibrary* lib_ = nullptr;
     std::thread render_, loop_, mic_;

@@ -1,7 +1,7 @@
 === Nexus Mods page text (paste into the description; Nexus uses BBCode) ===
 
 NAME:     DualSense for RDR2 - Adaptive Triggers and Haptics
-VERSION:  1.2.1
+VERSION:  1.3.0
 CATEGORY: Gameplay  (or: Utilities)
 IMAGES:   release/banner.png (main image)
 SUMMARY (short):
@@ -83,6 +83,6 @@ loader and LML (as for any mod), and back for story mode. The mod changes none o
 [size=4][b]Open source[/b][/size]
 MIT licensed - source: https://github.com/OldKrab/rdr2-dualsense
 
---- CHANGELOG 1.2.1 (the file upload's changelog field, one line each) ---
-Swimming: every arm pull and kick is felt, left and right; the horse's paddling legs when it swims; a splash when you jump into water
-Sounds from the Controller Off now also silences the gun draw / holster sounds
+--- CHANGELOG 1.3.0 (the file upload's changelog field, one line each) ---
+Haptics over Bluetooth: everything you feel over USB now works without the cable too (not the controller's speaker and microphone)
+No more phantom hits after a fight: health slowly draining (a tonic wearing off) was felt as a bullet hit every few seconds

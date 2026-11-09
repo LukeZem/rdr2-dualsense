@@ -86,6 +86,8 @@ Strength=1.0
 GameShots=1
 ; The game's own rumble, converted for the voice-coil actuators (0 = off)
 GameRumble=0.15
+; Haptics over Bluetooth too (0 = only the plain rumble motors over Bluetooth)
+Bluetooth=1
 ; Everything you hear, turned into haptics (0 = off). Off by default: it also turns music and
 ; other sounds not made by your character into vibration. Try 0.3 if you want it anyway.
 GameAudio=0

@@ -1,5 +1,7 @@
 #include "audio.h"
 
+#include <timeapi.h>
+
 #include "dsp.h"
 #include "config.h"
 #include "log.h"
@@ -213,7 +215,7 @@ void AudioEngine::play(const Cue& c) {
         }
         env_voices_.push_back(std::move(v));
     }
-    if (c.speaker && ok_) {
+    if (c.speaker && ok_ && !bt_active_) {
         Stereo spk;
         if (lib_->speaker_sound(c, spk)) incoming_.push_back({std::move(spk), 0, true, false});
     }
@@ -278,8 +280,9 @@ void AudioEngine::render_thread() {
     CoInitializeEx(nullptr, COINIT_MULTITHREADED);
     IMMDevice* dev = find_endpoint(eRender, L"DualSense", L"");
     if (!dev) {
-        LOGW("DualSense audio device not found - haptics fall back to rumble emulation (Bluetooth?)");
         CoUninitialize();
+        if (bt_sink_) bt_loop();             // Bluetooth: haptics in the controller's HID reports (or rumble)
+        else LOGW("DualSense audio device not found - haptics fall back to rumble emulation (Bluetooth?)");
         return;
     }
     LOGI("haptics output: %s", narrow(device_name(dev)).c_str());
@@ -315,92 +318,14 @@ void AudioEngine::render_thread() {
     HANDLE mmcss = AvSetMmThreadCharacteristicsW(L"Pro Audio", &task);
     client->Start();
     ok_ = true;
-    std::vector<Voice> voices;
     std::vector<float> mix;
-    float duck = 1.0f, rl = 0, rh = 0, ph_l = 0, ph_h = 0;
     while (running_) {
         if (WaitForSingleObject(ev, 200) != WAIT_OBJECT_0) continue;
         UINT32 pad = 0;
         if (FAILED(client->GetCurrentPadding(&pad))) break;
         UINT32 n = frames - pad;
         if (!n) continue;
-        {
-            std::lock_guard<std::mutex> l(mu_);
-            for (auto& v : incoming_) voices.push_back(std::move(v));
-            incoming_.clear();
-        }
-        mix.assign(size_t(n) * 4, 0.0f);    // ch0/1 speaker, ch2/3 haptics
-        bool scripted = false;
-        for (auto& v : voices) scripted |= v.scripted && !v.speaker;
-        scripted_active_ = scripted;
-        float duck_target = scripted ? duck_level_.load() : 1.0f;
-        float strength = strength_.load(), spk = speaker_vol_.load();
-        float rg = rumble_gain_.load() * strength, ga = game_audio_gain_.load() * strength;
-        float tl = rumble_low_.load(), th = rumble_high_.load();
-        for (UINT32 i = 0; i < n; ++i) {
-            duck += (duck_target - duck) * (duck_target < duck ? 0.01f : 0.0003f);
-            // the game's rumble motors as voice-coil vibration (low ~45 Hz, high ~150 Hz)
-            rl += (tl - rl) * 0.002f;
-            rh += (th - rh) * 0.002f;
-            ph_l += 2 * kPi * 45.0f / fmt->nSamplesPerSec;
-            ph_h += 2 * kPi * 150.0f / fmt->nSamplesPerSec;
-            if (ph_l > 2 * kPi) ph_l -= 2 * kPi;
-            if (ph_h > 2 * kPi) ph_h -= 2 * kPi;
-            float rum = (std::sin(ph_l) * rl * 0.8f + std::sin(ph_h) * rh * 0.5f) * rg * duck;
-            float hl = rum, hr = rum;
-            // game-audio layer
-            size_t r = ring_r_.load(), w = ring_w_.load();
-            if (r != w) {
-                hl += ring_[r] * ga * duck;
-                hr += ring_[r + 1] * ga * duck;
-                ring_r_ = (r + 2) % ring_.size();
-            }
-            mix[size_t(i) * 4 + 2] = hl;
-            mix[size_t(i) * 4 + 3] = hr;
-        }
-        // voices are 48 kHz; the device is normally 48 kHz too (ratio 1)
-        for (auto& v : voices) {
-            size_t frames_v = v.buf.size() / 2;
-            for (UINT32 i = 0; i < n && v.pos < frames_v; ++i) {
-                size_t k = v.pos;
-                if (v.speaker) {
-                    // mono: the built-in speaker only plays the right channel (headphones get both)
-                    float m = 0.5f * (v.buf[2 * k] + v.buf[2 * k + 1]) * spk;
-                    mix[size_t(i) * 4 + 0] += m;
-                    mix[size_t(i) * 4 + 1] += m;
-                } else {
-                    mix[size_t(i) * 4 + 2] += v.buf[2 * k];
-                    mix[size_t(i) * 4 + 3] += v.buf[2 * k + 1];
-                }
-                v.pos += 1;
-            }
-        }
-        voices.erase(std::remove_if(voices.begin(), voices.end(), [](const Voice& v) { return v.pos >= v.buf.size() / 2; }),
-                     voices.end());
-        // tracks on the game's clock: the first sample written now is felt one device latency later
-        {
-            std::lock_guard<std::mutex> l(mu_);
-            const double felt = now_s() + latency_ms_.load() / 1000.0;
-            const float step = 1.0f / (0.06f * float(dsp::kSR));          // gains move / fade over ~60 ms
-            const bool muted = tracks_muted_.load();                        // the game is paused
-            for (auto it = tracks_.begin(); it != tracks_.end();) {
-                Track& t = it->second;
-                const std::vector<float>& m = *t.mono;
-                const long long k0 = (long long)std::floor((felt - t.t0) * dsp::kSR);
-                const bool silent = t.stopping || muted;
-                float tl = silent ? 0.0f : t.gl * strength, tr = silent ? 0.0f : t.gr * strength;
-                for (UINT32 i = 0; i < n; ++i) {
-                    t.cl += clampv(tl - t.cl, -step, step);
-                    t.cr += clampv(tr - t.cr, -step, step);
-                    long long k = k0 + i;
-                    if (k < 0 || k >= (long long)m.size()) continue;
-                    mix[size_t(i) * 4 + 2] += m[size_t(k)] * t.cl;
-                    mix[size_t(i) * 4 + 3] += m[size_t(k)] * t.cr;
-                }
-                bool done = (t.stopping && t.cl <= 0 && t.cr <= 0) || k0 > (long long)m.size();
-                it = done ? tracks_.erase(it) : std::next(it);
-            }
-        }
+        mix_block(mix, n, float(fmt->nSamplesPerSec));
         BYTE* out = nullptr;
         if (FAILED(render->GetBuffer(n, &out))) break;
         for (UINT32 i = 0; i < n; ++i)
@@ -417,6 +342,154 @@ void AudioEngine::render_thread() {
     CoTaskMemFree(fmt);
     CloseHandle(ev);
     CoUninitialize();
+}
+
+// One block of the mix (4 channels: speaker L/R, haptics L/R) at sample rate sr: the game's rumble as vibration, the
+// game-audio layer, every playing effect, the tracks on the game's clock. Used by the sound device (USB) and by the
+// Bluetooth loop - never both at once.
+void AudioEngine::mix_block(std::vector<float>& mix, uint32_t n, float sr) {
+    {
+        std::lock_guard<std::mutex> l(mu_);
+        for (auto& v : incoming_) mix_voices_.push_back(std::move(v));
+        incoming_.clear();
+    }
+    mix.assign(size_t(n) * 4, 0.0f);    // ch0/1 speaker, ch2/3 haptics
+    bool scripted = false;
+    for (auto& v : mix_voices_) scripted |= v.scripted && !v.speaker;
+    scripted_active_ = scripted;
+    float duck_target = scripted ? duck_level_.load() : 1.0f;
+    float strength = strength_.load(), spk = speaker_vol_.load();
+    float rg = rumble_gain_.load() * strength, ga = game_audio_gain_.load() * strength;
+    float tl = rumble_low_.load(), th = rumble_high_.load();
+    for (uint32_t i = 0; i < n; ++i) {
+        duck_ += (duck_target - duck_) * (duck_target < duck_ ? 0.01f : 0.0003f);
+        // the game's rumble motors as voice-coil vibration (low ~45 Hz, high ~150 Hz)
+        rl_ += (tl - rl_) * 0.002f;
+        rh_ += (th - rh_) * 0.002f;
+        ph_l_ += 2 * kPi * 45.0f / sr;
+        ph_h_ += 2 * kPi * 150.0f / sr;
+        if (ph_l_ > 2 * kPi) ph_l_ -= 2 * kPi;
+        if (ph_h_ > 2 * kPi) ph_h_ -= 2 * kPi;
+        float rum = (std::sin(ph_l_) * rl_ * 0.8f + std::sin(ph_h_) * rh_ * 0.5f) * rg * duck_;
+        float hl = rum, hr = rum;
+        // game-audio layer
+        size_t r = ring_r_.load(), w = ring_w_.load();
+        if (r != w) {
+            hl += ring_[r] * ga * duck_;
+            hr += ring_[r + 1] * ga * duck_;
+            ring_r_ = (r + 2) % ring_.size();
+        }
+        mix[size_t(i) * 4 + 2] = hl;
+        mix[size_t(i) * 4 + 3] = hr;
+    }
+    // voices are 48 kHz; the device is normally 48 kHz too (ratio 1)
+    for (auto& v : mix_voices_) {
+        size_t frames_v = v.buf.size() / 2;
+        for (uint32_t i = 0; i < n && v.pos < frames_v; ++i) {
+            size_t k = v.pos;
+            if (v.speaker) {
+                // mono: the built-in speaker only plays the right channel (headphones get both)
+                float m = 0.5f * (v.buf[2 * k] + v.buf[2 * k + 1]) * spk;
+                mix[size_t(i) * 4 + 0] += m;
+                mix[size_t(i) * 4 + 1] += m;
+            } else {
+                mix[size_t(i) * 4 + 2] += v.buf[2 * k];
+                mix[size_t(i) * 4 + 3] += v.buf[2 * k + 1];
+            }
+            v.pos += 1;
+        }
+    }
+    mix_voices_.erase(std::remove_if(mix_voices_.begin(), mix_voices_.end(), [](const Voice& v) { return v.pos >= v.buf.size() / 2; }),
+                      mix_voices_.end());
+    // tracks on the game's clock: the first sample written now is felt one device latency later
+    {
+        std::lock_guard<std::mutex> l(mu_);
+        const double felt = now_s() + latency_ms_.load() / 1000.0;
+        const float step = 1.0f / (0.06f * float(dsp::kSR));          // gains move / fade over ~60 ms
+        const bool muted = tracks_muted_.load();                        // the game is paused
+        for (auto it = tracks_.begin(); it != tracks_.end();) {
+            Track& t = it->second;
+            const std::vector<float>& m = *t.mono;
+            const long long k0 = (long long)std::floor((felt - t.t0) * dsp::kSR);
+            const bool silent = t.stopping || muted;
+            float tl = silent ? 0.0f : t.gl * strength, tr = silent ? 0.0f : t.gr * strength;
+            for (uint32_t i = 0; i < n; ++i) {
+                t.cl += clampv(tl - t.cl, -step, step);
+                t.cr += clampv(tr - t.cr, -step, step);
+                long long k = k0 + i;
+                if (k < 0 || k >= (long long)m.size()) continue;
+                mix[size_t(i) * 4 + 2] += m[size_t(k)] * t.cl;
+                mix[size_t(i) * 4 + 3] += m[size_t(k)] * t.cr;
+            }
+            bool done = (t.stopping && t.cl <= 0 && t.cr <= 0) || k0 > (long long)m.size();
+            it = done ? tracks_.erase(it) : std::next(it);
+        }
+    }
+}
+
+// Bluetooth: Windows has no sound device for the controller then, so the haptics go to it as audio inside HID output
+// reports - 3 kHz, 8 bit, stereo, 32 frames per report, ~94 reports a second (DualSense::send_haptics). The format was
+// worked out by SAxense (https://apps.sdore.me/SAxense). The same mix as over USB, averaged down 16:1 (the haptics
+// live below ~300 Hz). Not ready (USB, no controller) or switched off: the rumble fallback (ok() false).
+void AudioEngine::bt_loop() {
+    timeBeginPeriod(1);
+    std::vector<float> mix;
+    const double period = 64.0 / 6000.0;                 // 32 frames at 3 kHz
+    double next = now_s(), fail_log_t = 0;
+    bool active = false, warned = false;
+    int fails = 0;
+    while (running_) {
+        const bool ready = bt_on_.load() && bt_ready_ && bt_ready_();
+        if (ready != active) {
+            active = ready;
+            bt_active_ = ready;
+            latency_ms_ = ready ? 30.0f : 0.0f;          // one report + the Bluetooth link (estimate)
+            ok_ = ready;
+            next = now_s();
+            if (ready) LOGI("haptics output: DualSense over Bluetooth (audio in HID reports, %s%s)",
+                            bt_u8_.load() ? "unsigned" : "signed", bt_swap_.load() ? ", channels swapped" : "");
+        }
+        if (!ready) {
+            if (!warned) LOGW("DualSense audio device not found - haptics fall back to rumble emulation (Bluetooth?)");
+            warned = true;
+            Sleep(100);
+            continue;
+        }
+        warned = false;
+        const double now = now_s();
+        if (now < next) {
+            Sleep(1);
+            continue;
+        }
+        if (now - next > 0.1) next = now;                // far behind (a hitch): don't send a burst
+        next += period;
+        mix_block(mix, 512, float(dsp::kSR));
+        uint8_t pcm[64];
+        const bool u8 = bt_u8_.load(), swap = bt_swap_.load();
+        for (int f = 0; f < 32; ++f) {
+            float l = 0, r = 0;
+            for (int k = 0; k < 16; ++k) {
+                l += mix[size_t(f * 16 + k) * 4 + 2];
+                r += mix[size_t(f * 16 + k) * 4 + 3];
+            }
+            int a = int(std::lround(clampv(l / 16, -1.0f, 1.0f) * 127.0f));
+            int b = int(std::lround(clampv(r / 16, -1.0f, 1.0f) * 127.0f));
+            if (swap) std::swap(a, b);
+            pcm[2 * f] = u8 ? uint8_t(a + 128) : uint8_t(int8_t(a));
+            pcm[2 * f + 1] = u8 ? uint8_t(b + 128) : uint8_t(int8_t(b));
+        }
+        if (!bt_sink_(pcm)) {
+            ++fails;
+            if (now - fail_log_t > 5.0) {
+                LOGW("haptics: %d Bluetooth audio reports failed to send", fails);
+                fail_log_t = now;
+                fails = 0;
+            }
+        }
+    }
+    bt_active_ = false;
+    ok_ = false;
+    timeEndPeriod(1);
 }
 
 void AudioEngine::start_game_audio(float gain, const std::string& hint) {

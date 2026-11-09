@@ -43,6 +43,8 @@ private:
     bool ps_fired_ = false;
     bool frozen_ = false;                 // debug: the game state stopped updating (pause / loading)
     double frozen_log_t_ = 0;
+    double bt_log_t_ = 0;                 // debug: the strongest rumble sent over Bluetooth, logged every 2 s
+    int bt_max_l_ = 0, bt_max_r_ = 0;
     std::map<std::string, int> frozen_cues_;
     std::string test_weapon_;
     Calibration cal_;

@@ -1,4 +1,4 @@
-DualSense for RDR2  v1.2.1  -  by OldKrab
+DualSense for RDR2  v1.3.0  -  by OldKrab
 ==========================================
 
 Full DualSense support for Red Dead Redemption 2 on PC: adaptive triggers made per weapon,
@@ -11,8 +11,8 @@ REQUIREMENTS
 - Red Dead Redemption 2 (PC, Steam / Rockstar / Epic), story mode
 - Script Hook RDR2 + an ASI loader (dinput8.dll from Script Hook, or version.dll - either works)
   https://www.dev-c.com/rdr2/scripthookrdr2/
-- A DualSense controller connected by USB cable (haptics and the speaker need USB;
-  over Bluetooth you get triggers, lightbar and a rumble fallback). Plug it in before or after starting
+- A DualSense controller on a USB cable or Bluetooth (over Bluetooth everything but the controller's speaker
+  and microphone). Plug it in before or after starting
   the game - both work.
 - Close DSX / DS4Windows, and turn Steam Input OFF for RDR2
   (Steam -> RDR2 -> Properties -> Controller -> Disable Steam Input)
@@ -120,12 +120,17 @@ CREDITS
 -------
 Game research: alloc8or's RDR3 native database, femga's rdr3_discoveries, Halen84 and others' decompiled
 script references. nlohmann/json (MIT). stb_vorbis by Sean Barrett (public domain). Script Hook RDR2 by
-Alexander Blade.
+Alexander Blade. Haptics over Bluetooth: the report format worked out by SAxense (https://apps.sdore.me/SAxense).
 Source code (MIT): see the mod page.
 
 
 CHANGES
 -------
+1.3.0  Haptics over Bluetooth: everything you feel over USB now works without the cable too (not the
+       controller's speaker and microphone). Bluetooth=0 in the ini goes back to the plain rumble motors -
+       then without the rain, bush and wading textures, which only blurred into one endless rumble there.
+       No more phantom hits after a fight: health slowly draining (a tonic wearing off) was felt as a bullet
+       hit every few seconds - a hit is now only what the game reports as damage.
 1.2.1  Swimming: every arm pull and kick is felt, left and right; the horse's paddling legs when it swims;
        a splash when you jump into water.
        Sounds from the Controller Off now also silences the gun draw / holster sounds.
