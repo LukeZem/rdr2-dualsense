@@ -199,12 +199,33 @@ SpurTaps=2
 
 [Touchpad]
 ; Button sent to the game: A B X Y LB RB LT RT BACK START LS RS UP DOWN LEFT RIGHT, empty = nothing
+; or a keyboard key for other mods: KEY:<key> (same key names as [Keys]), e.g. TwoFingerTap=KEY:C
 Click=BACK
 SwipeUp=
 SwipeDown=
 SwipeLeft=
 SwipeRight=
 TwoFingerTap=
+
+[Keys]
+; Keyboard keys from the controller, for mods that only take keys (e.g. Realistic Ballistics sight zeroing).
+; While Hold is held, D-pad presses send these keys and the game does not see them as D-pad presses.
+; Hold: L2 R2 (past TriggerThreshold, 0-255) L1 R1 L3 R3 CREATE OPTIONS TOUCHPAD, empty = off
+Hold=L2
+TriggerThreshold=64
+; Key names: A-Z 0-9 F1-F24 NUMPAD0-9 SPACE ENTER TAB SHIFT CTRL ALT UP DOWN LEFT RIGHT HOME END
+; PAGEUP PAGEDOWN INSERT DELETE MINUS PLUS COMMA PERIOD, VK names (VK_T) or codes (0x54 / 84). Empty = nothing
+DpadUp=Z
+DpadDown=T
+DpadLeft=G
+DpadRight=H
+; Holding the D-pad repeats the key: first repeat after RepeatDelay seconds, then RepeatRate per second (0 = off)
+RepeatDelay=0.4
+RepeatRate=8
+; input = real key presses (works with every mod)
+; hook  = keys only visible to mods inside the game that read GetAsyncKeyState / GetKeyState; the game never
+;         sees a keyboard, so its button prompts stay PlayStation. Try it if prompts flicker to keyboard.
+Method=input
 )INI";
 }
 

@@ -4,6 +4,9 @@
 #include "log.h"
 #include "world.h"
 
+#include <cctype>
+#include <cstdlib>
+
 namespace dsr2 {
 
 Input& input() {
@@ -81,14 +84,250 @@ WORD xbutton_from_name(const std::string& n0) {
     return 0;
 }
 
+// ---- keyboard keys for other mods -------------------------------------------------------------------
+
+static std::string upper_trim(const std::string& s0) {
+    std::string s;
+    for (char c : s0)
+        if (!isspace((unsigned char)c)) s += char(toupper((unsigned char)c));
+    return s;
+}
+
+WORD vk_from_name(const std::string& n0) {
+    std::string n = upper_trim(n0);
+    if (n.rfind("VK_", 0) == 0) n = n.substr(3);
+    if (n.empty() || n == "OFF") return 0;
+    if (n.size() == 1 && ((n[0] >= 'A' && n[0] <= 'Z') || (n[0] >= '0' && n[0] <= '9'))) return WORD(n[0]);
+    if (n.size() > 2 && n[0] == '0' && n[1] == 'X') {
+        unsigned long v = strtoul(n.c_str() + 2, nullptr, 16);
+        return v > 0 && v < 256 ? WORD(v) : 0;
+    }
+    if (std::all_of(n.begin(), n.end(), [](char c) { return c >= '0' && c <= '9'; })) {
+        unsigned long v = strtoul(n.c_str(), nullptr, 10);
+        return v > 0 && v < 256 ? WORD(v) : 0;
+    }
+    if (n[0] == 'F' && n.size() <= 3) {
+        int f = atoi(n.c_str() + 1);
+        if (f >= 1 && f <= 24) return WORD(VK_F1 + f - 1);
+    }
+    if (n.rfind("NUMPAD", 0) == 0 && n.size() == 7 && n[6] >= '0' && n[6] <= '9') return WORD(VK_NUMPAD0 + n[6] - '0');
+    static const std::pair<const char*, WORD> map[] = {
+        {"SPACE", VK_SPACE}, {"ENTER", VK_RETURN}, {"RETURN", VK_RETURN}, {"TAB", VK_TAB}, {"ESC", VK_ESCAPE},
+        {"ESCAPE", VK_ESCAPE}, {"BACKSPACE", VK_BACK}, {"BACK", VK_BACK}, {"SHIFT", VK_SHIFT}, {"LSHIFT", VK_LSHIFT},
+        {"RSHIFT", VK_RSHIFT}, {"CTRL", VK_CONTROL}, {"CONTROL", VK_CONTROL}, {"LCTRL", VK_LCONTROL},
+        {"LCONTROL", VK_LCONTROL}, {"RCTRL", VK_RCONTROL}, {"RCONTROL", VK_RCONTROL}, {"ALT", VK_MENU},
+        {"MENU", VK_MENU}, {"LALT", VK_LMENU}, {"RALT", VK_RMENU}, {"UP", VK_UP}, {"DOWN", VK_DOWN},
+        {"LEFT", VK_LEFT}, {"RIGHT", VK_RIGHT}, {"INSERT", VK_INSERT}, {"DELETE", VK_DELETE}, {"HOME", VK_HOME},
+        {"END", VK_END}, {"PAGEUP", VK_PRIOR}, {"PRIOR", VK_PRIOR}, {"PAGEDOWN", VK_NEXT}, {"NEXT", VK_NEXT},
+        {"CAPSLOCK", VK_CAPITAL}, {"MULTIPLY", VK_MULTIPLY}, {"ADD", VK_ADD}, {"SUBTRACT", VK_SUBTRACT},
+        {"DECIMAL", VK_DECIMAL}, {"DIVIDE", VK_DIVIDE}, {"MINUS", VK_OEM_MINUS}, {"PLUS", VK_OEM_PLUS},
+        {"COMMA", VK_OEM_COMMA}, {"PERIOD", VK_OEM_PERIOD}, {"LBUTTON", VK_LBUTTON}, {"RBUTTON", VK_RBUTTON},
+        {"MBUTTON", VK_MBUTTON}, {"XBUTTON1", VK_XBUTTON1}, {"XBUTTON2", VK_XBUTTON2},
+    };
+    for (auto& [k, v] : map) if (n == k) return v;
+    return 0;
+}
+
+// Touchpad values: a game button (BACK, UP ...) or KEY:<key> for a keyboard key.
+static bool parse_touch(const std::string& v, WORD& xbutton, WORD& vk) {
+    std::string u = upper_trim(v);
+    xbutton = 0;
+    vk = 0;
+    if (u.rfind("KEY:", 0) == 0) vk = vk_from_name(u.substr(4));
+    else xbutton = xbutton_from_name(u);
+    return xbutton || vk;
+}
+
+// Method=hook: the keys exist only for code inside the game process that asks GetAsyncKeyState /
+// GetKeyState (most script mods). No keyboard event reaches Windows, so the game never switches its
+// prompts to keyboard & mouse. The real state comes from win32u (what user32's versions call).
+static std::atomic<uint8_t> g_vdown[256];
+static std::atomic<uint8_t> g_vpressed[256];
+static SHORT (WINAPI* g_real_async)(int) = nullptr;
+static SHORT (WINAPI* g_real_keystate)(int) = nullptr;
+
+static SHORT WINAPI hk_async_key(int vk) {
+    SHORT r = g_real_async ? g_real_async(vk) : 0;
+    if (vk > 0 && vk < 256) {
+        if (g_vdown[vk].load()) r = SHORT(r | 0x8000);
+        if (g_vpressed[vk].exchange(0)) r = SHORT(r | 1);
+    }
+    return r;
+}
+
+static SHORT WINAPI hk_key_state(int vk) {
+    SHORT r = g_real_keystate ? g_real_keystate(vk) : 0;
+    if (vk > 0 && vk < 256 && g_vdown[vk].load()) r = SHORT(r | 0x8000);
+    return r;
+}
+
+static bool install_key_hooks() {
+    static int done = 0;                      // 0 = not tried, 1 = ok, -1 = failed
+    if (done) return done > 0;
+    HMODULE w32u = LoadLibraryW(L"win32u.dll");
+    HMODULE u32 = LoadLibraryW(L"user32.dll");
+    if (w32u) {
+        g_real_async = reinterpret_cast<decltype(g_real_async)>(GetProcAddress(w32u, "NtUserGetAsyncKeyState"));
+        g_real_keystate = reinterpret_cast<decltype(g_real_keystate)>(GetProcAddress(w32u, "NtUserGetKeyState"));
+    }
+    bool ok = u32 && g_real_async && g_real_keystate &&
+              hook(reinterpret_cast<void*>(GetProcAddress(u32, "GetAsyncKeyState")), reinterpret_cast<void*>(&hk_async_key)) &&
+              hook(reinterpret_cast<void*>(GetProcAddress(u32, "GetKeyState")), reinterpret_cast<void*>(&hk_key_state));
+    LOGI("keys: in-process key hook %s", ok ? "ok" : "FAILED - using real key presses instead");
+    done = ok ? 1 : -1;
+    return ok;
+}
+
+static bool game_in_front() {
+    DWORD pid = 0;
+    GetWindowThreadProcessId(GetForegroundWindow(), &pid);
+    return pid == GetCurrentProcessId();
+}
+
+static bool is_extended(WORD vk) {
+    switch (vk) {
+    case VK_UP: case VK_DOWN: case VK_LEFT: case VK_RIGHT: case VK_INSERT: case VK_DELETE: case VK_HOME:
+    case VK_END: case VK_PRIOR: case VK_NEXT: case VK_DIVIDE: case VK_RCONTROL: case VK_RMENU: return true;
+    default: return false;
+    }
+}
+
+void Input::key(WORD vk, bool down) {
+    if (!vk) return;
+    if (key_hook_mode_) {
+        g_vdown[vk] = down ? 1 : 0;
+        if (down) g_vpressed[vk] = 1;
+        return;
+    }
+    if (down && !game_in_front()) return;     // alt-tabbed: never type into another program
+    INPUT in{};
+    if (vk == VK_LBUTTON || vk == VK_RBUTTON || vk == VK_MBUTTON || vk == VK_XBUTTON1 || vk == VK_XBUTTON2) {
+        in.type = INPUT_MOUSE;
+        if (vk == VK_LBUTTON) in.mi.dwFlags = down ? MOUSEEVENTF_LEFTDOWN : MOUSEEVENTF_LEFTUP;
+        else if (vk == VK_RBUTTON) in.mi.dwFlags = down ? MOUSEEVENTF_RIGHTDOWN : MOUSEEVENTF_RIGHTUP;
+        else if (vk == VK_MBUTTON) in.mi.dwFlags = down ? MOUSEEVENTF_MIDDLEDOWN : MOUSEEVENTF_MIDDLEUP;
+        else {
+            in.mi.dwFlags = down ? MOUSEEVENTF_XDOWN : MOUSEEVENTF_XUP;
+            in.mi.mouseData = vk == VK_XBUTTON1 ? XBUTTON1 : XBUTTON2;
+        }
+    } else {
+        in.type = INPUT_KEYBOARD;
+        in.ki.wVk = vk;
+        in.ki.wScan = WORD(MapVirtualKeyW(vk, MAPVK_VK_TO_VSC));
+        in.ki.dwFlags = (down ? 0 : KEYEVENTF_KEYUP) | (is_extended(vk) ? KEYEVENTF_EXTENDEDKEY : 0);
+    }
+    SendInput(1, &in, sizeof in);
+}
+
+void Input::release_all_keys() {
+    for (int i = 0; i < 4; ++i)
+        if (chord_key_down_[i]) { key(chord_vk_[i], false); chord_key_down_[i] = false; }
+    chord_active_ = 0;
+    if (click_key_down_) { key(click_vk_, false); click_key_down_ = false; }
+    for (auto& p : pulses_) key(p.vk, false);
+    pulses_.clear();
+}
+
+void Input::pulse_key(WORD vk, double seconds) {
+    if (!vk) return;
+    std::lock_guard<std::mutex> l(keys_mu_);
+    key(vk, true);
+    pulses_.push_back({vk, now_s() + seconds});
+}
+
+// Every controller tick: the hold button + D-pad chord, touchpad click as a held key, pulse releases.
+void Input::update_keys(const InputState& s, bool connected) {
+    static const uint32_t dbits[4] = {DPAD_UP, DPAD_DOWN, DPAD_LEFT, DPAD_RIGHT};
+    const uint32_t all = DPAD_UP | DPAD_DOWN | DPAD_LEFT | DPAD_RIGHT;
+    double t = s.t > 0 ? s.t : now_s();
+    std::lock_guard<std::mutex> l(keys_mu_);
+    if (!connected) {
+        release_all_keys();
+        chord_hidden_ = 0;
+        prev_dpad_ = 0;
+        return;
+    }
+    bool hold = chord_hold_trigger_ == 1 ? s.l2 >= chord_threshold_
+              : chord_hold_trigger_ == 2 ? s.r2 >= chord_threshold_
+              : chord_hold_ != 0 && (s.buttons & chord_hold_) != 0;
+    uint32_t hidden = chord_hidden_.load();
+    for (int i = 0; i < 4; ++i) {
+        uint32_t bit = dbits[i];
+        bool now = (s.buttons & bit) != 0;
+        if (!now) {                                        // released: key up, the game may see it again
+            if (chord_key_down_[i]) key(chord_vk_[i], false);
+            chord_key_down_[i] = false;
+            chord_active_ &= ~bit;
+            hidden &= ~bit;
+            continue;
+        }
+        bool fresh_press = !(prev_dpad_ & bit);            // a D-pad already held before the chord stays the game's
+        if (hold && chord_vk_[i] && fresh_press) {
+            key(chord_vk_[i], true);
+            chord_key_down_[i] = true;
+            chord_active_ |= bit;
+            hidden |= bit;
+            chord_next_[i] = t + repeat_delay_;
+        } else if (chord_active_ & bit) {
+            if (!hold) {                                   // hold button let go first: stop, stay hidden
+                if (chord_key_down_[i]) key(chord_vk_[i], false);
+                chord_key_down_[i] = false;
+                chord_active_ &= ~bit;
+            } else if (repeat_period_ > 0 && t >= chord_next_[i]) {
+                // held: repeat as up / down halves, so a game polling once per frame sees every click
+                chord_key_down_[i] = !chord_key_down_[i];
+                key(chord_vk_[i], chord_key_down_[i]);
+                chord_next_[i] = t + repeat_period_ * 0.5;
+            }
+        }
+    }
+    prev_dpad_ = s.buttons & all;
+    chord_hidden_ = hidden;
+    bool click = (s.buttons & TOUCHPAD) != 0;
+    if (click_vk_ && click != click_key_down_) {
+        key(click_vk_, click);
+        click_key_down_ = click;
+    }
+    for (auto it = pulses_.begin(); it != pulses_.end();) {
+        if (t >= it->up_at) { key(it->vk, false); it = pulses_.erase(it); }
+        else ++it;
+    }
+}
+
 void Input::configure() {
     Config& c = config();
-    touch_click_ = xbutton_from_name(c.str("Touchpad", "Click", "BACK"));
-    swipe_[0] = xbutton_from_name(c.str("Touchpad", "SwipeUp", ""));
-    swipe_[1] = xbutton_from_name(c.str("Touchpad", "SwipeDown", ""));
-    swipe_[2] = xbutton_from_name(c.str("Touchpad", "SwipeLeft", ""));
-    swipe_[3] = xbutton_from_name(c.str("Touchpad", "SwipeRight", ""));
-    two_finger_ = xbutton_from_name(c.str("Touchpad", "TwoFingerTap", ""));
+    WORD vk;
+    parse_touch(c.str("Touchpad", "Click", "BACK"), touch_click_, vk);
+    {
+        std::lock_guard<std::mutex> l(keys_mu_);
+        release_all_keys();                       // bindings may change under held keys
+        click_vk_ = vk;
+        static const char* names[4] = {"SwipeUp", "SwipeDown", "SwipeLeft", "SwipeRight"};
+        for (int i = 0; i < 4; ++i) parse_touch(c.str("Touchpad", names[i], ""), swipe_[i], swipe_vk_[i]);
+        parse_touch(c.str("Touchpad", "TwoFingerTap", ""), two_finger_, two_finger_vk_);
+
+        std::string hold = upper_trim(c.str("Keys", "Hold", "L2"));
+        chord_hold_trigger_ = hold == "L2" || hold == "LT" ? 1 : hold == "R2" || hold == "RT" ? 2 : 0;
+        static const std::pair<const char*, uint32_t> holds[] = {
+            {"L1", L1}, {"LB", L1}, {"R1", R1}, {"RB", R1}, {"L3", L3}, {"LS", L3}, {"R3", R3}, {"RS", R3},
+            {"CREATE", CREATE}, {"OPTIONS", OPTIONS}, {"TOUCHPAD", TOUCHPAD}, {"SQUARE", SQUARE}, {"CROSS", CROSS},
+            {"CIRCLE", CIRCLE}, {"TRIANGLE", TRIANGLE},
+        };
+        chord_hold_ = 0;
+        for (auto& [k, m] : holds) if (hold == k) chord_hold_ = m;
+        chord_threshold_ = clampv(c.integer("Keys", "TriggerThreshold", 64), 1, 255);
+        chord_vk_[0] = vk_from_name(c.str("Keys", "DpadUp", "Z"));
+        chord_vk_[1] = vk_from_name(c.str("Keys", "DpadDown", "T"));
+        chord_vk_[2] = vk_from_name(c.str("Keys", "DpadLeft", "G"));
+        chord_vk_[3] = vk_from_name(c.str("Keys", "DpadRight", "H"));
+        repeat_delay_ = std::max(0.05f, c.num("Keys", "RepeatDelay", 0.4f));
+        float rate = c.num("Keys", "RepeatRate", 8.0f);
+        repeat_period_ = rate > 0.1f ? 1.0 / rate : 0;
+        bool want_hook = upper_trim(c.str("Keys", "Method", "input")) == "HOOK";
+        key_hook_mode_ = want_hook && install_key_hooks();
+        LOGI("keys: hold %s, D-pad up/down/left/right -> vk %u/%u/%u/%u, method %s", hold.c_str(), chord_vk_[0],
+             chord_vk_[1], chord_vk_[2], chord_vk_[3], key_hook_mode_ ? "hook" : "input");
+    }
     hide_other_ = c.flag("General", "HideOtherPads", true);
 }
 
@@ -115,8 +354,10 @@ static SHORT stick(int v, bool invert) {
 }
 
 void Input::publish(const InputState& s, int game_rt, bool connected) {
+    update_keys(s, connected);
+    const uint32_t hidden = chord_hidden_.load();      // D-pad presses that went to the keyboard instead
     XINPUT_GAMEPAD g{};
-    auto map = [&](uint32_t m, WORD x) { if (s.buttons & m) g.wButtons |= x; };
+    auto map = [&](uint32_t m, WORD x) { if ((s.buttons & ~hidden) & m) g.wButtons |= x; };
     map(CROSS, XINPUT_GAMEPAD_A);
     map(CIRCLE, XINPUT_GAMEPAD_B);
     map(SQUARE, XINPUT_GAMEPAD_X);
@@ -215,11 +456,18 @@ void Input::track_touch(const InputState& s) {
         touching_ = false;
         double dt = s.t - touch_t_;
         int dx = lx_ - sx_, dy = ly_ - sy_;
-        if (two_ && dt < 0.35 && std::abs(dx) < 150 && std::abs(dy) < 150) {
+        int gesture = -1;                                  // 0-3 swipes, 4 two-finger tap
+        if (two_ && dt < 0.35 && std::abs(dx) < 150 && std::abs(dy) < 150) gesture = 4;
+        else if (dt < 0.5) {
+            if (std::abs(dy) > 300 && std::abs(dy) > std::abs(dx)) gesture = dy < 0 ? 0 : 1;
+            else if (std::abs(dx) > 450) gesture = dx < 0 ? 2 : 3;
+        }
+        if (gesture == 4) {
             inject(two_finger_, 0.12);
-        } else if (dt < 0.5) {
-            if (std::abs(dy) > 300 && std::abs(dy) > std::abs(dx)) inject(swipe_[dy < 0 ? 0 : 1], 0.12);
-            else if (std::abs(dx) > 450) inject(swipe_[dx < 0 ? 2 : 3], 0.12);
+            pulse_key(two_finger_vk_, 0.12);
+        } else if (gesture >= 0) {
+            inject(swipe_[gesture], 0.12);
+            pulse_key(swipe_vk_[gesture], 0.12);
         }
     }
 }

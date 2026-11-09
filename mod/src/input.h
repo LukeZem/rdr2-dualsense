@@ -28,6 +28,9 @@ public:
     double rt_press_read_t() const { return rt_press_read_t_.load(); }   // when the game last read R2 pressed
     float rumble_high() const { return rumble_high_.load(); }
 
+    // keyboard key for other mods (e.g. Realistic Ballistics zeroing): pressed now, released after `seconds`
+    void pulse_key(WORD vk, double seconds);
+
     // hook targets
     DWORD get_state(DWORD idx, XINPUT_STATE* out);
     DWORD set_state(DWORD idx, XINPUT_VIBRATION* v);
@@ -60,6 +63,26 @@ private:
     int hist_i_ = 0;
     double gyro_t_ = 0;
     bool hide_other_ = true;
+    // [Keys]: while the hold button is held, D-pad presses become keyboard keys (and the game never sees them)
+    std::mutex keys_mu_;
+    uint32_t chord_hold_ = 0;                  // Btn mask of the hold button (0 = off)
+    int chord_hold_trigger_ = 0;               // 1 = L2, 2 = R2 (analog, past chord_threshold_)
+    int chord_threshold_ = 64;
+    WORD chord_vk_[4] = {0, 0, 0, 0};          // D-pad up, down, left, right
+    double repeat_delay_ = 0.4, repeat_period_ = 0.125;
+    uint32_t chord_active_ = 0;                // D-pad bits currently sending their key
+    std::atomic<uint32_t> chord_hidden_{0};    // D-pad bits hidden from the game until released
+    uint32_t prev_dpad_ = 0;
+    bool chord_key_down_[4] = {};
+    double chord_next_[4] = {};
+    WORD click_vk_ = 0, swipe_vk_[4] = {0, 0, 0, 0}, two_finger_vk_ = 0;   // touchpad KEY: bindings
+    bool click_key_down_ = false;
+    struct Pulse { WORD vk; double up_at; };
+    std::vector<Pulse> pulses_;
+    bool key_hook_mode_ = false;               // Method=hook: keys only exist inside the game process
+    void update_keys(const InputState& s, bool connected);
+    void release_all_keys();                   // keys_mu_ held
+    void key(WORD vk, bool down);
     // real XInput for passthrough when the DualSense is absent
     DWORD (WINAPI* real_get_)(DWORD, XINPUT_STATE*) = nullptr;
     DWORD (WINAPI* real_set_)(DWORD, XINPUT_VIBRATION*) = nullptr;
@@ -67,5 +90,6 @@ private:
 
 Input& input();
 WORD xbutton_from_name(const std::string& name);
+WORD vk_from_name(const std::string& name);    // T, F5, NUMPAD1, VK_T, 0x54, 84 ... (0 = none)
 
 }  // namespace dsr2
