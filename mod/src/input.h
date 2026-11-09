@@ -90,6 +90,16 @@ private:
     bool click_key_down_ = false;
     struct Pulse { WORD vk; double up_at; };
     std::vector<Pulse> pulses_;
+    // [TouchpadCorners]: clicking a quarter of the touchpad = Click / DoubleClick / DoubleClickHold keys (0 TL, 1 TR, 2 BL, 3 BR)
+    bool corners_on_ = false;                  // any corner key set: touchpad clicks no longer reach the game
+    WORD corner_vk_[4][3] = {};                // [corner][0 click, 1 double click, 2 double click held]
+    double corner_window_ = 0.25, corner_hold_ = 0.35;
+    enum class CornerState { idle, press1, wait, press2, done };
+    CornerState cstate_ = CornerState::idle;
+    int ccorner_ = 0;
+    double ct0_ = 0;
+    bool cprev_click_ = false;
+    void update_corners(const InputState& s, double t);   // keys_mu_ held
     bool key_hook_mode_ = false;               // Method=hook: keys only exist inside the game process
     void update_keys(const InputState& s, bool connected);
     void release_all_keys();                   // keys_mu_ held

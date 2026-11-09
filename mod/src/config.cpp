@@ -213,14 +213,37 @@ LeftSwipeDown=
 RightSwipeUp=KEY:NUMPADPLUS
 RightSwipeDown=KEY:NUMPADMINUS
 
+[TouchpadCorners]
+; Full clicks (press the touchpad down) in one of its four quarters - any time, no L2 needed.
+; Exactly one of these fires per gesture:
+;   Click           = one click; fires DoubleClickWindow seconds after you let go (if no second click comes)
+;   DoubleClick     = two quick clicks; fires when you let go of the second click
+;   DoubleClickHold = two quick clicks, keeping the second one held; fires once it has been held for HoldTime
+; Type the key: F7  ~  [  C  NUMPAD5  SPACE ... (symbols = the key they're printed on). Empty = nothing.
+; Once any corner has a key, touchpad clicks no longer reach the game (its camera zoom).
+TopLeftClick=
+TopLeftDoubleClick=
+TopLeftDoubleClickHold=
+TopRightClick=
+TopRightDoubleClick=
+TopRightDoubleClickHold=
+BottomLeftClick=
+BottomLeftDoubleClick=
+BottomLeftDoubleClickHold=
+BottomRightClick=
+BottomRightDoubleClick=
+BottomRightDoubleClickHold=
+DoubleClickWindow=0.25
+HoldTime=0.35
+
 [Keys]
 ; Keyboard keys from the controller, for mods that only take keys (e.g. Realistic Ballistics sight zeroing).
 ; While Hold is held, D-pad presses send these keys and the game does not see them as D-pad presses.
 ; Hold: L2 R2 (past TriggerThreshold, 0-255) L1 R1 L3 R3 CREATE OPTIONS TOUCHPAD, empty = off
 Hold=L2
 TriggerThreshold=64
-; Key names: A-Z 0-9 F1-F24 NUMPAD0-9 SPACE ENTER TAB SHIFT CTRL ALT UP DOWN LEFT RIGHT HOME END
-; PAGEUP PAGEDOWN INSERT DELETE MINUS PLUS COMMA PERIOD, VK names (VK_T) or codes (0x54 / 84). Empty = nothing
+; Key names: just type the key - A-Z 0-9 F1-F24 ~ - = [ ] \ ; ' , . / NUMPAD0-9 NUMPAD+ NUMPAD- SPACE ENTER TAB
+; SHIFT CTRL ALT UP DOWN LEFT RIGHT HOME END PAGEUP PAGEDOWN INSERT DELETE (codes like 0x54 work too). Empty = nothing
 DpadUp=Z
 DpadDown=T
 DpadLeft=G

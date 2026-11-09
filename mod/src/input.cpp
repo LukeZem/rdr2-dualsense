@@ -98,6 +98,24 @@ WORD vk_from_name(const std::string& n0) {
     if (n.rfind("VK_", 0) == 0) n = n.substr(3);
     if (n.empty() || n == "OFF") return 0;
     if (n.size() == 1 && ((n[0] >= 'A' && n[0] <= 'Z') || (n[0] >= '0' && n[0] <= '9'))) return WORD(n[0]);
+    if (n.size() == 1) {                           // a symbol: the key it is printed on (US layout names)
+        switch (n[0]) {
+        case '~': case '`': return VK_OEM_3;
+        case '-': case '_': return VK_OEM_MINUS;
+        case '=': case '+': return VK_OEM_PLUS;
+        case '[': case '{': return VK_OEM_4;
+        case ']': case '}': return VK_OEM_6;
+        case '\\': case '|': return VK_OEM_5;
+        case ';': case ':': return VK_OEM_1;
+        case '\'': case '"': return VK_OEM_7;
+        case ',': case '<': return VK_OEM_COMMA;
+        case '.': case '>': return VK_OEM_PERIOD;
+        case '/': case '?': return VK_OEM_2;
+        default: break;
+        }
+        SHORT r = VkKeyScanW(wchar_t((unsigned char)n[0]));   // anything else: ask the keyboard layout
+        if (r != -1) return WORD(LOBYTE(r));
+    }
     if (n.size() > 2 && n[0] == '0' && n[1] == 'X') {
         unsigned long v = strtoul(n.c_str() + 2, nullptr, 16);
         return v > 0 && v < 256 ? WORD(v) : 0;
@@ -124,7 +142,10 @@ WORD vk_from_name(const std::string& n0) {
         {"NUMPADPLUS", VK_ADD}, {"NUMPAD+", VK_ADD}, {"NUMPADADD", VK_ADD}, {"NUMPADMINUS", VK_SUBTRACT},
         {"NUMPAD-", VK_SUBTRACT}, {"NUMPADSUBTRACT", VK_SUBTRACT}, {"NUMPADMULTIPLY", VK_MULTIPLY},
         {"NUMPAD*", VK_MULTIPLY}, {"NUMPADDIVIDE", VK_DIVIDE}, {"NUMPAD/", VK_DIVIDE},
-        {"COMMA", VK_OEM_COMMA}, {"PERIOD", VK_OEM_PERIOD}, {"LBUTTON", VK_LBUTTON}, {"RBUTTON", VK_RBUTTON},
+        {"COMMA", VK_OEM_COMMA}, {"PERIOD", VK_OEM_PERIOD}, {"TILDE", VK_OEM_3}, {"GRAVE", VK_OEM_3},
+        {"BACKTICK", VK_OEM_3}, {"SEMICOLON", VK_OEM_1}, {"QUOTE", VK_OEM_7}, {"SLASH", VK_OEM_2},
+        {"BACKSLASH", VK_OEM_5}, {"LBRACKET", VK_OEM_4}, {"RBRACKET", VK_OEM_6}, {"EQUALS", VK_OEM_PLUS},
+        {"PAUSE", VK_PAUSE}, {"SCROLLLOCK", VK_SCROLL}, {"NUMLOCK", VK_NUMLOCK}, {"PRINTSCREEN", VK_SNAPSHOT}, {"LBUTTON", VK_LBUTTON}, {"RBUTTON", VK_RBUTTON},
         {"MBUTTON", VK_MBUTTON}, {"XBUTTON1", VK_XBUTTON1}, {"XBUTTON2", VK_XBUTTON2},
     };
     for (auto& [k, v] : map) if (n == k) return v;
@@ -227,6 +248,7 @@ void Input::release_all_keys() {
         if (chord_key_down_[i]) { key(chord_vk_[i], false); chord_key_down_[i] = false; }
     chord_active_ = 0;
     if (click_key_down_) { key(click_vk_, false); click_key_down_ = false; }
+    cstate_ = CornerState::idle;
     for (auto& p : pulses_) key(p.vk, false);
     pulses_.clear();
 }
@@ -236,6 +258,46 @@ void Input::pulse_key(WORD vk, double seconds) {
     std::lock_guard<std::mutex> l(keys_mu_);
     key(vk, true);
     pulses_.push_back({vk, now_s() + seconds});
+}
+
+// Touchpad corners (full clicks, not touches). The quarter the finger is in at the first click picks the corner.
+// Exactly one of the three fires per gesture:
+//   click               = Click key, DoubleClickWindow seconds after you let go (if no second click came)
+//   click, click        = DoubleClick key, when the second click is let go before HoldTime
+//   click, click (held) = DoubleClickHold key, once the second click has been held for HoldTime
+void Input::update_corners(const InputState& s, double t) {
+    bool click = (s.buttons & TOUCHPAD) != 0;
+    bool pressed = click && !cprev_click_, released = !click && cprev_click_;
+    cprev_click_ = click;
+    auto fire = [&](WORD vk) {
+        if (!vk) return;
+        key(vk, true);
+        pulses_.push_back({vk, t + 0.1});
+    };
+    switch (cstate_) {
+    case CornerState::idle:
+        if (pressed) {
+            const TouchPoint& p = s.touch[0].active ? s.touch[0] : s.touch[1];
+            if (!p.active) break;                          // a click with no finger seen: ignore
+            ccorner_ = (p.y >= 540 ? 2 : 0) + (p.x >= 960 ? 1 : 0);
+            cstate_ = CornerState::press1;
+        }
+        break;
+    case CornerState::press1:                              // first click down
+        if (released) { ct0_ = t; cstate_ = CornerState::wait; }
+        break;
+    case CornerState::wait:                                // first click let go: a second one?
+        if (pressed) { ct0_ = t; cstate_ = CornerState::press2; }
+        else if (t - ct0_ >= corner_window_) { fire(corner_vk_[ccorner_][0]); cstate_ = CornerState::idle; }
+        break;
+    case CornerState::press2:                              // second click down
+        if (released) { fire(corner_vk_[ccorner_][1]); cstate_ = CornerState::idle; }
+        else if (t - ct0_ >= corner_hold_) { fire(corner_vk_[ccorner_][2]); cstate_ = CornerState::done; }
+        break;
+    case CornerState::done:                                // held double click already fired: wait for let go
+        if (!click) cstate_ = CornerState::idle;
+        break;
+    }
 }
 
 // Every controller tick: the hold button + D-pad chord, touchpad click as a held key, pulse releases.
@@ -347,7 +409,8 @@ void Input::update_keys(const InputState& s, bool connected) {
     prev_dpad_ = s.buttons & all;
     chord_hidden_ = hidden;
     bool click = (s.buttons & TOUCHPAD) != 0;
-    if (click_vk_ && click != click_key_down_) {
+    if (corners_on_) update_corners(s, t);
+    else if (click_vk_ && click != click_key_down_) {
         key(click_vk_, click);
         click_key_down_ = click;
     }
@@ -365,6 +428,17 @@ void Input::configure() {
         std::lock_guard<std::mutex> l(keys_mu_);
         release_all_keys();                       // bindings may change under held keys
         click_vk_ = vk;
+        static const char* corner_names[4] = {"TopLeft", "TopRight", "BottomLeft", "BottomRight"};
+        static const char* action_names[3] = {"Click", "DoubleClick", "DoubleClickHold"};
+        corners_on_ = false;
+        for (int k = 0; k < 4; ++k)
+            for (int a = 0; a < 3; ++a) {
+                corner_vk_[k][a] = vk_from_name(c.str("TouchpadCorners", std::string(corner_names[k]) + action_names[a], ""));
+                if (corner_vk_[k][a]) corners_on_ = true;
+            }
+        corner_window_ = clampv(c.num("TouchpadCorners", "DoubleClickWindow", 0.25f), 0.05f, 1.0f);
+        corner_hold_ = clampv(c.num("TouchpadCorners", "HoldTime", 0.35f), 0.1f, 2.0f);
+        cprev_click_ = false;
         static const char* names[4] = {"SwipeUp", "SwipeDown", "SwipeLeft", "SwipeRight"};
         for (int i = 0; i < 4; ++i) parse_touch(c.str("Touchpad", names[i], ""), swipe_[i], swipe_vk_[i]);
         parse_touch(c.str("Touchpad", "TwoFingerTap", ""), two_finger_, two_finger_vk_);
@@ -450,7 +524,7 @@ void Input::publish(const InputState& s, int game_rt, bool connected) {
     map(DPAD_DOWN, XINPUT_GAMEPAD_DPAD_DOWN);
     map(DPAD_LEFT, XINPUT_GAMEPAD_DPAD_LEFT);
     map(DPAD_RIGHT, XINPUT_GAMEPAD_DPAD_RIGHT);
-    if (s.buttons & TOUCHPAD) g.wButtons |= touch_click_;
+    if ((s.buttons & TOUCHPAD) && !corners_on_) g.wButtons |= touch_click_;   // corners in use: clicks are ours
     g.bLeftTrigger = BYTE(s.l2);
     g.bRightTrigger = BYTE(game_rt >= 0 ? game_rt : s.r2);
     g.sThumbLX = stick(s.lx, false);
