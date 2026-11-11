@@ -197,21 +197,33 @@ StopPhrase=
 SpeedPhrase=
 SpurTaps=2
 
+; ============================================================================
+;  CONTROLLER -> KEYBOARD KEYS
+;  Every setting below takes ONE keyboard key. Type the key itself:
+;      letters, digits    A   T   7
+;      function keys      F2   F6
+;      symbols            ~  -  =  [  ]  \  ;  '  ,  .  /
+;      numpad             NUMPAD0 ... NUMPAD9   NUMPAD+   NUMPAD-   NUMPAD*   NUMPAD/   NUMPAD.
+;                         (a bare + or * also means the numpad key)
+;      others             SPACE  ENTER  TAB  ESC  SHIFT  CTRL  ALT  UP  DOWN  LEFT  RIGHT
+;                         HOME  END  PAGEUP  PAGEDOWN  INSERT  DELETE
+;      or its Windows key code, e.g. 0x75 (that is F6)
+;  Leave a setting empty and it does nothing. Press F9 in game after editing.
+; ============================================================================
+
 [Touchpad]
-; Touch gestures (no click). Each value is a game button (A B X Y LB RB LT RT BACK START LS RS UP DOWN LEFT RIGHT)
-; or a keyboard key for other mods: KEY:<key> (key names as in [Keys], e.g. KEY:F2, KEY:NUMPAD+). Empty = nothing.
-; A click-and-drag is never a swipe: clicks belong to [TouchpadCorners].
-; One finger, up / down swipes: the LEFT or RIGHT half the finger started on
+; SWIPES: slide one finger, without clicking.
+; Up / down, starting on the left or right half of the touchpad:
 LeftSwipeUp=
 LeftSwipeDown=
-RightSwipeUp=
-RightSwipeDown=
-; One finger, left / right swipes: the TOP or BOTTOM half the finger started on
+RightSwipeUp=NUMPAD+
+RightSwipeDown=NUMPAD-
+; Left / right, starting on the top or bottom half of the touchpad:
 TopSwipeLeft=
 TopSwipeRight=
 BottomSwipeLeft=
 BottomSwipeRight=
-; Two fingers anywhere on the pad
+; Two fingers, anywhere on the touchpad:
 TwoFingerTap=
 TwoFingerSwipeUp=
 TwoFingerSwipeDown=
@@ -219,61 +231,39 @@ TwoFingerSwipeLeft=
 TwoFingerSwipeRight=
 
 [TouchpadCorners]
-; Full clicks (press the touchpad down) in one of its four quarters - any time, no L2 needed.
-; Exactly one of these fires per gesture:
-;   Click           = one click; fires DoubleClickWindow seconds after you let go (if no second click comes)
-;   DoubleClick     = two quick clicks; fires when you let go of the second click
-;   DoubleClickHold = two quick clicks, keeping the second one held; fires once it has been held for HoldTime
-; Type the key: F7  ~  [  C  NUMPAD5  SPACE ... (symbols = the key they're printed on). Empty = nothing.
-; Touchpad clicks never reach the game (its camera zoom is also on the photo-mode button).
-TopLeftClick=
+; CLICKS: press the touchpad down in one of its four corners.
+;   Click           = one click (the key is sent once no second click follows)
+;   DoubleClick     = two quick clicks
+;   DoubleClickHold = two quick clicks, keeping the second one held down
+TopLeftClick=F2
 TopLeftDoubleClick=
 TopLeftDoubleClickHold=
 TopRightClick=
 TopRightDoubleClick=
 TopRightDoubleClickHold=
-BottomLeftClick=
+BottomLeftClick=C
 BottomLeftDoubleClick=
 BottomLeftDoubleClickHold=
 BottomRightClick=
 BottomRightDoubleClick=
 BottomRightDoubleClickHold=
+; Seconds allowed between the two clicks, and seconds of holding that count as "held"
 DoubleClickWindow=0.35
 HoldTime=0.35
 
 [Keys]
-; Keyboard keys from the controller, for mods that only take keys (e.g. Realistic Ballistics sight zeroing).
-; While Hold is held, D-pad presses send these keys and the game does not see them as D-pad presses.
-; Hold: L2 R2 (past TriggerThreshold, 0-255) L1 R1 L3 R3 CREATE OPTIONS TOUCHPAD, empty = off
-Hold=L2
-TriggerThreshold=64
-; Key names: just type the key - A-Z 0-9 F1-F24 ~ - = [ ] \ ; ' , . / NUMPAD0-9 NUMPAD+ NUMPAD- SPACE ENTER TAB
-; SHIFT CTRL ALT UP DOWN LEFT RIGHT HOME END PAGEUP PAGEDOWN INSERT DELETE (codes like 0x54 work too). Empty = nothing
+; D-PAD, only while L2 is held (without L2 the D-pad is untouched).
+;   one click         = the game's normal action, sent once no second click follows
+;   two quick clicks  = the key below, exactly like pressing it on a keyboard
+;                       (keep the second click held and the key stays held)
 DpadUp=Z
 DpadDown=T
 DpadLeft=G
 DpadRight=H
-; How a D-pad press (while Hold is held) becomes a key, so the D-pad's own aiming actions still work:
-;   tap       = a quick tap (let go within TapTime seconds) sends the key; holding longer gives the game its
-;               own action (L2 + down = scope, shoulder swap...) from TapTime on
-;   hold      = the reverse: a quick tap is the game's own action (L2 + down = scope, shoulder swap...), given the moment
-;               you let go; holding longer than HoldTime sends the key (keep holding to repeat)
-;   doubletap = two taps within DoubleTap seconds send the key; a single tap reaches the game after the window
-;   press     = every press sends the key (the game never sees the D-pad while Hold is held)
-Mode=doubletap
-TapTime=0.35
-HoldTime=0.3
+; Seconds allowed between the two clicks
 DoubleTap=0.35
-; doubletap only: 1 = the first tap reaches the game at once (no delay, but it does on a double tap too)
-PassFirstTap=0
-; Our own repeat while a key is held (0 = off: the key just stays held, and Realistic Ballistics repeats zeroing
-; and enters Precision Focus on a held T by itself). Only needed for mods that do not repeat on their own.
-RepeatDelay=0.4
-RepeatRate=0
-; input = real key presses (works with every mod)
-; hook  = keys only visible to mods inside the game that read GetAsyncKeyState / GetKeyState; the game never
-;         sees a keyboard, so its button prompts stay PlayStation. Try it if prompts flicker to keyboard.
-Method=input
+; How far L2 must be pulled to count as held (0-255)
+TriggerThreshold=120
 )INI";
 }
 

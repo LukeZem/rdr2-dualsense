@@ -102,7 +102,9 @@ WORD vk_from_name(const std::string& n0) {
         switch (n[0]) {
         case '~': case '`': return VK_OEM_3;
         case '-': case '_': return VK_OEM_MINUS;
-        case '=': case '+': return VK_OEM_PLUS;
+        case '=': return VK_OEM_PLUS;
+        case '+': return VK_ADD;                   // a bare + or * = the numpad key
+        case '*': return VK_MULTIPLY;
         case '[': case '{': return VK_OEM_4;
         case ']': case '}': return VK_OEM_6;
         case '\\': case '|': return VK_OEM_5;
@@ -141,7 +143,7 @@ WORD vk_from_name(const std::string& n0) {
         {"DECIMAL", VK_DECIMAL}, {"DIVIDE", VK_DIVIDE}, {"MINUS", VK_OEM_MINUS}, {"PLUS", VK_OEM_PLUS},
         {"NUMPADPLUS", VK_ADD}, {"NUMPAD+", VK_ADD}, {"NUMPADADD", VK_ADD}, {"NUMPADMINUS", VK_SUBTRACT},
         {"NUMPAD-", VK_SUBTRACT}, {"NUMPADSUBTRACT", VK_SUBTRACT}, {"NUMPADMULTIPLY", VK_MULTIPLY},
-        {"NUMPAD*", VK_MULTIPLY}, {"NUMPADDIVIDE", VK_DIVIDE}, {"NUMPAD/", VK_DIVIDE},
+        {"NUMPAD*", VK_MULTIPLY}, {"NUMPAD.", VK_DECIMAL}, {"NUMPADDECIMAL", VK_DECIMAL}, {"NUMPADDIVIDE", VK_DIVIDE}, {"NUMPAD/", VK_DIVIDE},
         {"COMMA", VK_OEM_COMMA}, {"PERIOD", VK_OEM_PERIOD}, {"TILDE", VK_OEM_3}, {"GRAVE", VK_OEM_3},
         {"BACKTICK", VK_OEM_3}, {"SEMICOLON", VK_OEM_1}, {"QUOTE", VK_OEM_7}, {"SLASH", VK_OEM_2},
         {"BACKSLASH", VK_OEM_5}, {"LBRACKET", VK_OEM_4}, {"RBRACKET", VK_OEM_6}, {"EQUALS", VK_OEM_PLUS},
@@ -153,13 +155,13 @@ WORD vk_from_name(const std::string& n0) {
 }
 
 // Touchpad values: a game button (BACK, UP ...) or KEY:<key> for a keyboard key.
+// Touchpad bindings are keyboard keys, written like every other key ("F6", "NUMPAD+"; an old "KEY:" prefix is fine).
 static bool parse_touch(const std::string& v, WORD& xbutton, WORD& vk) {
     std::string u = upper_trim(v);
+    if (u.rfind("KEY:", 0) == 0) u = u.substr(4);
     xbutton = 0;
-    vk = 0;
-    if (u.rfind("KEY:", 0) == 0) vk = vk_from_name(u.substr(4));
-    else xbutton = xbutton_from_name(u);
-    return xbutton || vk;
+    vk = vk_from_name(u);
+    return vk != 0;
 }
 
 // Method=hook: the keys exist only for code inside the game process that asks GetAsyncKeyState /
