@@ -1453,7 +1453,7 @@ void World::tick() {
     }
 
     // --- the surface under you: F10 shows what it is, F10 again (while shown) changes it ---
-    int key = cfg.integer("General", "TeachSurfaceKey", 121);
+    int key = vk_from_name(cfg.str("General", "TeachSurfaceKey", "F10"));   // a key name (F10) or a code (121)
     bool down = (GetAsyncKeyState(key) & 0x8000) != 0;
     if (down && !teach_down_) {
         Entity who = horse ? horse : me;

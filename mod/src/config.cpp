@@ -34,7 +34,7 @@ static std::string trim(const std::string& s) {
 
 const char* Config::default_text() {
     return R"INI(; ============================================================================
-;  DualSense for RDR2 - settings. Edit and restart the game (or press F9 in game to reload).
+;  DualSense for RDR2 - settings. Edit and restart the game (or press F5 in game to reload).
 ; ============================================================================
 
 [General]
@@ -43,15 +43,15 @@ Enabled=1
 Debug=0
 ; The game only sees the DualSense (hides DSX/ViGEm virtual pads that would double the input)
 HideOtherPads=1
-; Key (virtual-key code) that reloads this file and the data folder in game. 120 = F9 (or hold PS ~1 s)
-ReloadKey=120
+; Key that reloads this file and the data folder in game (or hold PS ~1 s). Type the key, like the keys at the bottom.
+ReloadKey=F5
 ; Which defaults this file has. A newer version of the mod moves settings still at an older default to the new
 ; one (settings you changed stay). Leave it alone.
 DefaultsVersion=2
 ; Ground is identified from the game's material automatically. This key shows what is under you;
 ; pressing it again while shown changes it (ground, grass, mud, stone, gravel, wood, snow, sand, water).
-; Saved in DualSenseRDR2\materials.json. 121 = F10
-TeachSurfaceKey=121
+; Saved in DualSenseRDR2\materials.json.
+TeachSurfaceKey=F10
 
 [Triggers]
 Enabled=1
@@ -208,7 +208,7 @@ SpurTaps=2
 ;      others             SPACE  ENTER  TAB  ESC  SHIFT  CTRL  ALT  UP  DOWN  LEFT  RIGHT
 ;                         HOME  END  PAGEUP  PAGEDOWN  INSERT  DELETE
 ;      or its Windows key code, e.g. 0x75 (that is F6)
-;  Leave a setting empty and it does nothing. Press F9 in game after editing.
+;  Leave a setting empty and it does nothing. Press F5 in game after editing.
 ; ============================================================================
 
 [Touchpad]

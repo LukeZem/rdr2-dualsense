@@ -465,7 +465,7 @@ void Core::script_tick() {
     // "devices changed" message: the game's window then re-checks the display too - the desktop flashed for a moment)
     if (conn) pad_seen_ = true;
     pad_was_connected_ = conn;
-    int key = config().integer("General", "ReloadKey", 120);
+    int key = vk_from_name(config().str("General", "ReloadKey", "F5"));   // a key name (F5) or a code (116)
     bool down = (GetAsyncKeyState(key) & 0x8000) != 0;
     if (down && !reload_key_down_) request_reload();
     reload_key_down_ = down;
