@@ -78,6 +78,8 @@ private:
     double double_tap_ = 0.25;                 // Mode=doubletap: seconds between the two taps
     bool pass_first_tap_ = false;              // 1 = the first tap reaches the game at once
     bool tap_pending_[4] = {};
+    double dpad_t_[4] = {};                    // debug log: when each direction was last pressed
+    WORD game_dpad_read_ = 0;                  // debug log: D-pad bits the game last read
     double tap_until_[4] = {};
     uint32_t chord_active_ = 0;                // D-pad bits currently sending their key
     std::atomic<uint32_t> chord_hidden_{0};    // D-pad bits hidden from the game until released

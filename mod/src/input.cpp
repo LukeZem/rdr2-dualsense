@@ -322,6 +322,15 @@ void Input::update_keys(const InputState& s, bool connected) {
         bool now = (s.buttons & bit) != 0;
         bool fresh_press = now && !(prev_dpad_ & bit);    // a D-pad already held before the chord stays the game's
         bool want_key = false;
+        static const char* dname[4] = {"up", "down", "left", "right"};
+        if (fresh_press) {
+            LOGD("dpad %s PRESSED: L2 %d (need %d) -> aim-hold %s, mode %d, first-click-pending %d, %.0f ms since last press",
+                 dname[i], s.l2, chord_threshold_, hold ? "yes" : "NO", tap_mode_, int(tap_pending_[i]),
+                 (t - dpad_t_[i]) * 1000);
+            dpad_t_[i] = t;
+        } else if (!now && (prev_dpad_ & bit)) {
+            LOGD("dpad %s released after %.0f ms", dname[i], (t - dpad_t_[i]) * 1000);
+        }
         if (tap_mode_ == 0) {
             want_key = hold && chord_vk_[i] && fresh_press;   // single press sends the key
         } else if (tap_mode_ == 3) {
@@ -363,8 +372,12 @@ void Input::update_keys(const InputState& s, bool connected) {
             if (fresh_press && hold && t < tap_until_[i]) {
                 tap_pending_[i] = false;
                 want_key = true;
+                LOGD("dpad %s: second click in time -> key %u DOWN (the game got neither click)", dname[i], chord_vk_[i]);
             } else if (t >= tap_until_[i] || !hold) {
                 tap_pending_[i] = false;
+                LOGD("dpad %s: first click given to the game (%s; %s)", dname[i],
+                     hold ? "no second click within the window" : "L2 dropped below the threshold",
+                     now ? "still held - the game sees it from now" : "replayed as a 0.1 s tap");
                 if (now) hidden &= ~bit;                   // still held: the game sees the real (held) press from now
                 else inject(xdpad[i], 0.1);                // tapped and let go: replay the tap
             }
@@ -376,9 +389,11 @@ void Input::update_keys(const InputState& s, bool connected) {
                 tap_pending_[i] = true;                    // hold the first tap back
                 tap_until_[i] = t + double_tap_;
                 hidden |= bit;
+                LOGD("dpad %s: first click HELD BACK from the game for %.0f ms", dname[i], double_tap_ * 1000);
             }
         }
         if (!now) {                                        // released: key up, the game may see it again
+            if (chord_key_down_[i]) LOGD("dpad %s: key %u up", dname[i], chord_vk_[i]);
             if (chord_key_down_[i]) key(chord_vk_[i], false);
             chord_key_down_[i] = false;
             chord_active_ &= ~bit;
@@ -546,6 +561,11 @@ DWORD Input::get_state(DWORD idx, XINPUT_STATE* out) {
                 return real_get_ ? real_get_(idx, out) : ERROR_DEVICE_NOT_CONNECTED;
             }
             *out = state_;
+            if (WORD d = state_.Gamepad.wButtons & 0x000F; d != game_dpad_read_) {   // debug: D-pad as the game reads it
+                game_dpad_read_ = d;
+                LOGD("GAME READ D-pad over XInput: %s%s%s%s%s (L2 %d)", d & 1 ? "up " : "", d & 2 ? "down " : "",
+                     d & 4 ? "left " : "", d & 8 ? "right " : "", d ? "" : "released", state_.Gamepad.bLeftTrigger);
+            }
             if (state_.Gamepad.bRightTrigger >= 128) rt_press_read_t_ = now_s();   // debug: the game saw R2 pressed
             return ERROR_SUCCESS;
         }
