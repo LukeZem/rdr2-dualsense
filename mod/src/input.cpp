@@ -247,7 +247,6 @@ void Input::release_all_keys() {
     for (int i = 0; i < 4; ++i)
         if (chord_key_down_[i]) { key(chord_vk_[i], false); chord_key_down_[i] = false; }
     chord_active_ = 0;
-    if (click_key_down_) { key(click_vk_, false); click_key_down_ = false; }
     cstate_ = CornerState::idle;
     for (auto& p : pulses_) key(p.vk, false);
     pulses_.clear();
@@ -408,12 +407,7 @@ void Input::update_keys(const InputState& s, bool connected) {
     }
     prev_dpad_ = s.buttons & all;
     chord_hidden_ = hidden;
-    bool click = (s.buttons & TOUCHPAD) != 0;
-    if (corners_on_) update_corners(s, t);
-    else if (click_vk_ && click != click_key_down_) {
-        key(click_vk_, click);
-        click_key_down_ = click;
-    }
+    update_corners(s, t);
     for (auto it = pulses_.begin(); it != pulses_.end();) {
         if (t >= it->up_at) { key(it->vk, false); it = pulses_.erase(it); }
         else ++it;
@@ -422,33 +416,24 @@ void Input::update_keys(const InputState& s, bool connected) {
 
 void Input::configure() {
     Config& c = config();
-    WORD vk;
-    parse_touch(c.str("Touchpad", "Click", "BACK"), touch_click_, vk);
     {
         std::lock_guard<std::mutex> l(keys_mu_);
         release_all_keys();                       // bindings may change under held keys
-        click_vk_ = vk;
+        static const char* half_names[8] = {"LeftSwipeUp", "LeftSwipeDown", "RightSwipeUp", "RightSwipeDown",
+                                            "TopSwipeLeft", "TopSwipeRight", "BottomSwipeLeft", "BottomSwipeRight"};
+        for (int i = 0; i < 8; ++i) parse_touch(c.str("Touchpad", half_names[i], ""), half_[i], half_vk_[i]);
+        static const char* twof_names[5] = {"TwoFingerTap", "TwoFingerSwipeUp", "TwoFingerSwipeDown",
+                                            "TwoFingerSwipeLeft", "TwoFingerSwipeRight"};
+        for (int i = 0; i < 5; ++i) parse_touch(c.str("Touchpad", twof_names[i], ""), twof_[i], twof_vk_[i]);
         static const char* corner_names[4] = {"TopLeft", "TopRight", "BottomLeft", "BottomRight"};
         static const char* action_names[3] = {"Click", "DoubleClick", "DoubleClickHold"};
-        corners_on_ = false;
         for (int k = 0; k < 4; ++k)
             for (int a = 0; a < 3; ++a) {
                 corner_vk_[k][a] = vk_from_name(c.str("TouchpadCorners", std::string(corner_names[k]) + action_names[a], ""));
-                if (corner_vk_[k][a]) corners_on_ = true;
             }
-        corner_window_ = clampv(c.num("TouchpadCorners", "DoubleClickWindow", 0.25f), 0.05f, 1.0f);
+        corner_window_ = clampv(c.num("TouchpadCorners", "DoubleClickWindow", 0.35f), 0.05f, 1.0f);
         corner_hold_ = clampv(c.num("TouchpadCorners", "HoldTime", 0.35f), 0.1f, 2.0f);
         cprev_click_ = false;
-        static const char* names[4] = {"SwipeUp", "SwipeDown", "SwipeLeft", "SwipeRight"};
-        for (int i = 0; i < 4; ++i) parse_touch(c.str("Touchpad", names[i], ""), swipe_[i], swipe_vk_[i]);
-        parse_touch(c.str("Touchpad", "TwoFingerTap", ""), two_finger_, two_finger_vk_);
-        // per-half up / down swipes (empty = that half uses SwipeUp / SwipeDown)
-        static const char* half_names[2][2] = {{"LeftSwipeUp", "LeftSwipeDown"}, {"RightSwipeUp", "RightSwipeDown"}};
-        static const char* half_defaults[2][2] = {{"", ""}, {"KEY:NUMPADPLUS", "KEY:NUMPADMINUS"}};
-        for (int h = 0; h < 2; ++h)
-            for (int d = 0; d < 2; ++d)
-                half_set_[h][d] = parse_touch(c.str("Touchpad", half_names[h][d], half_defaults[h][d]),
-                                              half_swipe_[h][d], half_swipe_vk_[h][d]);
 
         std::string hold = upper_trim(c.str("Keys", "Hold", "L2"));
         chord_hold_trigger_ = hold == "L2" || hold == "LT" ? 1 : hold == "R2" || hold == "RT" ? 2 : 0;
@@ -468,7 +453,7 @@ void Input::configure() {
         tap_mode_ = mode == "PRESS" ? 0 : mode == "DOUBLETAP" ? 1 : mode == "HOLD" ? 2 : 3;
         tap_time_ = clampv(c.num("Keys", "TapTime", 0.35f), 0.05f, 2.0f);
         hold_time_ = clampv(c.num("Keys", "HoldTime", 0.3f), 0.05f, 2.0f);
-        double_tap_ = clampv(c.num("Keys", "DoubleTap", 0.25f), 0.05f, 1.0f);
+        double_tap_ = clampv(c.num("Keys", "DoubleTap", 0.35f), 0.05f, 1.0f);
         pass_first_tap_ = c.flag("Keys", "PassFirstTap", false);
         for (int i = 0; i < 4; ++i) { tap_pending_[i] = false; tap_until_[i] = 0; }
         chord_hidden_ = 0;
@@ -524,7 +509,6 @@ void Input::publish(const InputState& s, int game_rt, bool connected) {
     map(DPAD_DOWN, XINPUT_GAMEPAD_DPAD_DOWN);
     map(DPAD_LEFT, XINPUT_GAMEPAD_DPAD_LEFT);
     map(DPAD_RIGHT, XINPUT_GAMEPAD_DPAD_RIGHT);
-    if ((s.buttons & TOUCHPAD) && !corners_on_) g.wButtons |= touch_click_;   // corners in use: clicks are ours
     g.bLeftTrigger = BYTE(s.l2);
     g.bRightTrigger = BYTE(game_rt >= 0 ? game_rt : s.r2);
     g.sThumbLX = stick(s.lx, false);
@@ -610,23 +594,26 @@ void Input::track_touch(const InputState& s) {
         touching_ = false;
         double dt = s.t - touch_t_;
         int dx = lx_ - sx_, dy = ly_ - sy_;
-        int gesture = -1;                                  // 0-3 swipes, 4 two-finger tap
-        if (clicked_) gesture = -1;
-        else if (two_ && dt < 0.35 && std::abs(dx) < 150 && std::abs(dy) < 150) gesture = 4;
-        else if (dt < 0.5) {
-            if (std::abs(dy) > 300 && std::abs(dy) > std::abs(dx)) gesture = dy < 0 ? 0 : 1;
-            else if (std::abs(dx) > 450) gesture = dx < 0 ? 2 : 3;
+        // direction of the swipe (-1 none, 0 up, 1 down, 2 left, 3 right); touchpad is 1920 x 1080
+        int dir = -1;
+        if (dt < 0.5) {
+            if (std::abs(dy) > 300 && std::abs(dy) > std::abs(dx)) dir = dy < 0 ? 0 : 1;
+            else if (std::abs(dx) > 450) dir = dx < 0 ? 2 : 3;
         }
-        int half = sx_ >= 960 ? 1 : 0;                     // where the finger started (touchpad x 0..1919)
-        if (gesture == 4) {
-            inject(two_finger_, 0.12);
-            pulse_key(two_finger_vk_, 0.12);
-        } else if ((gesture == 0 || gesture == 1) && half_set_[half][gesture]) {
-            inject(half_swipe_[half][gesture], 0.12);      // this half has its own up / down binding
-            pulse_key(half_swipe_vk_[half][gesture], 0.12);
-        } else if (gesture >= 0) {
-            inject(swipe_[gesture], 0.12);
-            pulse_key(swipe_vk_[gesture], 0.12);
+        if (clicked_) {                                    // clicks belong to [TouchpadCorners]
+        } else if (two_) {                                 // two fingers: the whole pad
+            int g = -1;
+            if (dir >= 0) g = dir + 1;
+            else if (dt < 0.35 && std::abs(dx) < 150 && std::abs(dy) < 150) g = 0;
+            if (g >= 0) { inject(twof_[g], 0.12); pulse_key(twof_vk_[g], 0.12); }
+        } else if (dir == 0 || dir == 1) {                 // up / down: the left or right half it started on
+            int h = (sx_ >= 960 ? 2 : 0) + dir;
+            inject(half_[h], 0.12);
+            pulse_key(half_vk_[h], 0.12);
+        } else if (dir == 2 || dir == 3) {                 // left / right: the top or bottom half it started on
+            int h = 4 + (sy_ >= 540 ? 2 : 0) + (dir - 2);
+            inject(half_[h], 0.12);
+            pulse_key(half_vk_[h], 0.12);
         }
     }
 }

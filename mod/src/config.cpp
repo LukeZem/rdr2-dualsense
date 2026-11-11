@@ -198,20 +198,25 @@ SpeedPhrase=
 SpurTaps=2
 
 [Touchpad]
-; Button sent to the game: A B X Y LB RB LT RT BACK START LS RS UP DOWN LEFT RIGHT, empty = nothing
-; or a keyboard key for other mods: KEY:<key> (same key names as [Keys]), e.g. TwoFingerTap=KEY:C
-Click=BACK
-SwipeUp=
-SwipeDown=
-SwipeLeft=
-SwipeRight=
-TwoFingerTap=
-; Up / down swipes that start on one half of the touchpad (empty = that half uses SwipeUp / SwipeDown).
-; Right half: Numpad + / - (Bullet Time Pro's slow-motion strength). A swipe is touch only - click-drags don't count.
+; Touch gestures (no click). Each value is a game button (A B X Y LB RB LT RT BACK START LS RS UP DOWN LEFT RIGHT)
+; or a keyboard key for other mods: KEY:<key> (key names as in [Keys], e.g. KEY:F2, KEY:NUMPAD+). Empty = nothing.
+; A click-and-drag is never a swipe: clicks belong to [TouchpadCorners].
+; One finger, up / down swipes: the LEFT or RIGHT half the finger started on
 LeftSwipeUp=
 LeftSwipeDown=
-RightSwipeUp=KEY:NUMPADPLUS
-RightSwipeDown=KEY:NUMPADMINUS
+RightSwipeUp=
+RightSwipeDown=
+; One finger, left / right swipes: the TOP or BOTTOM half the finger started on
+TopSwipeLeft=
+TopSwipeRight=
+BottomSwipeLeft=
+BottomSwipeRight=
+; Two fingers anywhere on the pad
+TwoFingerTap=
+TwoFingerSwipeUp=
+TwoFingerSwipeDown=
+TwoFingerSwipeLeft=
+TwoFingerSwipeRight=
 
 [TouchpadCorners]
 ; Full clicks (press the touchpad down) in one of its four quarters - any time, no L2 needed.
@@ -220,7 +225,7 @@ RightSwipeDown=KEY:NUMPADMINUS
 ;   DoubleClick     = two quick clicks; fires when you let go of the second click
 ;   DoubleClickHold = two quick clicks, keeping the second one held; fires once it has been held for HoldTime
 ; Type the key: F7  ~  [  C  NUMPAD5  SPACE ... (symbols = the key they're printed on). Empty = nothing.
-; Once any corner has a key, touchpad clicks no longer reach the game (its camera zoom).
+; Touchpad clicks never reach the game (its camera zoom is also on the photo-mode button).
 TopLeftClick=
 TopLeftDoubleClick=
 TopLeftDoubleClickHold=
@@ -233,7 +238,7 @@ BottomLeftDoubleClickHold=
 BottomRightClick=
 BottomRightDoubleClick=
 BottomRightDoubleClickHold=
-DoubleClickWindow=0.25
+DoubleClickWindow=0.35
 HoldTime=0.35
 
 [Keys]
@@ -258,7 +263,7 @@ DpadRight=H
 Mode=doubletap
 TapTime=0.35
 HoldTime=0.3
-DoubleTap=0.25
+DoubleTap=0.35
 ; doubletap only: 1 = the first tap reaches the game at once (no delay, but it does on a double tap too)
 PassFirstTap=0
 ; Our own repeat while a key is held (0 = off: the key just stays held, and Realistic Ballistics repeats zeroing

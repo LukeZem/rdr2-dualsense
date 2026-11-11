@@ -46,16 +46,14 @@ private:
     int lt_probe_ = -1;
     std::atomic<float> rumble_low_{0}, rumble_high_{0};
     std::atomic<double> rt_press_read_t_{0};
-    WORD touch_click_ = XINPUT_GAMEPAD_BACK, swipe_[4] = {0, 0, 0, 0}, two_finger_ = 0;
-    // touch tracking
+    // [Touchpad] swipes: halves (0 LeftUp 1 LeftDown 2 RightUp 3 RightDown 4 TopLeft 5 TopRight 6 BottomLeft
+    // 7 BottomRight) and two fingers (0 tap, 1 up, 2 down, 3 left, 4 right); each a game button and/or a key
+    WORD half_[8] = {}, half_vk_[8] = {}, twof_[5] = {}, twof_vk_[5] = {};
     bool touching_ = false;
     int touch_id_ = -1, sx_ = 0, sy_ = 0, lx_ = 0, ly_ = 0;
     double touch_t_ = 0;
     bool two_ = false;
     bool clicked_ = false;                     // the touchpad was clicked during this touch
-    // per-half (0 left, 1 right) up / down swipes; set = overrides SwipeUp / SwipeDown on that half
-    WORD half_swipe_[2][2] = {{0, 0}, {0, 0}}, half_swipe_vk_[2][2] = {{0, 0}, {0, 0}};
-    bool half_set_[2][2] = {{false, false}, {false, false}};
     // gyro
     float bias_[3] = {0, 0, 0};
     float still_time_ = 0, smooth_yaw_ = 0, smooth_pitch_ = 0;
@@ -86,12 +84,9 @@ private:
     uint32_t prev_dpad_ = 0;
     bool chord_key_down_[4] = {};
     double chord_next_[4] = {};
-    WORD click_vk_ = 0, swipe_vk_[4] = {0, 0, 0, 0}, two_finger_vk_ = 0;   // touchpad KEY: bindings
-    bool click_key_down_ = false;
     struct Pulse { WORD vk; double up_at; };
     std::vector<Pulse> pulses_;
     // [TouchpadCorners]: clicking a quarter of the touchpad = Click / DoubleClick / DoubleClickHold keys (0 TL, 1 TR, 2 BL, 3 BR)
-    bool corners_on_ = false;                  // any corner key set: touchpad clicks no longer reach the game
     WORD corner_vk_[4][3] = {};                // [corner][0 click, 1 double click, 2 double click held]
     double corner_window_ = 0.25, corner_hold_ = 0.35;
     enum class CornerState { idle, press1, wait, press2, done };
